@@ -81,8 +81,8 @@ export default function UploadScreen() {
     setIsAnalyzing(true);
     setError(null);
 
-    const domain = process.env["EXPO_PUBLIC_DOMAIN"];
-    const baseUrl = domain ? `https://${domain}` : "";
+    const domainEnv = process.env["EXPO_PUBLIC_DOMAIN"];
+    const baseUrl = domainEnv ? `https://${domainEnv}` : "";
 
     const response = await fetch(`${baseUrl}/api/analyze`, {
       method: "POST",
@@ -100,33 +100,33 @@ export default function UploadScreen() {
     const result = (await response.json()) as AnalysisResult;
     await setAnalysis(result, imageUri);
     setIsAnalyzing(false);
-    router.replace("/dashboard");
+    router.replace("/(tabs)");
+  };
+
+  const handleClose = () => {
+    if (!isAnalyzing) router.back();
   };
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
-      <View
-        style={[
-          styles.header,
-          { paddingTop: topPad + 12, borderBottomColor: colors.border },
-        ]}
-      >
+      {/* Header */}
+      <View style={[styles.header, { paddingTop: topPad + 12, borderBottomColor: colors.border }]}>
+        <Text style={[styles.headerTitle, { color: colors.foreground }]}>
+          Upload Photo
+        </Text>
         <Pressable
-          onPress={() => router.back()}
+          onPress={handleClose}
           style={({ pressed }) => [
-            styles.backBtn,
+            styles.closeBtn,
             { backgroundColor: colors.secondary, opacity: pressed ? 0.7 : 1 },
           ]}
         >
-          <Ionicons name="arrow-back" size={20} color={colors.foreground} />
+          <Ionicons name="close" size={20} color={colors.foreground} />
         </Pressable>
-        <Text style={[styles.headerTitle, { color: colors.foreground }]}>
-          Your Photo
-        </Text>
-        <View style={styles.headerSpacer} />
       </View>
 
-      <View style={[styles.content, { paddingBottom: botPad + 24 }]}>
+      {/* Image area */}
+      <View style={styles.imageWrapper}>
         <Pressable onPress={handlePickImage} style={styles.imageArea}>
           {imageUri ? (
             <Image
@@ -142,83 +142,65 @@ export default function UploadScreen() {
               end={{ x: 1, y: 1 }}
             >
               <View
-                style={[
-                  styles.placeholderIcon,
-                  { backgroundColor: colors.card },
-                ]}
+                style={[styles.placeholderIcon, { backgroundColor: colors.card }]}
               >
-                <Ionicons
-                  name="person-outline"
-                  size={48}
-                  color={colors.mutedForeground}
-                />
+                <Ionicons name="person-outline" size={52} color={colors.mutedForeground} />
               </View>
-              <Text
-                style={[styles.placeholderText, { color: colors.mutedForeground }]}
-              >
+              <Text style={[styles.placeholderText, { color: colors.mutedForeground }]}>
                 Tap to choose a photo
               </Text>
-              <Text
-                style={[
-                  styles.placeholderHint,
-                  { color: colors.mutedForeground },
-                ]}
-              >
-                For best results, use a clear{"\n"}front-facing selfie
+              <Text style={[styles.placeholderHint, { color: colors.mutedForeground }]}>
+                Use a clear front-facing selfie{"\n"}for best results
               </Text>
             </LinearGradient>
           )}
         </Pressable>
+      </View>
 
+      {/* Bottom actions */}
+      <View style={[styles.actions, { paddingBottom: botPad + 16 }]}>
         {error && (
-          <View
-            style={[styles.errorBox, { backgroundColor: colors.destructive + "15" }]}
-          >
-            <Ionicons
-              name="alert-circle"
-              size={16}
-              color={colors.destructive}
-            />
+          <View style={[styles.errorBox, { backgroundColor: colors.destructive + "15" }]}>
+            <Ionicons name="alert-circle" size={16} color={colors.destructive} />
             <Text style={[styles.errorText, { color: colors.destructive }]}>
               {error}
             </Text>
           </View>
         )}
 
-        <View style={styles.actions}>
+        {isAnalyzing && (
+          <View style={[styles.analyzingBanner, { backgroundColor: colors.secondary }]}>
+            <ActivityIndicator size="small" color={colors.primary} />
+            <Text style={[styles.analyzingText, { color: colors.primary }]}>
+              AI is analyzing your features...
+            </Text>
+          </View>
+        )}
+
+        <View style={styles.buttonRow}>
           <Pressable
             onPress={handlePickImage}
+            disabled={isAnalyzing}
             style={({ pressed }) => [
-              styles.actionBtn,
-              {
-                backgroundColor: colors.card,
-                borderColor: colors.border,
-                opacity: pressed ? 0.7 : 1,
-              },
+              styles.sourceBtn,
+              { backgroundColor: colors.card, borderColor: colors.border, opacity: pressed ? 0.7 : 1 },
             ]}
           >
-            <Ionicons name="images-outline" size={20} color={colors.primary} />
-            <Text style={[styles.actionText, { color: colors.foreground }]}>
+            <Ionicons name="images-outline" size={22} color={colors.primary} />
+            <Text style={[styles.sourceBtnText, { color: colors.foreground }]}>
               Gallery
             </Text>
           </Pressable>
           <Pressable
             onPress={handleTakePhoto}
+            disabled={isAnalyzing}
             style={({ pressed }) => [
-              styles.actionBtn,
-              {
-                backgroundColor: colors.card,
-                borderColor: colors.border,
-                opacity: pressed ? 0.7 : 1,
-              },
+              styles.sourceBtn,
+              { backgroundColor: colors.card, borderColor: colors.border, opacity: pressed ? 0.7 : 1 },
             ]}
           >
-            <Ionicons
-              name="camera-outline"
-              size={20}
-              color={colors.primary}
-            />
-            <Text style={[styles.actionText, { color: colors.foreground }]}>
+            <Ionicons name="camera-outline" size={22} color={colors.primary} />
+            <Text style={[styles.sourceBtnText, { color: colors.foreground }]}>
               Camera
             </Text>
           </Pressable>
@@ -231,47 +213,36 @@ export default function UploadScreen() {
             styles.analyzeBtn,
             {
               backgroundColor:
-                !imageUri || isAnalyzing
-                  ? colors.muted
-                  : colors.primary,
-              opacity: pressed && imageUri && !isAnalyzing ? 0.85 : 1,
+                !imageUri || isAnalyzing ? colors.muted : colors.primary,
+              opacity: pressed && !!imageUri && !isAnalyzing ? 0.85 : 1,
             },
           ]}
         >
           {isAnalyzing ? (
-            <>
-              <ActivityIndicator color={colors.primaryForeground} size="small" />
-              <Text
-                style={[styles.analyzeBtnText, { color: colors.primaryForeground }]}
-              >
-                Analyzing...
-              </Text>
-            </>
+            <ActivityIndicator color={colors.primaryForeground} size="small" />
           ) : (
-            <>
-              <Ionicons
-                name="sparkles"
-                size={20}
-                color={!imageUri ? colors.mutedForeground : colors.primaryForeground}
-              />
-              <Text
-                style={[
-                  styles.analyzeBtnText,
-                  {
-                    color: !imageUri
-                      ? colors.mutedForeground
-                      : colors.primaryForeground,
-                  },
-                ]}
-              >
-                Analyze My Style
-              </Text>
-            </>
+            <Ionicons
+              name="sparkles"
+              size={20}
+              color={!imageUri ? colors.mutedForeground : colors.primaryForeground}
+            />
           )}
+          <Text
+            style={[
+              styles.analyzeBtnText,
+              {
+                color: !imageUri
+                  ? colors.mutedForeground
+                  : colors.primaryForeground,
+              },
+            ]}
+          >
+            {isAnalyzing ? "Analyzing..." : "Analyze My Style"}
+          </Text>
         </Pressable>
 
         <Text style={[styles.tipText, { color: colors.mutedForeground }]}>
-          Analysis takes about 15-20 seconds
+          Analysis typically takes 15–20 seconds
         </Text>
       </View>
     </View>
@@ -283,71 +254,63 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingBottom: 16,
     borderBottomWidth: 1,
   },
-  backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
+  headerTitle: { fontSize: 17, fontFamily: "Inter_600SemiBold" },
+  closeBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
   },
-  headerTitle: {
-    flex: 1,
-    textAlign: "center",
-    fontSize: 17,
-    fontFamily: "Inter_600SemiBold",
-  },
-  headerSpacer: { width: 40 },
-  content: { flex: 1, padding: 20 },
-  imageArea: { flex: 1, borderRadius: 24, overflow: "hidden", marginBottom: 16 },
+  imageWrapper: { flex: 1, padding: 16 },
+  imageArea: { flex: 1, borderRadius: 24, overflow: "hidden" },
   preview: { flex: 1 },
   placeholder: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    gap: 12,
-    minHeight: 300,
+    gap: 14,
+    minHeight: 280,
   },
   placeholderIcon: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
+    width: 104,
+    height: 104,
+    borderRadius: 52,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
   },
-  placeholderText: {
-    fontSize: 16,
-    fontFamily: "Inter_500Medium",
-  },
+  placeholderText: { fontSize: 16, fontFamily: "Inter_500Medium" },
   placeholderHint: {
     fontSize: 13,
     fontFamily: "Inter_400Regular",
     textAlign: "center",
     lineHeight: 20,
   },
+  actions: { paddingHorizontal: 20, gap: 12 },
   errorBox: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
     padding: 12,
     borderRadius: 12,
-    marginBottom: 12,
   },
   errorText: { fontSize: 14, fontFamily: "Inter_400Regular", flex: 1 },
-  actions: {
+  analyzingBanner: {
     flexDirection: "row",
-    gap: 12,
-    marginBottom: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    padding: 12,
+    borderRadius: 14,
   },
-  actionBtn: {
+  analyzingText: { fontSize: 14, fontFamily: "Inter_500Medium" },
+  buttonRow: { flexDirection: "row", gap: 12 },
+  sourceBtn: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
@@ -357,7 +320,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1,
   },
-  actionText: { fontSize: 15, fontFamily: "Inter_500Medium" },
+  sourceBtnText: { fontSize: 15, fontFamily: "Inter_500Medium" },
   analyzeBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -365,12 +328,7 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingVertical: 18,
     borderRadius: 18,
-    marginBottom: 12,
   },
   analyzeBtnText: { fontSize: 17, fontFamily: "Inter_600SemiBold" },
-  tipText: {
-    textAlign: "center",
-    fontSize: 13,
-    fontFamily: "Inter_400Regular",
-  },
+  tipText: { textAlign: "center", fontSize: 13, fontFamily: "Inter_400Regular" },
 });

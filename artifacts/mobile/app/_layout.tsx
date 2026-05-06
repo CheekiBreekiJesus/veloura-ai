@@ -29,9 +29,11 @@ const queryClient = new QueryClient();
 function RootLayoutNav() {
   return (
     <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="index" />
-      <Stack.Screen name="upload" />
-      <Stack.Screen name="dashboard" />
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen
+        name="upload"
+        options={{ presentation: "modal", headerShown: false }}
+      />
     </Stack>
   );
 }
