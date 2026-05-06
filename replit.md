@@ -62,6 +62,7 @@ _Populate as you build._
 - Web preview has rendering quirks (fonts/icons may appear faint) — use Expo Go on device for the real experience
 - `lib/integrations-openai-ai-server` requires `@types/node` as a devDependency (already added)
 - In Hermes/Metro, define helper components BEFORE the screen that uses them — hoisting is unreliable. `SeasonCard` and `DailyTip` must appear above `HomeScreen` in `index.tsx`
+- Ionicons show as Chinese symbols on Android/web if not explicitly loaded: add `...Ionicons.font` to the `useFonts({})` call in `_layout.tsx`
 
 ## Pointers
 

@@ -113,6 +113,49 @@ function useFadeIn(delay = 0) {
   return { opacity: anim, transform: [{ translateY }] };
 }
 
+function FeatureDNA({
+  analysis,
+  colors,
+}: {
+  analysis: AnalysisResult;
+  colors: ReturnType<typeof useColors>;
+}) {
+  const anim = useFadeIn(140);
+  const features: { icon: React.ComponentProps<typeof Ionicons>["name"]; label: string; value: string; gradient: [string, string] }[] = [
+    { icon: "scan-outline", label: "Face", value: analysis.face_shape, gradient: ["#FDECD3", "#F5D5B0"] },
+    { icon: "sunny-outline", label: "Skin", value: analysis.skin_tone, gradient: ["#F5EDE3", "#EDE3D9"] },
+    { icon: "color-filter-outline", label: "Undertone", value: analysis.undertone, gradient: ["#F0E4F5", "#DFC8EF"] },
+    { icon: "eye-outline", label: "Eyes", value: analysis.eye_shape, gradient: ["#D9EEF5", "#B8DCEA"] },
+    { icon: "cut-outline", label: "Hair", value: analysis.hair_type, gradient: ["#D9F5E4", "#B8EAD0"] },
+    { icon: "happy-outline", label: "Lips", value: analysis.lip_shape, gradient: ["#FDECD3", "#F5D5B0"] },
+  ];
+  return (
+    <Animated.View style={[{ marginBottom: 20 }, anim]}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.dnaScroll}
+      >
+        {features.map((f, i) => (
+          <LinearGradient
+            key={i}
+            colors={f.gradient}
+            style={[styles.dnaCard, { borderColor: colors.border }]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          >
+            <View style={[styles.dnaIconWrap, { backgroundColor: "rgba(255,255,255,0.7)" }]}>
+              <Ionicons name={f.icon} size={16} color={colors.primary} />
+            </View>
+            <Text style={[styles.dnaLabel, { color: colors.mutedForeground }]}>{f.label}</Text>
+            <Text style={[styles.dnaValue, { color: colors.foreground }]} numberOfLines={2}>{f.value}</Text>
+          </LinearGradient>
+        ))}
+      </ScrollView>
+    </Animated.View>
+  );
+}
+
 function SeasonCard({
   seasonProfile,
   colors,
@@ -243,6 +286,7 @@ export default function HomeScreen() {
       />
       <ProfileCard analysis={analysis} imageUri={imageUri} colors={colors} season={season} seasonEmoji={seasonProfile.emoji} />
       <PaletteStrip palette={analysis.color_palette} colors={colors} />
+      <FeatureDNA analysis={analysis} colors={colors} />
       <SeasonCard seasonProfile={seasonProfile} colors={colors} />
       <DailyTip tip={tip} colors={colors} />
       <TodayForYou cats={cats} colors={colors} />
@@ -706,6 +750,11 @@ const styles = StyleSheet.create({
   recDesc: { fontSize: 12, fontFamily: "Inter_400Regular", lineHeight: 18 },
   viewPill: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20 },
   viewPillText: { fontSize: 13, fontFamily: "Inter_500Medium" },
+  dnaScroll: { paddingHorizontal: 20, gap: 10 },
+  dnaCard: { width: 90, padding: 12, borderRadius: 16, borderWidth: 1, gap: 6 },
+  dnaIconWrap: { width: 32, height: 32, borderRadius: 10, alignItems: "center", justifyContent: "center" },
+  dnaLabel: { fontSize: 10, fontFamily: "Inter_600SemiBold", letterSpacing: 0.5 },
+  dnaValue: { fontSize: 12, fontFamily: "Inter_600SemiBold", lineHeight: 16 },
   seasonCard: { borderRadius: 20, padding: 18, borderWidth: 1, gap: 12 },
   seasonCardHeader: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between" },
   seasonCardLabel: { fontSize: 10, fontFamily: "Inter_600SemiBold", letterSpacing: 1, marginBottom: 4 },
