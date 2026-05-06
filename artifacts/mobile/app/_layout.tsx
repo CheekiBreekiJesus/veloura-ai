@@ -34,6 +34,14 @@ function RootLayoutNav() {
         name="upload"
         options={{ presentation: "modal", headerShown: false }}
       />
+      <Stack.Screen
+        name="analyzing"
+        options={{ headerShown: false, gestureEnabled: false }}
+      />
+      <Stack.Screen
+        name="profile"
+        options={{ headerShown: false }}
+      />
     </Stack>
   );
 }

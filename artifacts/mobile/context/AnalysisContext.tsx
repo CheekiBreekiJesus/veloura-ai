@@ -22,32 +22,49 @@ export interface AnalysisResult {
   glasses_suggestions: string[];
 }
 
+export interface PendingImage {
+  base64: string;
+  mimeType: string;
+  uri: string;
+}
+
 interface AnalysisContextValue {
   analysis: AnalysisResult | null;
   imageUri: string | null;
-  setAnalysis: (result: AnalysisResult, uri: string) => void;
-  clearAnalysis: () => void;
+  userName: string | null;
+  pendingImage: PendingImage | null;
+  setAnalysis: (result: AnalysisResult, uri: string) => Promise<void>;
+  clearAnalysis: () => Promise<void>;
+  setUserName: (name: string) => Promise<void>;
+  setPendingImage: (img: PendingImage | null) => void;
 }
 
 const AnalysisContext = createContext<AnalysisContextValue | null>(null);
 
 const STORAGE_KEY = "ai_stylist_analysis";
 const IMAGE_URI_KEY = "ai_stylist_image_uri";
+const NAME_KEY = "ai_stylist_user_name";
 
 export function AnalysisProvider({ children }: { children: React.ReactNode }) {
   const [analysis, setAnalysisState] = useState<AnalysisResult | null>(null);
   const [imageUri, setImageUri] = useState<string | null>(null);
+  const [userName, setUserNameState] = useState<string | null>(null);
+  const [pendingImage, setPendingImageState] = useState<PendingImage | null>(
+    null
+  );
 
   useEffect(() => {
     const load = async () => {
-      const storedAnalysis = await AsyncStorage.getItem(STORAGE_KEY);
-      const storedUri = await AsyncStorage.getItem(IMAGE_URI_KEY);
+      const [storedAnalysis, storedUri, storedName] = await Promise.all([
+        AsyncStorage.getItem(STORAGE_KEY),
+        AsyncStorage.getItem(IMAGE_URI_KEY),
+        AsyncStorage.getItem(NAME_KEY),
+      ]);
       if (storedAnalysis) {
         setAnalysisState(JSON.parse(storedAnalysis) as AnalysisResult);
       }
-      if (storedUri) {
-        setImageUri(storedUri);
-      }
+      if (storedUri) setImageUri(storedUri);
+      if (storedName) setUserNameState(storedName);
     };
     load();
   }, []);
@@ -56,8 +73,10 @@ export function AnalysisProvider({ children }: { children: React.ReactNode }) {
     async (result: AnalysisResult, uri: string) => {
       setAnalysisState(result);
       setImageUri(uri);
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(result));
-      await AsyncStorage.setItem(IMAGE_URI_KEY, uri);
+      await Promise.all([
+        AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(result)),
+        AsyncStorage.setItem(IMAGE_URI_KEY, uri),
+      ]);
     },
     []
   );
@@ -65,13 +84,34 @@ export function AnalysisProvider({ children }: { children: React.ReactNode }) {
   const clearAnalysis = useCallback(async () => {
     setAnalysisState(null);
     setImageUri(null);
-    await AsyncStorage.removeItem(STORAGE_KEY);
-    await AsyncStorage.removeItem(IMAGE_URI_KEY);
+    setPendingImageState(null);
+    await Promise.all([
+      AsyncStorage.removeItem(STORAGE_KEY),
+      AsyncStorage.removeItem(IMAGE_URI_KEY),
+    ]);
+  }, []);
+
+  const setUserName = useCallback(async (name: string) => {
+    setUserNameState(name);
+    await AsyncStorage.setItem(NAME_KEY, name);
+  }, []);
+
+  const setPendingImage = useCallback((img: PendingImage | null) => {
+    setPendingImageState(img);
   }, []);
 
   return (
     <AnalysisContext.Provider
-      value={{ analysis, imageUri, setAnalysis, clearAnalysis }}
+      value={{
+        analysis,
+        imageUri,
+        userName,
+        pendingImage,
+        setAnalysis,
+        clearAnalysis,
+        setUserName,
+        setPendingImage,
+      }}
     >
       {children}
     </AnalysisContext.Provider>
