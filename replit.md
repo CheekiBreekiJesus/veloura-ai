@@ -46,6 +46,9 @@ A mobile app that analyzes a selfie using AI vision and generates a personalized
 
 - Upload a selfie → AI analyzes face shape, skin tone, undertone, eye shape, hair type, style archetype
 - Receive a personalized color palette (5-8 hex colors), beauty/fashion/hair/glasses recommendations
+- Color Season analysis (Spring/Summer/Autumn/Winter) with palette, best/avoid colors, gradient card on home + full detail on profile screen
+- Daily rotating tip card on home screen (personalized from analysis, falls back to generic tips)
+- Season badge pill on profile card; "Details" button links to profile screen
 - Browse curated mock product recommendations in the Shop tab
 - Results persisted locally (AsyncStorage) so they survive app restarts
 
@@ -58,6 +61,7 @@ _Populate as you build._
 - Always run `pnpm --filter @workspace/api-spec run codegen` after changing `lib/api-spec/openapi.yaml`
 - Web preview has rendering quirks (fonts/icons may appear faint) — use Expo Go on device for the real experience
 - `lib/integrations-openai-ai-server` requires `@types/node` as a devDependency (already added)
+- In Hermes/Metro, define helper components BEFORE the screen that uses them — hoisting is unreliable. `SeasonCard` and `DailyTip` must appear above `HomeScreen` in `index.tsx`
 
 ## Pointers
 

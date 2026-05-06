@@ -19,6 +19,8 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAnalysis, type AnalysisResult } from "@/context/AnalysisContext";
+import { getDailyTip } from "@/constants/tips";
+import { getColorSeason, getSeasonProfile } from "@/constants/seasons";
 import { useColors } from "@/hooks/useColors";
 
 const ND = Platform.OS !== "web";
@@ -111,6 +113,104 @@ function useFadeIn(delay = 0) {
   return { opacity: anim, transform: [{ translateY }] };
 }
 
+function SeasonCard({
+  seasonProfile,
+  colors,
+}: {
+  seasonProfile: ReturnType<typeof getSeasonProfile>;
+  colors: ReturnType<typeof useColors>;
+}) {
+  const anim = useFadeIn(200);
+  return (
+    <Animated.View style={[styles.sectionPad, anim]}>
+      <LinearGradient
+        colors={seasonProfile.gradient}
+        style={[styles.seasonCard, { borderColor: colors.border }]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
+        <View style={styles.seasonCardHeader}>
+          <View>
+            <Text style={[styles.seasonCardLabel, { color: colors.mutedForeground }]}>
+              Color Season
+            </Text>
+            <View style={styles.seasonCardTitle}>
+              <Text style={styles.seasonCardEmoji}>{seasonProfile.emoji}</Text>
+              <Text style={[styles.seasonCardName, { color: colors.foreground }]}>
+                {seasonProfile.season}
+              </Text>
+              <Text style={[styles.seasonCardSubtitle, { color: colors.mutedForeground }]}>
+                {seasonProfile.subtitle}
+              </Text>
+            </View>
+          </View>
+          <Pressable
+            onPress={async () => {
+              await Haptics.selectionAsync();
+              router.push("/profile");
+            }}
+            style={({ pressed }) => [
+              styles.seasonViewBtn,
+              { backgroundColor: "rgba(255,255,255,0.7)", opacity: pressed ? 0.7 : 1 },
+            ]}
+          >
+            <Text style={[styles.seasonViewText, { color: colors.primary }]}>Details</Text>
+          </Pressable>
+        </View>
+        <Text style={[styles.seasonDesc, { color: colors.mutedForeground }]} numberOfLines={2}>
+          {seasonProfile.description}
+        </Text>
+        <View style={styles.seasonSwatches}>
+          {seasonProfile.palette.slice(0, 5).map((hex, i) => (
+            <View key={i} style={[styles.seasonSwatch, { backgroundColor: hex }]} />
+          ))}
+        </View>
+      </LinearGradient>
+    </Animated.View>
+  );
+}
+
+function DailyTip({
+  tip,
+  colors,
+}: {
+  tip: ReturnType<typeof getDailyTip>;
+  colors: ReturnType<typeof useColors>;
+}) {
+  const anim = useFadeIn(280);
+  return (
+    <Animated.View style={[styles.sectionPad, anim]}>
+      <View
+        style={[
+          styles.tipCard,
+          { backgroundColor: colors.card, borderColor: colors.border },
+        ]}
+      >
+        <View style={styles.tipHeader}>
+          <View style={[styles.tipIconWrap, { backgroundColor: colors.primary + "18" }]}>
+            <Ionicons
+              name={tip.icon as React.ComponentProps<typeof Ionicons>["name"]}
+              size={18}
+              color={colors.primary}
+            />
+          </View>
+          <View style={styles.tipMeta}>
+            <Text style={[styles.tipLabel, { color: colors.mutedForeground }]}>
+              TIP OF THE DAY
+            </Text>
+            <Text style={[styles.tipTitle, { color: colors.foreground }]}>
+              {tip.title}
+            </Text>
+          </View>
+        </View>
+        <Text style={[styles.tipBody, { color: colors.mutedForeground }]}>
+          {tip.body}
+        </Text>
+      </View>
+    </Animated.View>
+  );
+}
+
 export default function HomeScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -125,6 +225,9 @@ export default function HomeScreen() {
 
   const cats = buildCategories(analysis);
   const recs = buildRecs(analysis);
+  const tip = getDailyTip(analysis);
+  const season = getColorSeason(analysis.undertone, analysis.skin_tone);
+  const seasonProfile = getSeasonProfile(season);
   const displayName = userName?.trim() ? `, ${userName.trim()}` : "";
 
   return (
@@ -138,8 +241,10 @@ export default function HomeScreen() {
         colors={colors}
         topPad={topPad}
       />
-      <ProfileCard analysis={analysis} imageUri={imageUri} colors={colors} />
+      <ProfileCard analysis={analysis} imageUri={imageUri} colors={colors} season={season} seasonEmoji={seasonProfile.emoji} />
       <PaletteStrip palette={analysis.color_palette} colors={colors} />
+      <SeasonCard seasonProfile={seasonProfile} colors={colors} />
+      <DailyTip tip={tip} colors={colors} />
       <TodayForYou cats={cats} colors={colors} />
       <AIRecommendations recs={recs} colors={colors} />
     </ScrollView>
@@ -168,18 +273,32 @@ function Header({
           Your AI stylist is ready for you
         </Text>
       </View>
-      <Pressable
-        onPress={async () => {
-          await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          router.push("/upload");
-        }}
-        style={({ pressed }) => [
-          styles.aiBtn,
-          { backgroundColor: colors.primary, opacity: pressed ? 0.8 : 1 },
-        ]}
-      >
-        <Ionicons name="sparkles" size={18} color={colors.primaryForeground} />
-      </Pressable>
+      <View style={styles.headerBtns}>
+        <Pressable
+          onPress={async () => {
+            await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            router.push("/settings");
+          }}
+          style={({ pressed }) => [
+            styles.headerIconBtn,
+            { backgroundColor: colors.secondary, opacity: pressed ? 0.7 : 1 },
+          ]}
+        >
+          <Ionicons name="settings-outline" size={18} color={colors.foreground} />
+        </Pressable>
+        <Pressable
+          onPress={async () => {
+            await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            router.push("/upload");
+          }}
+          style={({ pressed }) => [
+            styles.aiBtn,
+            { backgroundColor: colors.primary, opacity: pressed ? 0.8 : 1 },
+          ]}
+        >
+          <Ionicons name="sparkles" size={18} color={colors.primaryForeground} />
+        </Pressable>
+      </View>
     </Animated.View>
   );
 }
@@ -188,10 +307,14 @@ function ProfileCard({
   analysis,
   imageUri,
   colors,
+  season,
+  seasonEmoji,
 }: {
   analysis: AnalysisResult;
   imageUri: string | null;
   colors: ReturnType<typeof useColors>;
+  season: string;
+  seasonEmoji: string;
 }) {
   const anim = useFadeIn(80);
   return (
@@ -223,9 +346,15 @@ function ProfileCard({
           <Text style={[styles.profileArchetype, { color: colors.primary }]}>
             {analysis.style_archetype}
           </Text>
-          <Text style={[styles.profileSub, { color: colors.mutedForeground }]}>
-            Your Style Profile
-          </Text>
+          <View style={styles.profileSubRow}>
+            <Text style={[styles.profileSub, { color: colors.mutedForeground }]}>
+              Your Style Profile
+            </Text>
+            <View style={[styles.seasonPill, { backgroundColor: colors.primary + "18" }]}>
+              <Text style={styles.seasonEmoji}>{seasonEmoji}</Text>
+              <Text style={[styles.seasonPillText, { color: colors.primary }]}>{season}</Text>
+            </View>
+          </View>
           <View style={styles.profileTraits}>
             {[
               { icon: "sunny-outline" as const, label: analysis.undertone },
@@ -494,6 +623,14 @@ const styles = StyleSheet.create({
   headerLeft: { flex: 1, marginRight: 12 },
   greeting: { fontSize: 26, fontFamily: "Inter_700Bold", marginBottom: 4 },
   greetingSub: { fontSize: 13, fontFamily: "Inter_400Regular" },
+  headerBtns: { flexDirection: "row", gap: 8, alignItems: "center" },
+  headerIconBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   aiBtn: {
     width: 44,
     height: 44,
@@ -514,7 +651,11 @@ const styles = StyleSheet.create({
   profilePhotoPlaceholder: { alignItems: "center", justifyContent: "center" },
   profileInfo: { flex: 1 },
   profileArchetype: { fontSize: 16, fontFamily: "Inter_700Bold", marginBottom: 2 },
-  profileSub: { fontSize: 12, fontFamily: "Inter_400Regular", marginBottom: 8 },
+  profileSubRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8, flexWrap: "wrap" },
+  profileSub: { fontSize: 12, fontFamily: "Inter_400Regular" },
+  seasonPill: { flexDirection: "row", alignItems: "center", gap: 3, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 10 },
+  seasonEmoji: { fontSize: 11 },
+  seasonPillText: { fontSize: 10, fontFamily: "Inter_600SemiBold" },
   profileTraits: { gap: 5 },
   traitRow: { flexDirection: "row", alignItems: "center", gap: 6 },
   traitText: { fontSize: 13, fontFamily: "Inter_400Regular" },
@@ -565,6 +706,25 @@ const styles = StyleSheet.create({
   recDesc: { fontSize: 12, fontFamily: "Inter_400Regular", lineHeight: 18 },
   viewPill: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20 },
   viewPillText: { fontSize: 13, fontFamily: "Inter_500Medium" },
+  seasonCard: { borderRadius: 20, padding: 18, borderWidth: 1, gap: 12 },
+  seasonCardHeader: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between" },
+  seasonCardLabel: { fontSize: 10, fontFamily: "Inter_600SemiBold", letterSpacing: 1, marginBottom: 4 },
+  seasonCardTitle: { flexDirection: "row", alignItems: "center", gap: 6 },
+  seasonCardEmoji: { fontSize: 20 },
+  seasonCardName: { fontSize: 18, fontFamily: "Inter_700Bold" },
+  seasonCardSubtitle: { fontSize: 12, fontFamily: "Inter_400Regular" },
+  seasonViewBtn: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 12 },
+  seasonViewText: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
+  seasonDesc: { fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 20 },
+  seasonSwatches: { flexDirection: "row", gap: 8 },
+  seasonSwatch: { width: 32, height: 32, borderRadius: 16 },
+  tipCard: { borderRadius: 18, borderWidth: 1, padding: 16, gap: 12 },
+  tipHeader: { flexDirection: "row", alignItems: "center", gap: 12 },
+  tipIconWrap: { width: 40, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  tipMeta: { flex: 1 },
+  tipLabel: { fontSize: 10, fontFamily: "Inter_600SemiBold", letterSpacing: 1, marginBottom: 2 },
+  tipTitle: { fontSize: 15, fontFamily: "Inter_600SemiBold" },
+  tipBody: { fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 20 },
   onboardContent: { paddingHorizontal: 24 },
   logoGrad: {
     width: 72,

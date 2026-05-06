@@ -28,6 +28,35 @@ const colors = {
     input: "#E5D9CF",
   },
 
+  dark: {
+    text: "#F0E8DF",
+    tint: "#C4956A",
+
+    background: "#1A1512",
+    foreground: "#F0E8DF",
+
+    card: "#261D17",
+    cardForeground: "#F0E8DF",
+
+    primary: "#C4956A",
+    primaryForeground: "#1A1512",
+
+    secondary: "#2E2218",
+    secondaryForeground: "#E0C4A8",
+
+    muted: "#2A1F17",
+    mutedForeground: "#8B7B6E",
+
+    accent: "#3D2E22",
+    accentForeground: "#E0C4A8",
+
+    destructive: "#D45F5F",
+    destructiveForeground: "#FFFFFF",
+
+    border: "#3A2A20",
+    input: "#3A2A20",
+  },
+
   radius: 16,
 };
 

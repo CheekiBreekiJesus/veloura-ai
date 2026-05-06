@@ -17,6 +17,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAnalysis } from "@/context/AnalysisContext";
+import { getColorSeason, getSeasonProfile } from "@/constants/seasons";
 import { useColors } from "@/hooks/useColors";
 
 const { width } = Dimensions.get("window");
@@ -159,6 +160,8 @@ export default function ProfileScreen() {
 
   const fields = buildFields(analysis);
   const sections = buildSections(analysis);
+  const season = getColorSeason(analysis.undertone, analysis.skin_tone);
+  const seasonProfile = getSeasonProfile(season);
 
   const handleReset = async () => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
@@ -300,6 +303,61 @@ export default function ProfileScreen() {
               ))}
             </View>
           </View>
+        </View>
+
+        {/* Color Season */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Ionicons name="leaf-outline" size={18} color={colors.primary} />
+            <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
+              Color Season
+            </Text>
+          </View>
+          <LinearGradient
+            colors={seasonProfile.gradient}
+            style={[styles.seasonCard, { borderColor: colors.border }]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          >
+            <View style={styles.seasonTop}>
+              <Text style={styles.seasonEmoji}>{seasonProfile.emoji}</Text>
+              <View style={styles.seasonMeta}>
+                <Text style={[styles.seasonName, { color: colors.foreground }]}>
+                  {seasonProfile.season}
+                </Text>
+                <Text style={[styles.seasonSubtitle, { color: colors.mutedForeground }]}>
+                  {seasonProfile.subtitle}
+                </Text>
+              </View>
+            </View>
+            <Text style={[styles.seasonDesc, { color: colors.mutedForeground }]}>
+              {seasonProfile.description}
+            </Text>
+            <View style={styles.seasonSwatches}>
+              {seasonProfile.palette.map((hex, i) => (
+                <View key={i} style={[styles.seasonSwatch, { backgroundColor: hex }]} />
+              ))}
+            </View>
+            <View style={styles.seasonLists}>
+              <View style={styles.seasonListCol}>
+                <Text style={[styles.seasonListLabel, { color: colors.primary }]}>Wear</Text>
+                {seasonProfile.bestColors.slice(0, 3).map((c, i) => (
+                  <Text key={i} style={[styles.seasonListItem, { color: colors.foreground }]}>
+                    ✓ {c}
+                  </Text>
+                ))}
+              </View>
+              <View style={[styles.seasonDivider, { backgroundColor: colors.border }]} />
+              <View style={styles.seasonListCol}>
+                <Text style={[styles.seasonListLabel, { color: colors.mutedForeground }]}>Avoid</Text>
+                {seasonProfile.avoidColors.slice(0, 3).map((c, i) => (
+                  <Text key={i} style={[styles.seasonListItem, { color: colors.mutedForeground }]}>
+                    ✗ {c}
+                  </Text>
+                ))}
+              </View>
+            </View>
+          </LinearGradient>
         </View>
 
         {/* Feature grid */}
@@ -522,4 +580,18 @@ const styles = StyleSheet.create({
   emptyTitle: { fontSize: 20, fontFamily: "Inter_600SemiBold" },
   emptyBtn: { paddingHorizontal: 28, paddingVertical: 14, borderRadius: 14 },
   emptyBtnText: { fontSize: 15, fontFamily: "Inter_600SemiBold" },
+  seasonCard: { borderRadius: 20, padding: 18, borderWidth: 1, gap: 14 },
+  seasonTop: { flexDirection: "row", alignItems: "center", gap: 12 },
+  seasonEmoji: { fontSize: 32 },
+  seasonMeta: { flex: 1 },
+  seasonName: { fontSize: 20, fontFamily: "Inter_700Bold" },
+  seasonSubtitle: { fontSize: 13, fontFamily: "Inter_400Regular", marginTop: 2 },
+  seasonDesc: { fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 21 },
+  seasonSwatches: { flexDirection: "row", gap: 8 },
+  seasonSwatch: { flex: 1, height: 28, borderRadius: 8 },
+  seasonLists: { flexDirection: "row", gap: 16 },
+  seasonListCol: { flex: 1, gap: 6 },
+  seasonDivider: { width: 1 },
+  seasonListLabel: { fontSize: 11, fontFamily: "Inter_700Bold", letterSpacing: 0.5, marginBottom: 2 },
+  seasonListItem: { fontSize: 13, fontFamily: "Inter_400Regular" },
 });
