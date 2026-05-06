@@ -1,45 +1,66 @@
-# [Project name]
+# AI Identity Stylist
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+A mobile app that analyzes a selfie using AI vision and generates a personalized beauty and fashion profile with color palette, style archetype, and curated recommendations.
 
 ## Run & Operate
 
-- `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
+- API Server: `pnpm --filter @workspace/api-server run dev` (port 8080)
+- Mobile: `pnpm --filter @workspace/mobile run dev` (Expo Go / web)
 - `pnpm run typecheck` — full typecheck across all packages
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required env: `DATABASE_URL` — Postgres connection string
+- Required env: `AI_INTEGRATIONS_OPENAI_BASE_URL`, `AI_INTEGRATIONS_OPENAI_API_KEY` (auto-provisioned by Replit AI Integrations)
 
 ## Stack
 
 - pnpm workspaces, Node.js 24, TypeScript 5.9
+- Mobile: Expo (SDK 54), Expo Router, React Native
 - API: Express 5
-- DB: PostgreSQL + Drizzle ORM
+- DB: PostgreSQL + Drizzle ORM (not yet used — no user persistence needed)
+- AI: OpenAI GPT vision via `@workspace/integrations-openai-ai-server`
 - Validation: Zod (`zod/v4`), `drizzle-zod`
 - API codegen: Orval (from OpenAPI spec)
-- Build: esbuild (CJS bundle)
+- Build: esbuild (CJS bundle for server)
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `artifacts/mobile/` — Expo mobile app
+  - `app/index.tsx` — Landing screen
+  - `app/upload.tsx` — Photo upload + analysis trigger
+  - `app/dashboard.tsx` — Results dashboard (Profile, Beauty, Fashion, Products tabs)
+  - `context/AnalysisContext.tsx` — Shared analysis state (AsyncStorage backed)
+  - `constants/colors.ts` — Warm luxury palette (#FAF8F5 bg, #C4956A primary)
+- `artifacts/api-server/src/routes/analyze.ts` — POST /api/analyze (OpenAI vision)
+- `lib/api-spec/openapi.yaml` — Source of truth for API contracts
+- `lib/integrations-openai-ai-server/` — OpenAI SDK wrapper
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- Image is base64-encoded on device and sent as JSON body (no multipart form handling needed)
+- Analysis results stored in AsyncStorage via AnalysisContext — no backend persistence
+- Stack navigation (no tabs) for a clean linear flow: Landing → Upload → Dashboard
+- OpenAI GPT-5.4 used for vision analysis; returns strict JSON matching the AnalysisResult schema
+- Dashboard uses tab-based sections (Profile, Beauty, Fashion, Shop) within the results screen
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+- Upload a selfie → AI analyzes face shape, skin tone, undertone, eye shape, hair type, style archetype
+- Receive a personalized color palette (5-8 hex colors), beauty/fashion/hair/glasses recommendations
+- Browse curated mock product recommendations in the Shop tab
+- Results persisted locally (AsyncStorage) so they survive app restarts
 
 ## User preferences
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
+_Populate as you build._
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- Always run `pnpm --filter @workspace/api-spec run codegen` after changing `lib/api-spec/openapi.yaml`
+- Web preview has rendering quirks (fonts/icons may appear faint) — use Expo Go on device for the real experience
+- `lib/integrations-openai-ai-server` requires `@types/node` as a devDependency (already added)
 
 ## Pointers
 
 - See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details
+- See the `expo` skill for mobile patterns and device features
+- See the `ai-integrations-openai` skill for OpenAI integration details

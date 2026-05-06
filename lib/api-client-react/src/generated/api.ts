@@ -5,18 +5,26 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import type {
+  MutationFunction,
   QueryFunction,
   QueryKey,
+  UseMutationOptions,
+  UseMutationResult,
   UseQueryOptions,
   UseQueryResult,
 } from "@tanstack/react-query";
 
-import type { HealthStatus } from "./api.schemas";
+import type {
+  AnalysisResult,
+  AnalyzeFaceRequest,
+  ErrorResponse,
+  HealthStatus,
+} from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
-import type { ErrorType } from "../custom-fetch";
+import type { ErrorType, BodyType } from "../custom-fetch";
 
 type AwaitedInput<T> = PromiseLike<T> | T;
 
@@ -99,3 +107,90 @@ export function useHealthCheck<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * Analyzes a face image using AI and returns a structured aesthetic profile
+ * @summary Analyze face from image
+ */
+export const getAnalyzeFaceUrl = () => {
+  return `/api/analyze`;
+};
+
+export const analyzeFace = async (
+  analyzeFaceRequest: AnalyzeFaceRequest,
+  options?: RequestInit,
+): Promise<AnalysisResult> => {
+  return customFetch<AnalysisResult>(getAnalyzeFaceUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(analyzeFaceRequest),
+  });
+};
+
+export const getAnalyzeFaceMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof analyzeFace>>,
+    TError,
+    { data: BodyType<AnalyzeFaceRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof analyzeFace>>,
+  TError,
+  { data: BodyType<AnalyzeFaceRequest> },
+  TContext
+> => {
+  const mutationKey = ["analyzeFace"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof analyzeFace>>,
+    { data: BodyType<AnalyzeFaceRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return analyzeFace(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AnalyzeFaceMutationResult = NonNullable<
+  Awaited<ReturnType<typeof analyzeFace>>
+>;
+export type AnalyzeFaceMutationBody = BodyType<AnalyzeFaceRequest>;
+export type AnalyzeFaceMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Analyze face from image
+ */
+export const useAnalyzeFace = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof analyzeFace>>,
+    TError,
+    { data: BodyType<AnalyzeFaceRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof analyzeFace>>,
+  TError,
+  { data: BodyType<AnalyzeFaceRequest> },
+  TContext
+> => {
+  return useMutation(getAnalyzeFaceMutationOptions(options));
+};

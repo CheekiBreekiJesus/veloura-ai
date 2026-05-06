@@ -14,3 +14,27 @@ import * as zod from "zod";
 export const HealthCheckResponse = zod.object({
   status: zod.string(),
 });
+
+/**
+ * Analyzes a face image using AI and returns a structured aesthetic profile
+ * @summary Analyze face from image
+ */
+export const AnalyzeFaceBody = zod.object({
+  imageBase64: zod.string().describe("Base64-encoded image data"),
+  mimeType: zod.string().describe("MIME type of the image (e.g., image\/jpeg)"),
+});
+
+export const AnalyzeFaceResponse = zod.object({
+  face_shape: zod.string(),
+  skin_tone: zod.string(),
+  undertone: zod.string(),
+  eye_shape: zod.string(),
+  lip_shape: zod.string(),
+  hair_type: zod.string(),
+  style_archetype: zod.string(),
+  color_palette: zod.array(zod.string()),
+  beauty_recommendations: zod.array(zod.string()),
+  fashion_recommendations: zod.array(zod.string()),
+  hairstyle_suggestions: zod.array(zod.string()),
+  glasses_suggestions: zod.array(zod.string()),
+});

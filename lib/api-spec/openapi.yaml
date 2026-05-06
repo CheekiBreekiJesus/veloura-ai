@@ -10,6 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: analysis
+    description: AI face analysis operations
 paths:
   /healthz:
     get:
@@ -24,6 +26,37 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /analyze:
+    post:
+      operationId: analyzeFace
+      tags: [analysis]
+      summary: Analyze face from image
+      description: Analyzes a face image using AI and returns a structured aesthetic profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AnalyzeFaceRequest"
+      responses:
+        "200":
+          description: Analysis result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnalysisResult"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Analysis failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +66,72 @@ components:
           type: string
       required:
         - status
-
+    AnalyzeFaceRequest:
+      type: object
+      properties:
+        imageBase64:
+          type: string
+          description: Base64-encoded image data
+        mimeType:
+          type: string
+          description: MIME type of the image (e.g., image/jpeg)
+      required:
+        - imageBase64
+        - mimeType
+    AnalysisResult:
+      type: object
+      properties:
+        face_shape:
+          type: string
+        skin_tone:
+          type: string
+        undertone:
+          type: string
+        eye_shape:
+          type: string
+        lip_shape:
+          type: string
+        hair_type:
+          type: string
+        style_archetype:
+          type: string
+        color_palette:
+          type: array
+          items:
+            type: string
+        beauty_recommendations:
+          type: array
+          items:
+            type: string
+        fashion_recommendations:
+          type: array
+          items:
+            type: string
+        hairstyle_suggestions:
+          type: array
+          items:
+            type: string
+        glasses_suggestions:
+          type: array
+          items:
+            type: string
+      required:
+        - face_shape
+        - skin_tone
+        - undertone
+        - eye_shape
+        - lip_shape
+        - hair_type
+        - style_archetype
+        - color_palette
+        - beauty_recommendations
+        - fashion_recommendations
+        - hairstyle_suggestions
+        - glasses_suggestions
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error

@@ -8,3 +8,29 @@
 export interface HealthStatus {
   status: string;
 }
+
+export interface AnalyzeFaceRequest {
+  /** Base64-encoded image data */
+  imageBase64: string;
+  /** MIME type of the image (e.g., image/jpeg) */
+  mimeType: string;
+}
+
+export interface AnalysisResult {
+  face_shape: string;
+  skin_tone: string;
+  undertone: string;
+  eye_shape: string;
+  lip_shape: string;
+  hair_type: string;
+  style_archetype: string;
+  color_palette: string[];
+  beauty_recommendations: string[];
+  fashion_recommendations: string[];
+  hairstyle_suggestions: string[];
+  glasses_suggestions: string[];
+}
+
+export interface ErrorResponse {
+  error: string;
+}
