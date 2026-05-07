@@ -87,15 +87,41 @@ function amazon(keyword: string): Record<string, LocaleEntry> {
   };
 }
 
+function beautyAmazon(keyword: string): Record<string, LocaleEntry> {
+  const k = kw(keyword);
+  return {
+    US: { url: `https://www.amazon.com/s?k=${k}`, retailer: "Amazon" },
+    GB: { url: `https://www.lookfantastic.com/search?q=${k}`, retailer: "LookFantastic" },
+    AU: { url: `https://www.adorebeauty.com.au/search?q=${k}`, retailer: "Adore Beauty" },
+    CA: { url: `https://www.lookfantastic.ca/search?q=${k}`, retailer: "LookFantastic" },
+    FR: { url: `https://www.sephora.fr/search?keyword=${k}`, retailer: "Sephora" },
+    DE: { url: `https://www.flaconi.de/search/?suche=${k}`, retailer: "Flaconi" },
+    INT: { url: `https://www.lookfantastic.com/search?q=${k}`, retailer: "LookFantastic" },
+  };
+}
+
+function sunglassesRetailer(keyword: string): Record<string, LocaleEntry> {
+  const k = kw(keyword);
+  return {
+    US: { url: `https://www.amazon.com/s?k=${k}`, retailer: "Amazon" },
+    GB: { url: `https://www.sunglasshut.com/uk/search?q=${k}`, retailer: "Sunglass Hut" },
+    AU: { url: `https://www.sunglasshut.com/au/search?q=${k}`, retailer: "Sunglass Hut" },
+    CA: { url: `https://www.clearly.ca/sunglasses`, retailer: "Clearly" },
+    FR: { url: `https://www.apollo.de/sonnenbrillen/damensonnenbrillen`, retailer: "Apollo Optik" },
+    DE: { url: `https://www.apollo.de/sonnenbrillen/damensonnenbrillen`, retailer: "Apollo Optik" },
+    INT: { url: `https://www.sunglasshut.com/search?q=${k}`, retailer: "Sunglass Hut" },
+  };
+}
+
 function amazonJewelry(keyword: string): Record<string, LocaleEntry> {
   const k = kw(keyword);
   return {
     US: { url: `https://www.amazon.com/s?k=${k}`, retailer: "Amazon" },
     GB: { url: `https://www.wolfandbadger.com/uk/search/?q=${k}`, retailer: "Wolf & Badger" },
-    AU: { url: `https://www.amazon.com.au/s?k=${k}`, retailer: "Amazon" },
-    CA: { url: `https://www.amazon.ca/s?k=${k}`, retailer: "Amazon" },
-    FR: { url: `https://www.amazon.fr/s?k=${k}`, retailer: "Amazon" },
-    DE: { url: `https://www.amazon.de/s?k=${k}`, retailer: "Amazon" },
+    AU: { url: `https://www.wolfandbadger.com/global/search/?q=${k}`, retailer: "Wolf & Badger" },
+    CA: { url: `https://www.etsy.com/search?q=${k}`, retailer: "Etsy" },
+    FR: { url: `https://www.farfetch.com/shopping/women/search/?q=${k}`, retailer: "Farfetch" },
+    DE: { url: `https://www.farfetch.com/shopping/women/search/?q=${k}`, retailer: "Farfetch" },
     INT: { url: `https://www.wolfandbadger.com/global/search/?q=${k}`, retailer: "Wolf & Badger" },
   };
 }
@@ -104,11 +130,11 @@ function amazonWatch(keyword: string): Record<string, LocaleEntry> {
   const k = kw(keyword);
   return {
     US: { url: `https://www.amazon.com/s?k=${k}`, retailer: "Amazon" },
-    GB: { url: `https://www.amazon.co.uk/s?k=${k}`, retailer: "Amazon" },
-    AU: { url: `https://www.amazon.com.au/s?k=${k}`, retailer: "Amazon" },
+    GB: { url: `https://www.watchshop.com/search?q=${k}`, retailer: "Watch Shop" },
+    AU: { url: `https://www.chrono24.com/search/index.htm?query=${k}`, retailer: "Chrono24" },
     CA: { url: `https://www.amazon.ca/s?k=${k}`, retailer: "Amazon" },
-    FR: { url: `https://www.amazon.fr/s?k=${k}`, retailer: "Amazon" },
-    DE: { url: `https://www.amazon.de/s?k=${k}`, retailer: "Amazon" },
+    FR: { url: `https://www.chrono24.fr/search/index.htm?query=${k}`, retailer: "Chrono24" },
+    DE: { url: `https://www.chrono24.de/search/index.htm?query=${k}`, retailer: "Chrono24" },
     INT: { url: `https://www.farfetch.com/shopping/women/search/?q=${k}`, retailer: "Farfetch" },
   };
 }
@@ -312,7 +338,7 @@ export const PRODUCTS: Product[] = [
     priceTier: "budget",
     icon: "leaf-outline",
     gradient: ["#FCE4EC", "#F8BBD0"],
-    affiliateUrls: amazon("rosehip face oil"),
+    affiliateUrls: beautyAmazon("rosehip face oil"),
     defaultLocale: "US",
   },
   {
@@ -549,7 +575,7 @@ export const PRODUCTS: Product[] = [
     priceTier: "budget",
     icon: "cut-outline",
     gradient: ["#D9F5E4", "#B8EAD0"],
-    affiliateUrls: amazon("argan oil hair mask"),
+    affiliateUrls: beautyAmazon("argan oil hair mask"),
     defaultLocale: "US",
   },
   {
@@ -598,7 +624,7 @@ export const PRODUCTS: Product[] = [
     priceTier: "budget",
     icon: "flower-outline",
     gradient: ["#FFF3E0", "#FFE0B2"],
-    affiliateUrls: amazon("curl defining cream"),
+    affiliateUrls: beautyAmazon("curl defining cream"),
     defaultLocale: "US",
   },
 
@@ -634,7 +660,7 @@ export const PRODUCTS: Product[] = [
     icon: "glasses-outline",
     gradient: ["#FBE9E7", "#FFCCBC"],
     isNew: true,
-    affiliateUrls: amazon("tortoise cat eye sunglasses women"),
+    affiliateUrls: sunglassesRetailer("tortoise cat eye sunglasses women"),
     defaultLocale: "US",
   },
   {
@@ -1087,4 +1113,10 @@ export const RETAILER_ICONS: Record<
   GrandOptical: "glasses-outline",
   "Apollo Optik": "glasses-outline",
   Clearly: "glasses-outline",
+  "Sunglass Hut": "glasses-outline",
+  "Adore Beauty": "flower-outline",
+  Flaconi: "flask-outline",
+  "Watch Shop": "time-outline",
+  Chrono24: "time-outline",
+  Etsy: "bag-outline",
 };

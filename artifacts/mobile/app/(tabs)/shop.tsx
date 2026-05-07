@@ -46,13 +46,13 @@ async function openShopUrl(url: string) {
 function buildKeywordUrl(keyword: string, country: string): string {
   const k = encodeURIComponent(keyword);
   switch (country) {
-    case "GB": return `https://www.amazon.co.uk/s?k=${k}`;
-    case "AU": return `https://www.amazon.com.au/s?k=${k}`;
-    case "CA": return `https://www.amazon.ca/s?k=${k}`;
-    case "FR": return `https://www.amazon.fr/s?k=${k}`;
-    case "DE": return `https://www.amazon.de/s?k=${k}`;
-    case "INT": return `https://www.google.com/search?q=buy+${k}&tbm=shop`;
-    default:   return `https://www.amazon.com/s?k=${k}`;
+    case "US": return `https://www.amazon.com/s?k=${k}`;
+    case "GB": return `https://www.google.co.uk/search?q=buy+${k}&tbm=shop`;
+    case "AU": return `https://www.google.com.au/search?q=buy+${k}&tbm=shop`;
+    case "CA": return `https://www.google.ca/search?q=buy+${k}&tbm=shop`;
+    case "FR": return `https://www.google.fr/search?q=acheter+${k}&tbm=shop`;
+    case "DE": return `https://www.google.de/search?q=kaufen+${k}&tbm=shop`;
+    default:   return `https://www.google.com/search?q=buy+${k}&tbm=shop`;
   }
 }
 
