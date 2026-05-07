@@ -65,6 +65,9 @@ export const ChatWithStylistBody = zod.object({
         .number()
         .min(chatWithStylistBodyProfileFacialSymmetryScoreMin)
         .max(chatWithStylistBodyProfileFacialSymmetryScoreMax),
+      skin_type: zod
+        .enum(["oily", "combination", "normal", "dry", "sensitive"])
+        .describe("Detected skin type category"),
       skin_tone_category: zod.enum([
         "very_light",
         "light",
@@ -77,6 +80,8 @@ export const ChatWithStylistBody = zod.object({
         acne: zod.enum(["none", "mild", "moderate", "severe"]),
         redness: zod.enum(["none", "mild", "moderate", "severe"]),
         dryness: zod.enum(["none", "mild", "moderate", "severe"]),
+        pores: zod.enum(["none", "mild", "moderate", "severe"]),
+        texture: zod.enum(["none", "mild", "moderate", "severe"]),
       }),
       contrast_level: zod.enum(["low", "medium", "high"]),
       color_families: zod.array(zod.string()),
@@ -152,6 +157,9 @@ export const AnalyzeFaceResponse = zod.object({
     .number()
     .min(analyzeFaceResponseFacialSymmetryScoreMin)
     .max(analyzeFaceResponseFacialSymmetryScoreMax),
+  skin_type: zod
+    .enum(["oily", "combination", "normal", "dry", "sensitive"])
+    .describe("Detected skin type category"),
   skin_tone_category: zod.enum([
     "very_light",
     "light",
@@ -164,6 +172,8 @@ export const AnalyzeFaceResponse = zod.object({
     acne: zod.enum(["none", "mild", "moderate", "severe"]),
     redness: zod.enum(["none", "mild", "moderate", "severe"]),
     dryness: zod.enum(["none", "mild", "moderate", "severe"]),
+    pores: zod.enum(["none", "mild", "moderate", "severe"]),
+    texture: zod.enum(["none", "mild", "moderate", "severe"]),
   }),
   contrast_level: zod.enum(["low", "medium", "high"]),
   color_families: zod.array(zod.string()),

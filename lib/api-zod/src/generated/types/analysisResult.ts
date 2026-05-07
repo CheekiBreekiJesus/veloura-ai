@@ -10,6 +10,7 @@ import type { AnalysisResultContrastLevel } from "./analysisResultContrastLevel"
 import type { AnalysisResultJawlineDefinition } from "./analysisResultJawlineDefinition";
 import type { AnalysisResultSkinEvenness } from "./analysisResultSkinEvenness";
 import type { AnalysisResultSkinToneCategory } from "./analysisResultSkinToneCategory";
+import type { AnalysisResultSkinType } from "./analysisResultSkinType";
 import type { SkinConcerns } from "./skinConcerns";
 
 export interface AnalysisResult {
@@ -35,6 +36,8 @@ export interface AnalysisResult {
    * @maximum 1
    */
   facial_symmetry_score: number;
+  /** Detected skin type category */
+  skin_type: AnalysisResultSkinType;
   skin_tone_category: AnalysisResultSkinToneCategory;
   skin_evenness: AnalysisResultSkinEvenness;
   skin_concerns: SkinConcerns;

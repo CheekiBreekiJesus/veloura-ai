@@ -41,10 +41,13 @@ Return exactly this structure (all fields required):
   "facial_symmetry_score": 0.0,
   "skin_tone_category": "",
   "skin_evenness": "",
+  "skin_type": "",
   "skin_concerns": {
     "acne": "",
     "redness": "",
-    "dryness": ""
+    "dryness": "",
+    "pores": "",
+    "texture": ""
   },
   "contrast_level": "",
   "color_families": [],
@@ -79,9 +82,10 @@ jawline_definition: one of soft, medium, sharp
 cheekbone_prominence: one of low, medium, high
 facial_symmetry_score: float 0.0–1.0 (visual estimate)
 
+skin_type: one of oily, combination, normal, dry, sensitive — default "normal" if uncertain
 skin_tone_category: one of very_light, light, medium, tan, deep
 skin_evenness: one of low, medium, high
-skin_concerns.acne / redness / dryness: one of none, mild, moderate, severe
+skin_concerns.acne / redness / dryness / pores / texture: one of none, mild, moderate, severe — default "none" if uncertain
 
 contrast_level: one of low, medium, high (overall light/dark contrast of features vs skin)
 color_families: 3–6 labels e.g. "earth tones", "pastels", "jewel tones", "neutrals", "warm neutrals", "cool jewels"

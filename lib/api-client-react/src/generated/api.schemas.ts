@@ -54,10 +54,32 @@ export const SkinConcernsDryness = {
   severe: "severe",
 } as const;
 
+export type SkinConcernsPores =
+  (typeof SkinConcernsPores)[keyof typeof SkinConcernsPores];
+
+export const SkinConcernsPores = {
+  none: "none",
+  mild: "mild",
+  moderate: "moderate",
+  severe: "severe",
+} as const;
+
+export type SkinConcernsTexture =
+  (typeof SkinConcernsTexture)[keyof typeof SkinConcernsTexture];
+
+export const SkinConcernsTexture = {
+  none: "none",
+  mild: "mild",
+  moderate: "moderate",
+  severe: "severe",
+} as const;
+
 export interface SkinConcerns {
   acne: SkinConcernsAcne;
   redness: SkinConcernsRedness;
   dryness: SkinConcernsDryness;
+  pores: SkinConcernsPores;
+  texture: SkinConcernsTexture;
 }
 
 export type AnalysisResultJawlineDefinition =
@@ -76,6 +98,20 @@ export const AnalysisResultCheekboneProminence = {
   low: "low",
   medium: "medium",
   high: "high",
+} as const;
+
+/**
+ * Detected skin type category
+ */
+export type AnalysisResultSkinType =
+  (typeof AnalysisResultSkinType)[keyof typeof AnalysisResultSkinType];
+
+export const AnalysisResultSkinType = {
+  oily: "oily",
+  combination: "combination",
+  normal: "normal",
+  dry: "dry",
+  sensitive: "sensitive",
 } as const;
 
 export type AnalysisResultSkinToneCategory =
@@ -130,6 +166,8 @@ export interface AnalysisResult {
    * @maximum 1
    */
   facial_symmetry_score: number;
+  /** Detected skin type category */
+  skin_type: AnalysisResultSkinType;
   skin_tone_category: AnalysisResultSkinToneCategory;
   skin_evenness: AnalysisResultSkinEvenness;
   skin_concerns: SkinConcerns;

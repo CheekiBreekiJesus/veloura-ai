@@ -7,10 +7,14 @@
  */
 import type { SkinConcernsAcne } from "./skinConcernsAcne";
 import type { SkinConcernsDryness } from "./skinConcernsDryness";
+import type { SkinConcernsPores } from "./skinConcernsPores";
 import type { SkinConcernsRedness } from "./skinConcernsRedness";
+import type { SkinConcernsTexture } from "./skinConcernsTexture";
 
 export interface SkinConcerns {
   acne: SkinConcernsAcne;
   redness: SkinConcernsRedness;
   dryness: SkinConcernsDryness;
+  pores: SkinConcernsPores;
+  texture: SkinConcernsTexture;
 }

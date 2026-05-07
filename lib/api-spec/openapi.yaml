@@ -75,10 +75,18 @@ components:
         dryness:
           type: string
           enum: [none, mild, moderate, severe]
+        pores:
+          type: string
+          enum: [none, mild, moderate, severe]
+        texture:
+          type: string
+          enum: [none, mild, moderate, severe]
       required:
         - acne
         - redness
         - dryness
+        - pores
+        - texture
     AnalysisResult:
       type: object
       properties:
@@ -132,6 +140,10 @@ components:
           minimum: 0
           maximum: 1
         # ── Extended skin analysis ────────────────────────────────────────
+        skin_type:
+          type: string
+          enum: [oily, combination, normal, dry, sensitive]
+          description: "Detected skin type category"
         skin_tone_category:
           type: string
           enum: [very_light, light, medium, tan, deep]
@@ -207,6 +219,7 @@ components:
         - facial_symmetry_score
         - skin_tone_category
         - skin_evenness
+        - skin_type
         - skin_concerns
         - contrast_level
         - color_families

@@ -20,6 +20,8 @@ export interface SkinConcerns {
   acne: "none" | "mild" | "moderate" | "severe";
   redness: "none" | "mild" | "moderate" | "severe";
   dryness: "none" | "mild" | "moderate" | "severe";
+  pores: "none" | "mild" | "moderate" | "severe";
+  texture: "none" | "mild" | "moderate" | "severe";
 }
 
 export interface AnalysisResult {
@@ -43,6 +45,7 @@ export interface AnalysisResult {
   facial_symmetry_score?: number;
 
   // ── Extended skin analysis ───────────────────────────────────────────────
+  skin_type?: "oily" | "combination" | "normal" | "dry" | "sensitive";
   skin_tone_category?: string;
   skin_evenness?: string;
   skin_concerns?: SkinConcerns;

@@ -62,6 +62,10 @@ function RootLayoutNav() {
         name="article"
         options={{ headerShown: false, presentation: "modal" }}
       />
+      <Stack.Screen
+        name="skin-analysis"
+        options={{ headerShown: false }}
+      />
     </Stack>
   );
 }

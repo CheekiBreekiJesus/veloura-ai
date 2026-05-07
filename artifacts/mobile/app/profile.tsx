@@ -403,12 +403,26 @@ export default function ProfileScreen() {
         </View>
 
         {/* ── Skin Health ──────────────────────────────────────────────────── */}
-        {analysis.skin_concerns && (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Ionicons name="water-outline" size={18} color={colors.primary} />
-              <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Skin Health</Text>
-            </View>
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Ionicons name="water-outline" size={18} color={colors.primary} />
+            <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Skin Health</Text>
+            <Pressable
+              onPress={async () => {
+                await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                router.push("/skin-analysis");
+              }}
+              style={({ pressed }) => [
+                { marginLeft: "auto", opacity: pressed ? 0.7 : 1 },
+              ]}
+            >
+              <View style={[{ flexDirection: "row", alignItems: "center", gap: 3, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10, backgroundColor: colors.primary + "15", borderWidth: 1, borderColor: colors.primary + "30" }]}>
+                <Text style={[{ fontSize: 12, fontFamily: "Inter_600SemiBold", color: colors.primary }]}>Full Report</Text>
+                <Ionicons name="chevron-forward" size={12} color={colors.primary} />
+              </View>
+            </Pressable>
+          </View>
+          {analysis.skin_concerns && (
             <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border, gap: 14 }]}>
               {analysis.skin_evenness && (
                 <View style={styles.skinEvenRow}>
@@ -462,8 +476,8 @@ export default function ProfileScreen() {
                 </>
               )}
             </View>
-          </View>
-        )}
+          )}
+        </View>
 
         {/* ── Accessories Guide ────────────────────────────────────────────── */}
         {(analysis.earring_styles || analysis.necklace_lengths) && (
