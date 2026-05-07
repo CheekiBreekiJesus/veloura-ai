@@ -16,19 +16,137 @@ export interface AnalyzeFaceRequest {
   mimeType: string;
 }
 
+export type SkinConcernsAcne =
+  (typeof SkinConcernsAcne)[keyof typeof SkinConcernsAcne];
+
+export const SkinConcernsAcne = {
+  none: "none",
+  mild: "mild",
+  moderate: "moderate",
+  severe: "severe",
+} as const;
+
+export type SkinConcernsRedness =
+  (typeof SkinConcernsRedness)[keyof typeof SkinConcernsRedness];
+
+export const SkinConcernsRedness = {
+  none: "none",
+  mild: "mild",
+  moderate: "moderate",
+  severe: "severe",
+} as const;
+
+export type SkinConcernsDryness =
+  (typeof SkinConcernsDryness)[keyof typeof SkinConcernsDryness];
+
+export const SkinConcernsDryness = {
+  none: "none",
+  mild: "mild",
+  moderate: "moderate",
+  severe: "severe",
+} as const;
+
+export interface SkinConcerns {
+  acne: SkinConcernsAcne;
+  redness: SkinConcernsRedness;
+  dryness: SkinConcernsDryness;
+}
+
+export type AnalysisResultJawlineDefinition =
+  (typeof AnalysisResultJawlineDefinition)[keyof typeof AnalysisResultJawlineDefinition];
+
+export const AnalysisResultJawlineDefinition = {
+  soft: "soft",
+  medium: "medium",
+  sharp: "sharp",
+} as const;
+
+export type AnalysisResultCheekboneProminence =
+  (typeof AnalysisResultCheekboneProminence)[keyof typeof AnalysisResultCheekboneProminence];
+
+export const AnalysisResultCheekboneProminence = {
+  low: "low",
+  medium: "medium",
+  high: "high",
+} as const;
+
+export type AnalysisResultSkinToneCategory =
+  (typeof AnalysisResultSkinToneCategory)[keyof typeof AnalysisResultSkinToneCategory];
+
+export const AnalysisResultSkinToneCategory = {
+  very_light: "very_light",
+  light: "light",
+  medium: "medium",
+  tan: "tan",
+  deep: "deep",
+} as const;
+
+export type AnalysisResultSkinEvenness =
+  (typeof AnalysisResultSkinEvenness)[keyof typeof AnalysisResultSkinEvenness];
+
+export const AnalysisResultSkinEvenness = {
+  low: "low",
+  medium: "medium",
+  high: "high",
+} as const;
+
+export type AnalysisResultContrastLevel =
+  (typeof AnalysisResultContrastLevel)[keyof typeof AnalysisResultContrastLevel];
+
+export const AnalysisResultContrastLevel = {
+  low: "low",
+  medium: "medium",
+  high: "high",
+} as const;
+
 export interface AnalysisResult {
+  /** oval, round, square, heart, diamond, oblong */
   face_shape: string;
+  /** Human-readable skin tone description */
   skin_tone: string;
+  /** warm, cool, neutral */
   undertone: string;
   eye_shape: string;
   lip_shape: string;
   hair_type: string;
+  /** Primary style identity label */
   style_archetype: string;
+  /** 5-8 hex color codes personalised to the person */
   color_palette: string[];
   beauty_recommendations: string[];
   fashion_recommendations: string[];
   hairstyle_suggestions: string[];
   glasses_suggestions: string[];
+  jawline_definition: AnalysisResultJawlineDefinition;
+  cheekbone_prominence: AnalysisResultCheekboneProminence;
+  /**
+   * Estimated symmetry 0.0–1.0
+   * @minimum 0
+   * @maximum 1
+   */
+  facial_symmetry_score: number;
+  skin_tone_category: AnalysisResultSkinToneCategory;
+  skin_evenness: AnalysisResultSkinEvenness;
+  skin_concerns: SkinConcerns;
+  contrast_level: AnalysisResultContrastLevel;
+  /** 3–6 best color family labels, e.g. earth tones, jewel tones */
+  color_families: string[];
+  /** Recommended hair lengths */
+  hair_lengths: string[];
+  /** soft, structured, voluminous, minimalist, edgy, classic */
+  recommended_style_direction: string;
+  earring_styles: string[];
+  necklace_lengths: string[];
+  /** 2–4 style identities, e.g. soft natural, classic elegant */
+  aesthetic_archetypes: string[];
+  /** e.g. hydration, glow, texture */
+  skincare_focus: string[];
+  /** natural, soft glam, glam, bold, editorial */
+  makeup_direction: string;
+  /** casual, elegant, streetwear, minimalist luxury, etc. */
+  fashion_direction: string;
+  /** SEO-style product search tags */
+  shopping_keywords: string[];
 }
 
 export interface ErrorResponse {

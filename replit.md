@@ -39,14 +39,20 @@ A mobile app that analyzes a selfie using AI vision and generates a personalized
 - Image is base64-encoded on device and sent as JSON body (no multipart form handling needed)
 - Analysis results stored in AsyncStorage via AnalysisContext — no backend persistence
 - Stack navigation (no tabs) for a clean linear flow: Landing → Upload → Dashboard
-- OpenAI GPT-5.4 used for vision analysis; returns strict JSON matching the AnalysisResult schema
+- OpenAI GPT-5.4 used for vision analysis; returns strict JSON matching the full Aesthetic Identity Profile schema
 - Dashboard uses tab-based sections (Profile, Beauty, Fashion, Shop) within the results screen
+- `AnalysisResult` in `AnalysisContext.tsx` has optional extended fields (new analyses get them, old stored ones don't — all UI guards with `??`)
 
 ## Product
 
 - Upload a selfie → AI analyzes face shape, skin tone, undertone, eye shape, hair type, style archetype
+- Full Aesthetic Identity Profile: jawline, cheekbone prominence, facial symmetry score, skin evenness, skin concerns (acne/redness/dryness), contrast level, color families
+- Accessories guide: earring styles + necklace lengths matched to face shape
+- Aesthetic archetypes (2-4 style identities), makeup direction, fashion direction
+- Skincare focus areas and shopping keywords for downstream product search
 - Receive a personalized color palette (5-8 hex colors), beauty/fashion/hair/glasses recommendations
 - Color Season analysis (Spring/Summer/Autumn/Winter) with palette, best/avoid colors, gradient card on home + full detail on profile screen
+- Feature DNA horizontal scroll on home (face, skin, undertone, eyes, hair, lips as gradient cards)
 - Daily rotating tip card on home screen (personalized from analysis, falls back to generic tips)
 - Season badge pill on profile card; "Details" button links to profile screen
 - Browse curated mock product recommendations in the Shop tab

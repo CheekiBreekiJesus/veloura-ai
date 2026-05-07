@@ -7,7 +7,14 @@ import React, {
   useState,
 } from "react";
 
+export interface SkinConcerns {
+  acne: "none" | "mild" | "moderate" | "severe";
+  redness: "none" | "mild" | "moderate" | "severe";
+  dryness: "none" | "mild" | "moderate" | "severe";
+}
+
 export interface AnalysisResult {
+  // ── Core (always present) ────────────────────────────────────────────────
   face_shape: string;
   skin_tone: string;
   undertone: string;
@@ -20,6 +27,37 @@ export interface AnalysisResult {
   fashion_recommendations: string[];
   hairstyle_suggestions: string[];
   glasses_suggestions: string[];
+
+  // ── Extended face structure ──────────────────────────────────────────────
+  jawline_definition?: string;
+  cheekbone_prominence?: string;
+  facial_symmetry_score?: number;
+
+  // ── Extended skin analysis ───────────────────────────────────────────────
+  skin_tone_category?: string;
+  skin_evenness?: string;
+  skin_concerns?: SkinConcerns;
+
+  // ── Color profile ────────────────────────────────────────────────────────
+  contrast_level?: string;
+  color_families?: string[];
+
+  // ── Hair profile ─────────────────────────────────────────────────────────
+  hair_lengths?: string[];
+  recommended_style_direction?: string;
+
+  // ── Accessories ──────────────────────────────────────────────────────────
+  earring_styles?: string[];
+  necklace_lengths?: string[];
+
+  // ── Aesthetic archetypes ─────────────────────────────────────────────────
+  aesthetic_archetypes?: string[];
+
+  // ── Recommendation seeds ─────────────────────────────────────────────────
+  skincare_focus?: string[];
+  makeup_direction?: string;
+  fashion_direction?: string;
+  shopping_keywords?: string[];
 }
 
 export interface PendingImage {

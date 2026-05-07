@@ -5,18 +5,59 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { AnalysisResultCheekboneProminence } from "./analysisResultCheekboneProminence";
+import type { AnalysisResultContrastLevel } from "./analysisResultContrastLevel";
+import type { AnalysisResultJawlineDefinition } from "./analysisResultJawlineDefinition";
+import type { AnalysisResultSkinEvenness } from "./analysisResultSkinEvenness";
+import type { AnalysisResultSkinToneCategory } from "./analysisResultSkinToneCategory";
+import type { SkinConcerns } from "./skinConcerns";
 
 export interface AnalysisResult {
+  /** oval, round, square, heart, diamond, oblong */
   face_shape: string;
+  /** Human-readable skin tone description */
   skin_tone: string;
+  /** warm, cool, neutral */
   undertone: string;
   eye_shape: string;
   lip_shape: string;
   hair_type: string;
+  /** Primary style identity label */
   style_archetype: string;
+  /** 5-8 hex color codes personalised to the person */
   color_palette: string[];
   beauty_recommendations: string[];
   fashion_recommendations: string[];
   hairstyle_suggestions: string[];
   glasses_suggestions: string[];
+  jawline_definition: AnalysisResultJawlineDefinition;
+  cheekbone_prominence: AnalysisResultCheekboneProminence;
+  /**
+   * Estimated symmetry 0.0–1.0
+   * @minimum 0
+   * @maximum 1
+   */
+  facial_symmetry_score: number;
+  skin_tone_category: AnalysisResultSkinToneCategory;
+  skin_evenness: AnalysisResultSkinEvenness;
+  skin_concerns: SkinConcerns;
+  contrast_level: AnalysisResultContrastLevel;
+  /** 3–6 best color family labels, e.g. earth tones, jewel tones */
+  color_families: string[];
+  /** Recommended hair lengths */
+  hair_lengths: string[];
+  /** soft, structured, voluminous, minimalist, edgy, classic */
+  recommended_style_direction: string;
+  earring_styles: string[];
+  necklace_lengths: string[];
+  /** 2–4 style identities, e.g. soft natural, classic elegant */
+  aesthetic_archetypes: string[];
+  /** e.g. hydration, glow, texture */
+  skincare_focus: string[];
+  /** natural, soft glam, glam, bold, editorial */
+  makeup_direction: string;
+  /** casual, elegant, streetwear, minimalist luxury, etc. */
+  fashion_direction: string;
+  /** SEO-style product search tags */
+  shopping_keywords: string[];
 }

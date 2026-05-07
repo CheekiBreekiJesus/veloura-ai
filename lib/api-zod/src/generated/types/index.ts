@@ -7,6 +7,15 @@
  */
 
 export * from "./analysisResult";
+export * from "./analysisResultCheekboneProminence";
+export * from "./analysisResultContrastLevel";
+export * from "./analysisResultJawlineDefinition";
+export * from "./analysisResultSkinEvenness";
+export * from "./analysisResultSkinToneCategory";
 export * from "./analyzeFaceRequest";
 export * from "./errorResponse";
 export * from "./healthStatus";
+export * from "./skinConcerns";
+export * from "./skinConcernsAcne";
+export * from "./skinConcernsDryness";
+export * from "./skinConcernsRedness";

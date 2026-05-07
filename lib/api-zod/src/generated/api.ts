@@ -16,7 +16,7 @@ export const HealthCheckResponse = zod.object({
 });
 
 /**
- * Analyzes a face image using AI and returns a structured aesthetic profile
+ * Analyzes a face image using AI and returns a full Aesthetic Identity Profile
  * @summary Analyze face from image
  */
 export const AnalyzeFaceBody = zod.object({
@@ -24,17 +24,69 @@ export const AnalyzeFaceBody = zod.object({
   mimeType: zod.string().describe("MIME type of the image (e.g., image\/jpeg)"),
 });
 
+export const analyzeFaceResponseFacialSymmetryScoreMin = 0;
+export const analyzeFaceResponseFacialSymmetryScoreMax = 1;
+
 export const AnalyzeFaceResponse = zod.object({
-  face_shape: zod.string(),
-  skin_tone: zod.string(),
-  undertone: zod.string(),
+  face_shape: zod
+    .string()
+    .describe("oval, round, square, heart, diamond, oblong"),
+  skin_tone: zod.string().describe("Human-readable skin tone description"),
+  undertone: zod.string().describe("warm, cool, neutral"),
   eye_shape: zod.string(),
   lip_shape: zod.string(),
   hair_type: zod.string(),
-  style_archetype: zod.string(),
-  color_palette: zod.array(zod.string()),
+  style_archetype: zod.string().describe("Primary style identity label"),
+  color_palette: zod
+    .array(zod.string())
+    .describe("5-8 hex color codes personalised to the person"),
   beauty_recommendations: zod.array(zod.string()),
   fashion_recommendations: zod.array(zod.string()),
   hairstyle_suggestions: zod.array(zod.string()),
   glasses_suggestions: zod.array(zod.string()),
+  jawline_definition: zod.enum(["soft", "medium", "sharp"]),
+  cheekbone_prominence: zod.enum(["low", "medium", "high"]),
+  facial_symmetry_score: zod
+    .number()
+    .min(analyzeFaceResponseFacialSymmetryScoreMin)
+    .max(analyzeFaceResponseFacialSymmetryScoreMax)
+    .describe("Estimated symmetry 0.0–1.0"),
+  skin_tone_category: zod.enum([
+    "very_light",
+    "light",
+    "medium",
+    "tan",
+    "deep",
+  ]),
+  skin_evenness: zod.enum(["low", "medium", "high"]),
+  skin_concerns: zod.object({
+    acne: zod.enum(["none", "mild", "moderate", "severe"]),
+    redness: zod.enum(["none", "mild", "moderate", "severe"]),
+    dryness: zod.enum(["none", "mild", "moderate", "severe"]),
+  }),
+  contrast_level: zod.enum(["low", "medium", "high"]),
+  color_families: zod
+    .array(zod.string())
+    .describe("3–6 best color family labels, e.g. earth tones, jewel tones"),
+  hair_lengths: zod.array(zod.string()).describe("Recommended hair lengths"),
+  recommended_style_direction: zod
+    .string()
+    .describe("soft, structured, voluminous, minimalist, edgy, classic"),
+  earring_styles: zod.array(zod.string()),
+  necklace_lengths: zod.array(zod.string()),
+  aesthetic_archetypes: zod
+    .array(zod.string())
+    .describe("2–4 style identities, e.g. soft natural, classic elegant"),
+  skincare_focus: zod
+    .array(zod.string())
+    .describe("e.g. hydration, glow, texture"),
+  makeup_direction: zod
+    .string()
+    .describe("natural, soft glam, glam, bold, editorial"),
+  fashion_direction: zod
+    .string()
+    .describe("casual, elegant, streetwear, minimalist luxury, etc."),
+  shopping_keywords: zod
+    .array(zod.string())
+    .describe("SEO-style product search tags"),
 });

@@ -109,7 +109,7 @@ export function useHealthCheck<
 }
 
 /**
- * Analyzes a face image using AI and returns a structured aesthetic profile
+ * Analyzes a face image using AI and returns a full Aesthetic Identity Profile
  * @summary Analyze face from image
  */
 export const getAnalyzeFaceUrl = () => {

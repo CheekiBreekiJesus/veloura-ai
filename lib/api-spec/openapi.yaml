@@ -31,7 +31,7 @@ paths:
       operationId: analyzeFace
       tags: [analysis]
       summary: Analyze face from image
-      description: Analyzes a face image using AI and returns a structured aesthetic profile
+      description: Analyzes a face image using AI and returns a full Aesthetic Identity Profile
       requestBody:
         required: true
         content:
@@ -78,15 +78,35 @@ components:
       required:
         - imageBase64
         - mimeType
+    SkinConcerns:
+      type: object
+      properties:
+        acne:
+          type: string
+          enum: [none, mild, moderate, severe]
+        redness:
+          type: string
+          enum: [none, mild, moderate, severe]
+        dryness:
+          type: string
+          enum: [none, mild, moderate, severe]
+      required:
+        - acne
+        - redness
+        - dryness
     AnalysisResult:
       type: object
       properties:
+        # ── Core features (original fields, always present) ──────────────────
         face_shape:
           type: string
+          description: "oval, round, square, heart, diamond, oblong"
         skin_tone:
           type: string
+          description: Human-readable skin tone description
         undertone:
           type: string
+          description: "warm, cool, neutral"
         eye_shape:
           type: string
         lip_shape:
@@ -95,10 +115,12 @@ components:
           type: string
         style_archetype:
           type: string
+          description: Primary style identity label
         color_palette:
           type: array
           items:
             type: string
+          description: 5-8 hex color codes personalised to the person
         beauty_recommendations:
           type: array
           items:
@@ -115,6 +137,85 @@ components:
           type: array
           items:
             type: string
+
+        # ── Extended face structure ───────────────────────────────────────────
+        jawline_definition:
+          type: string
+          enum: [soft, medium, sharp]
+        cheekbone_prominence:
+          type: string
+          enum: [low, medium, high]
+        facial_symmetry_score:
+          type: number
+          minimum: 0
+          maximum: 1
+          description: Estimated symmetry 0.0–1.0
+
+        # ── Extended skin analysis ────────────────────────────────────────────
+        skin_tone_category:
+          type: string
+          enum: [very_light, light, medium, tan, deep]
+        skin_evenness:
+          type: string
+          enum: [low, medium, high]
+        skin_concerns:
+          $ref: "#/components/schemas/SkinConcerns"
+
+        # ── Color profile ─────────────────────────────────────────────────────
+        contrast_level:
+          type: string
+          enum: [low, medium, high]
+        color_families:
+          type: array
+          items:
+            type: string
+          description: "3–6 best color family labels, e.g. earth tones, jewel tones"
+
+        # ── Hair profile ──────────────────────────────────────────────────────
+        hair_lengths:
+          type: array
+          items:
+            type: string
+          description: Recommended hair lengths
+        recommended_style_direction:
+          type: string
+          description: "soft, structured, voluminous, minimalist, edgy, classic"
+
+        # ── Accessories ───────────────────────────────────────────────────────
+        earring_styles:
+          type: array
+          items:
+            type: string
+        necklace_lengths:
+          type: array
+          items:
+            type: string
+
+        # ── Aesthetic archetypes (rich, multiple) ─────────────────────────────
+        aesthetic_archetypes:
+          type: array
+          items:
+            type: string
+          description: "2–4 style identities, e.g. soft natural, classic elegant"
+
+        # ── Recommendation seeds ──────────────────────────────────────────────
+        skincare_focus:
+          type: array
+          items:
+            type: string
+          description: "e.g. hydration, glow, texture"
+        makeup_direction:
+          type: string
+          description: "natural, soft glam, glam, bold, editorial"
+        fashion_direction:
+          type: string
+          description: "casual, elegant, streetwear, minimalist luxury, etc."
+        shopping_keywords:
+          type: array
+          items:
+            type: string
+          description: SEO-style product search tags
+
       required:
         - face_shape
         - skin_tone
@@ -128,6 +229,23 @@ components:
         - fashion_recommendations
         - hairstyle_suggestions
         - glasses_suggestions
+        - jawline_definition
+        - cheekbone_prominence
+        - facial_symmetry_score
+        - skin_tone_category
+        - skin_evenness
+        - skin_concerns
+        - contrast_level
+        - color_families
+        - hair_lengths
+        - recommended_style_direction
+        - earring_styles
+        - necklace_lengths
+        - aesthetic_archetypes
+        - skincare_focus
+        - makeup_direction
+        - fashion_direction
+        - shopping_keywords
     ErrorResponse:
       type: object
       properties:
