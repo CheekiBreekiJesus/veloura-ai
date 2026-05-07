@@ -31,6 +31,7 @@ import {
   type BodyProfile,
 } from "@/context/BodyProfileContext";
 import { buildStylePrefsText, useStylePrefs } from "@/context/StylePrefsContext";
+import { useUnits } from "@/context/UnitsContext";
 import {
   SEASON_COLORS,
   SEASON_ICONS,
@@ -465,15 +466,20 @@ function StoredOffSeasonGroup({
   );
 }
 
-const MEASURE_FIELDS: { key: keyof BodyProfile; label: string; placeholder: string; unit?: string }[] = [
-  { key: "height", label: "Height", placeholder: "e.g. 165", unit: "cm" },
-  { key: "weight", label: "Weight", placeholder: "e.g. 60", unit: "kg" },
-  { key: "bust", label: "Bust / Chest", placeholder: "e.g. 34", unit: "in" },
-  { key: "cupSize", label: "Cup Size", placeholder: "e.g. B" },
-  { key: "waist", label: "Waist", placeholder: "e.g. 28", unit: "in" },
-  { key: "hips", label: "Hips", placeholder: "e.g. 38", unit: "in" },
-  { key: "inseam", label: "Inseam", placeholder: "e.g. 30", unit: "in" },
-];
+type MeasureField = { key: keyof BodyProfile; label: string; placeholder: string; unit?: string };
+
+function getMeasureFields(units: "metric" | "imperial"): MeasureField[] {
+  const isMetric = units === "metric";
+  return [
+    { key: "height", label: "Height", placeholder: isMetric ? "e.g. 165" : "e.g. 5'5\"", unit: isMetric ? "cm" : "ft + in" },
+    { key: "weight", label: "Weight", placeholder: isMetric ? "e.g. 60" : "e.g. 130", unit: isMetric ? "kg" : "lbs" },
+    { key: "bust", label: "Bust / Chest", placeholder: isMetric ? "e.g. 86" : "e.g. 34", unit: isMetric ? "cm" : "in" },
+    { key: "cupSize", label: "Cup Size", placeholder: "e.g. B" },
+    { key: "waist", label: "Waist", placeholder: isMetric ? "e.g. 68" : "e.g. 27", unit: isMetric ? "cm" : "in" },
+    { key: "hips", label: "Hips", placeholder: isMetric ? "e.g. 90" : "e.g. 38", unit: isMetric ? "cm" : "in" },
+    { key: "inseam", label: "Inseam", placeholder: isMetric ? "e.g. 76" : "e.g. 30", unit: isMetric ? "cm" : "in" },
+  ];
+}
 
 function MeasurementsCard({
   colors,
@@ -481,11 +487,13 @@ function MeasurementsCard({
   colors: ReturnType<typeof useColors>;
 }) {
   const { bodyProfile, setBodyProfile } = useBodyProfile();
+  const { unitsPreference } = useUnits();
   const [expanded, setExpanded] = useState(false);
   const [draft, setDraft] = useState<BodyProfile>(bodyProfile);
   const [saved, setSaved] = useState(false);
 
-  const summaryText = buildMeasurementsText(bodyProfile);
+  const measureFields = getMeasureFields(unitsPreference);
+  const summaryText = buildMeasurementsText(bodyProfile, unitsPreference);
 
   const handleSave = async () => {
     Keyboard.dismiss();
@@ -530,7 +538,7 @@ function MeasurementsCard({
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <View style={mStyles.expandedContent}>
             <View style={mStyles.fieldsGrid}>
-              {MEASURE_FIELDS.map((f) => (
+              {measureFields.map((f) => (
                 <View key={f.key} style={mStyles.fieldItem}>
                   <Text style={[mStyles.fieldLabel, { color: colors.mutedForeground }]}>
                     {f.label}

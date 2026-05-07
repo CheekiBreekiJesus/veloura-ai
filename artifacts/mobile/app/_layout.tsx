@@ -23,6 +23,7 @@ import { CountryProvider } from "@/context/CountryContext";
 import { SeasonProvider } from "@/context/SeasonContext";
 import { StylePrefsProvider } from "@/context/StylePrefsContext";
 import { ThemeProvider } from "@/context/ThemeContext";
+import { UnitsProvider } from "@/context/UnitsContext";
 import { TodayOutfitProvider } from "@/context/TodayOutfitContext";
 import { WardrobeProvider } from "@/context/WardrobeContext";
 import { WishlistProductProvider } from "@/context/WishlistProductContext";
@@ -106,6 +107,7 @@ export default function RootLayout() {
               <ThemeProvider>
                 <SeasonProvider>
                 <CountryProvider>
+                <UnitsProvider>
                 <AnalysisProvider>
                   <PortraitHistoryProvider>
                     <BodyProfileProvider>
@@ -121,6 +123,7 @@ export default function RootLayout() {
                     </BodyProfileProvider>
                   </PortraitHistoryProvider>
                 </AnalysisProvider>
+                </UnitsProvider>
                 </CountryProvider>
                 </SeasonProvider>
               </ThemeProvider>

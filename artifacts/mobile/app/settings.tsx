@@ -25,6 +25,7 @@ import { usePortraitHistory } from "@/context/PortraitHistoryContext";
 import { useSeason, type Hemisphere } from "@/context/SeasonContext";
 import { useStylePrefs } from "@/context/StylePrefsContext";
 import { useTheme, type ThemePreference } from "@/context/ThemeContext";
+import { useUnits, type UnitsPreference } from "@/context/UnitsContext";
 import { useWardrobe } from "@/context/WardrobeContext";
 import { useColors } from "@/hooks/useColors";
 
@@ -59,12 +60,18 @@ const HEMISPHERE_OPTIONS: { label: string; value: Hemisphere; icon: React.Compon
   { label: "Southern", value: "southern", icon: "arrow-down-outline", hint: "Spring: Sep–Nov" },
 ];
 
+const UNITS_OPTIONS: { label: string; value: UnitsPreference; icon: React.ComponentProps<typeof Ionicons>["name"]; hint: string }[] = [
+  { label: "Metric", value: "metric", icon: "options-outline", hint: "cm / kg" },
+  { label: "Imperial", value: "imperial", icon: "flag-outline", hint: "ft+in / lbs" },
+];
+
 export default function SettingsScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { preference, setTheme } = useTheme();
   const { country, countryFlag, countryLabel, setCountry } = useCountry();
   const { hemisphere, setHemisphere } = useSeason();
+  const { unitsPreference, setUnitsPreference } = useUnits();
   const { userName, setUserName, clearAnalysis, clearChatHistory, chatHistory, analysis, healthConcerns, setHealthConcerns } = useAnalysis();
   const { clearPortraits } = usePortraitHistory();
   const { clearBodyProfile } = useBodyProfile();
@@ -722,6 +729,57 @@ export default function SettingsScreen() {
                       onPress={async () => {
                         await Haptics.selectionAsync();
                         await setHemisphere(opt.value);
+                      }}
+                      style={[
+                        styles.themeOption,
+                        {
+                          backgroundColor: active ? colors.primary : colors.secondary,
+                          borderColor: active ? colors.primary : colors.border,
+                        },
+                      ]}
+                    >
+                      <Ionicons
+                        name={opt.icon}
+                        size={16}
+                        color={active ? "#fff" : colors.foreground}
+                      />
+                      <View>
+                        <Text style={[styles.themeOptionText, { color: active ? "#fff" : colors.foreground }]}>
+                          {opt.label}
+                        </Text>
+                        <Text style={{ fontSize: 10, fontFamily: "Inter_400Regular", color: active ? "rgba(255,255,255,0.75)" : colors.mutedForeground }}>
+                          {opt.hint}
+                        </Text>
+                      </View>
+                    </Pressable>
+                  );
+                })}
+              </View>
+
+              <View style={[styles.divider, { backgroundColor: colors.border, marginLeft: 0 }]} />
+
+              <View style={[styles.row, { paddingBottom: 8 }]}>
+                <View style={[styles.rowIcon, { backgroundColor: colors.secondary }]}>
+                  <Ionicons name="resize-outline" size={18} color={colors.primary} />
+                </View>
+                <View style={styles.rowContent}>
+                  <Text style={[styles.rowLabel, { color: colors.foreground }]}>
+                    Units
+                  </Text>
+                  <Text style={[styles.rowValue, { color: colors.mutedForeground }]}>
+                    Sets measurement labels for body measurements
+                  </Text>
+                </View>
+              </View>
+              <View style={[styles.themeToggleRow, { paddingHorizontal: 14, paddingBottom: 14 }]}>
+                {UNITS_OPTIONS.map((opt) => {
+                  const active = unitsPreference === opt.value;
+                  return (
+                    <Pressable
+                      key={opt.value}
+                      onPress={async () => {
+                        await Haptics.selectionAsync();
+                        await setUnitsPreference(opt.value);
                       }}
                       style={[
                         styles.themeOption,

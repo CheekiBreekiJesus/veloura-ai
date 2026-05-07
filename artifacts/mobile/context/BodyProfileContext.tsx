@@ -83,15 +83,23 @@ export function useBodyProfile() {
   return ctx;
 }
 
-export function buildMeasurementsText(profile: BodyProfile): string | null {
+export function buildMeasurementsText(
+  profile: BodyProfile,
+  units: "metric" | "imperial" = "metric"
+): string | null {
+  const isMetric = units === "metric";
+  const lengthUnit = isMetric ? " cm" : " in";
+  const weightUnit = isMetric ? " kg" : " lbs";
   const parts: string[] = [];
-  if (profile.height) parts.push(`height ${profile.height}`);
-  if (profile.weight) parts.push(`weight ${profile.weight}`);
-  if (profile.bust && profile.cupSize) parts.push(`bust ${profile.bust}${profile.cupSize}`);
-  else if (profile.bust) parts.push(`bust ${profile.bust}`);
-  if (profile.waist) parts.push(`waist ${profile.waist}`);
-  if (profile.hips) parts.push(`hips ${profile.hips}`);
-  if (profile.inseam) parts.push(`inseam ${profile.inseam}`);
+  if (profile.height) {
+    parts.push(isMetric ? `height ${profile.height} cm` : `height ${profile.height}`);
+  }
+  if (profile.weight) parts.push(`weight ${profile.weight}${weightUnit}`);
+  if (profile.bust && profile.cupSize) parts.push(`bust ${profile.bust}${profile.cupSize}${lengthUnit}`);
+  else if (profile.bust) parts.push(`bust ${profile.bust}${lengthUnit}`);
+  if (profile.waist) parts.push(`waist ${profile.waist}${lengthUnit}`);
+  if (profile.hips) parts.push(`hips ${profile.hips}${lengthUnit}`);
+  if (profile.inseam) parts.push(`inseam ${profile.inseam}${lengthUnit}`);
   if (parts.length === 0) return null;
   return parts.join(", ");
 }

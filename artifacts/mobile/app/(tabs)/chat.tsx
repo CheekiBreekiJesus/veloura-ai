@@ -23,6 +23,7 @@ const AURA_AVATAR_FALLBACK = require("../../assets/images/aura-avatar.png");
 import { ChatMessage, useAnalysis } from "@/context/AnalysisContext";
 import { buildMeasurementsText, useBodyProfile } from "@/context/BodyProfileContext";
 import { buildStylePrefsText, useStylePrefs } from "@/context/StylePrefsContext";
+import { useUnits } from "@/context/UnitsContext";
 import { useWardrobe } from "@/context/WardrobeContext";
 import { useColors } from "@/hooks/useColors";
 
@@ -239,6 +240,7 @@ export default function StylistChatScreen() {
   const { feedback } = useWardrobe();
   const { bodyProfile } = useBodyProfile();
   const { stylePrefs } = useStylePrefs();
+  const { unitsPreference } = useUnits();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -357,7 +359,7 @@ export default function StylistChatScreen() {
         // Strip companion_avatar_url (large data URI, ~800 KB) before sending
         // — the chat system prompt only needs companion_name, not the image.
         const { companion_avatar_url: _avatar, ...profileForChat } = analysis;
-        const measurementsText = buildMeasurementsText(bodyProfile);
+        const measurementsText = buildMeasurementsText(bodyProfile, unitsPreference);
         const stylePrefsText = buildStylePrefsText(stylePrefs);
         const profileWithExtras = {
           ...profileForChat,
@@ -377,7 +379,7 @@ export default function StylistChatScreen() {
         setLoading(false);
       }
     },
-    [input, loading, analysis, messages, bodyProfile, stylePrefs, feedback, healthConcerns]
+    [input, loading, analysis, messages, bodyProfile, stylePrefs, unitsPreference, feedback, healthConcerns]
   );
 
   if (!analysis) {
