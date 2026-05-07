@@ -21,6 +21,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 const AURA_AVATAR = require("../../assets/images/aura-avatar.png");
 
 import { useAnalysis } from "@/context/AnalysisContext";
+import { useWardrobe } from "@/context/WardrobeContext";
 import { useColors } from "@/hooks/useColors";
 
 type Message = {
@@ -35,12 +36,13 @@ const BASE_URL = process.env["EXPO_PUBLIC_DOMAIN"]
 
 async function sendChat(
   messages: { role: string; content: string }[],
-  profile: object | null
+  profile: object | null,
+  feedback?: Record<string, string>
 ): Promise<string> {
   const res = await fetch(`${BASE_URL}/api/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ messages, profile }),
+    body: JSON.stringify({ messages, profile, feedback }),
   });
   if (!res.ok) {
     const err = (await res.json().catch(() => ({}))) as { error?: string };
@@ -166,6 +168,7 @@ export default function StylistChatScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { analysis, userName } = useAnalysis();
+  const { feedback } = useWardrobe();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -219,7 +222,7 @@ export default function StylistChatScreen() {
       try {
         const token = await getToken();
         const history = nextMessages.map((m) => ({ role: m.role, content: m.content }));
-        const reply = await sendChat(history, analysis);
+        const reply = await sendChat(history, analysis, feedback);
         setMessages((prev) => [...prev, { id: `a-${Date.now()}`, role: "assistant", content: reply, ts: Date.now() } as Message]);
       } catch (err) {
         const msg = err instanceof Error ? err.message : "Something went wrong";

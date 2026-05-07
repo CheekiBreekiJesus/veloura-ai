@@ -18,6 +18,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AnalysisProvider } from "@/context/AnalysisContext";
 import { ThemeProvider } from "@/context/ThemeContext";
+import { WardrobeProvider } from "@/context/WardrobeContext";
 
 const domain = process.env["EXPO_PUBLIC_DOMAIN"];
 if (domain) {
@@ -52,6 +53,10 @@ function RootLayoutNav() {
         name="chat"
         options={{ headerShown: false, presentation: "modal" }}
       />
+      <Stack.Screen
+        name="add-item"
+        options={{ headerShown: false, presentation: "modal" }}
+      />
     </Stack>
   );
 }
@@ -81,7 +86,9 @@ export default function RootLayout() {
             <KeyboardProvider>
               <ThemeProvider>
                 <AnalysisProvider>
-                  <RootLayoutNav />
+                  <WardrobeProvider>
+                    <RootLayoutNav />
+                  </WardrobeProvider>
                 </AnalysisProvider>
               </ThemeProvider>
             </KeyboardProvider>
