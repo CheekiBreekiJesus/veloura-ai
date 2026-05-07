@@ -57,6 +57,7 @@
   },
   "dependencies": {
     "expo-file-system": "^19.0.22",
+    "expo-image-manipulator": "^55.0.16",
     "expo-media-library": "^55.0.16",
     "expo-sharing": "^14.0.8",
     "react-native-view-shot": "^5.1.0"
