@@ -66,6 +66,10 @@ function RootLayoutNav() {
         name="skin-analysis"
         options={{ headerShown: false }}
       />
+      <Stack.Screen
+        name="hairstyle-analysis"
+        options={{ headerShown: false }}
+      />
     </Stack>
   );
 }

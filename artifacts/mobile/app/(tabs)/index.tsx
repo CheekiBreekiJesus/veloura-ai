@@ -338,6 +338,27 @@ export default function HomeScreen() {
           </View>
           <Ionicons name="chevron-forward" size={18} color={colors.mutedForeground} />
         </Pressable>
+        <Pressable
+          onPress={async () => {
+            await Haptics.selectionAsync();
+            router.push("/hairstyle-analysis");
+          }}
+          style={({ pressed }) => [
+            styles.colorAnalysisCard,
+            { backgroundColor: colors.card, borderColor: colors.border, opacity: pressed ? 0.88 : 1 },
+          ]}
+        >
+          <View style={[styles.colorAnalysisIcon, { backgroundColor: colors.primary + "15" }]}>
+            <Ionicons name="cut-outline" size={20} color={colors.primary} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.colorAnalysisTitle, { color: colors.foreground }]}>Hairstyle Analysis</Text>
+            <Text style={[styles.colorAnalysisSub, { color: colors.mutedForeground }]}>
+              Best cuts, color directions, and style tags matched to your features
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={colors.mutedForeground} />
+        </Pressable>
         <PaletteStrip palette={analysis.color_palette} colors={colors} />
         <FeatureDNA analysis={analysis} colors={colors} />
         <SeasonCard seasonProfile={seasonProfile} colors={colors} />
