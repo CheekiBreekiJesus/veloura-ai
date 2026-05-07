@@ -1,12 +1,11 @@
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
-import { logger } from "./logger";
 
+// SESSION_SECRET is validated at process startup in index.ts.
+// Empty-string fallback is intentional here to prevent a double crash on
+// module load — index.ts already exits the process if the secret is missing
+// in production.
 const TOKEN_SECRET = process.env.SESSION_SECRET ?? "";
 const TOKEN_TTL_MS = 10 * 60 * 1000; // 10 minutes
-
-if (!TOKEN_SECRET) {
-  logger.warn("SESSION_SECRET is not set — analyze tokens will use an empty secret and are insecure");
-}
 
 interface TokenPayload {
   /** Issued-at timestamp (ms) */
