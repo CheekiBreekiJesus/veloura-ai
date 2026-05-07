@@ -232,7 +232,10 @@ export default function AnalyzingScreen() {
     const minSteps = 2;
     if (currentStep >= minSteps || completedSteps.size >= minSteps) {
       const finish = async () => {
-        await setAnalysis(apiResult, pendingImage.uri);
+        const persistableUri = pendingImage.base64
+          ? `data:${pendingImage.mimeType};base64,${pendingImage.base64}`
+          : pendingImage.uri;
+        await setAnalysis(apiResult, persistableUri);
         setPendingImage(null);
         router.replace("/(tabs)");
       };
