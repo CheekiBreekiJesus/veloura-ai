@@ -214,7 +214,7 @@ function SeasonCard({
           {seasonProfile.description}
         </Text>
         <View style={styles.seasonSwatches}>
-          {seasonProfile.palette.slice(0, 5).map((hex, i) => (
+          {seasonProfile.palette.slice(0, 3).map((hex, i) => (
             <View key={i} style={[styles.seasonSwatch, { backgroundColor: hex }]} />
           ))}
         </View>
