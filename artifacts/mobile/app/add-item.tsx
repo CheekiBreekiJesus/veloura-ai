@@ -4,6 +4,7 @@ import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
+import BackButton from "@/components/BackButton";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
@@ -195,15 +196,7 @@ export default function AddItemScreen() {
           <Text style={[styles.headerTitle, { color: colors.foreground }]}>
             Add to My Closet
           </Text>
-          <Pressable
-            onPress={() => router.back()}
-            style={({ pressed }) => [
-              styles.closeBtn,
-              { backgroundColor: colors.secondary, opacity: pressed ? 0.7 : 1 },
-            ]}
-          >
-            <Ionicons name="close" size={20} color={colors.foreground} />
-          </Pressable>
+          <BackButton variant="close" />
         </View>
 
         <ScrollView

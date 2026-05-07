@@ -3,6 +3,7 @@ import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
+import BackButton from "@/components/BackButton";
 import React, { useEffect, useRef } from "react";
 import {
   Animated,
@@ -257,9 +258,7 @@ export default function FaceFeaturesScreen() {
   if (!analysis) {
     return (
       <View style={[styles.empty, { backgroundColor: colors.background, paddingTop: topPad + 24 }]}>
-        <Pressable onPress={() => router.back()} style={[styles.backPill, { backgroundColor: colors.secondary }]}>
-          <Ionicons name="arrow-back" size={18} color={colors.foreground} />
-        </Pressable>
+        <BackButton />
         <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>No analysis available yet.</Text>
       </View>
     );
@@ -300,17 +299,9 @@ export default function FaceFeaturesScreen() {
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
       <View style={[styles.header, { paddingTop: topPad + 10, borderBottomColor: colors.border }]}>
-        <Pressable
-          onPress={async () => {
-            await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            router.back();
-          }}
-          style={({ pressed }) => [styles.backPill, { backgroundColor: colors.secondary, opacity: pressed ? 0.7 : 1 }]}
-        >
-          <Ionicons name="arrow-back" size={18} color={colors.foreground} />
-        </Pressable>
+        <BackButton />
         <Text style={[styles.headerTitle, { color: colors.foreground }]}>Face Features</Text>
-        <View style={styles.backPill} />
+        <View style={{ width: 40 }} />
       </View>
 
       <ScrollView

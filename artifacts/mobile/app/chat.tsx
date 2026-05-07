@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
+import BackButton from "@/components/BackButton";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -188,15 +189,7 @@ export default function ChatScreen() {
         start={{ x: 0, y: 0 }}
         end={{ x: 0, y: 1 }}
       >
-        <Pressable
-          onPress={() => router.back()}
-          style={({ pressed }) => [
-            styles.backBtn,
-            { backgroundColor: colors.secondary, opacity: pressed ? 0.7 : 1 },
-          ]}
-        >
-          <Ionicons name="arrow-back" size={20} color={colors.foreground} />
-        </Pressable>
+        <BackButton />
         <View style={styles.headerCenter}>
           <View style={[styles.headerAvatar, { backgroundColor: colors.primary + "20" }]}>
             <Ionicons name="sparkles" size={18} color={colors.primary} />

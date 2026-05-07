@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
+import BackButton from "@/components/BackButton";
 import React, { useState } from "react";
 import {
   Alert,
@@ -128,19 +129,11 @@ export default function SettingsScreen() {
             },
           ]}
         >
-          <Pressable
-            onPress={() => router.back()}
-            style={({ pressed }) => [
-              styles.backBtn,
-              { backgroundColor: colors.secondary, opacity: pressed ? 0.7 : 1 },
-            ]}
-          >
-            <Ionicons name="arrow-back" size={20} color={colors.foreground} />
-          </Pressable>
+          <BackButton />
           <Text style={[styles.headerTitle, { color: colors.foreground }]}>
             Settings
           </Text>
-          <View style={styles.backBtn} />
+          <View style={{ width: 40 }} />
         </View>
 
         <ScrollView

@@ -3,6 +3,7 @@ import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
+import BackButton from "@/components/BackButton";
 import React, { useRef, useState } from "react";
 import {
   Animated,
@@ -169,12 +170,7 @@ export default function ProfileScreen() {
           opacity: headerOpacity,
         }]}
       >
-        <Pressable
-          onPress={() => router.back()}
-          style={({ pressed }) => [styles.backBtn, { backgroundColor: colors.secondary, opacity: pressed ? 0.7 : 1 }]}
-        >
-          <Ionicons name="arrow-back" size={20} color={colors.foreground} />
-        </Pressable>
+        <BackButton />
         <Text style={[styles.floatingTitle, { color: colors.foreground }]} numberOfLines={1}>
           {analysis.style_archetype}
         </Text>
@@ -190,12 +186,9 @@ export default function ProfileScreen() {
       </Animated.View>
 
       {/* Always-visible back button */}
-      <Pressable
-        onPress={() => router.back()}
+      <BackButton
         style={[styles.absoluteBack, { top: topPad + 10, backgroundColor: "rgba(255,255,255,0.9)" }]}
-      >
-        <Ionicons name="arrow-back" size={20} color={colors.foreground} />
-      </Pressable>
+      />
 
       <Animated.ScrollView
         onScroll={Animated.event(

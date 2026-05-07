@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
+import BackButton from "@/components/BackButton";
 import React, { useEffect, useRef } from "react";
 import {
   Animated,
@@ -117,11 +118,9 @@ export default function ColorAnalysisScreen() {
   return (
     <ScrollView style={[styles.root, { backgroundColor: colors.background }]} contentContainerStyle={{ paddingTop: topPad, paddingBottom: bottomPad + 24 }} showsVerticalScrollIndicator={false}>
       <View style={styles.topBar}>
-        <Pressable onPress={() => router.back()} style={[styles.iconBtn, { backgroundColor: colors.secondary }]}>
-          <Ionicons name="arrow-back" size={20} color={colors.foreground} />
-        </Pressable>
+        <BackButton />
         <Text style={[styles.topTitle, { color: colors.foreground }]}>Personal Color Analysis</Text>
-        <View style={styles.iconBtn} />
+        <View style={{ width: 40 }} />
       </View>
 
       <Animated.View style={[styles.heroCard, { backgroundColor: colors.card, borderColor: colors.border, opacity: fade, transform: [{ translateY: lift }] }]}>

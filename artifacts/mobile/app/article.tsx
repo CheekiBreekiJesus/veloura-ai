@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams } from "expo-router";
+import BackButton from "@/components/BackButton";
 import * as WebBrowser from "expo-web-browser";
 import React from "react";
 import {
@@ -138,9 +139,7 @@ export default function ArticleScreen() {
       <View style={[styles.root, { backgroundColor: colors.background, justifyContent: "center", alignItems: "center" }]}>
         <Ionicons name="alert-circle-outline" size={48} color={colors.mutedForeground} />
         <Text style={[styles.notFoundText, { color: colors.foreground }]}>Article not found</Text>
-        <Pressable onPress={() => router.back()} style={[styles.backFab, { backgroundColor: colors.primary }]}>
-          <Text style={{ color: "#fff", fontFamily: "Inter_600SemiBold" }}>Go Back</Text>
-        </Pressable>
+        <BackButton />
       </View>
     );
   }
@@ -158,15 +157,10 @@ export default function ArticleScreen() {
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
         >
-          <Pressable
-            onPress={() => router.back()}
-            style={({ pressed }) => [
-              styles.backBtn,
-              { backgroundColor: "rgba(255,255,255,0.7)", opacity: pressed ? 0.7 : 1 },
-            ]}
-          >
-            <Ionicons name="arrow-back" size={20} color="#2D1F14" />
-          </Pressable>
+          <BackButton
+            style={{ backgroundColor: "rgba(255,255,255,0.7)", marginBottom: 20 }}
+            iconColor="#2D1F14"
+          />
 
           <View style={styles.heroBody}>
             <View style={[styles.heroIcon, { backgroundColor: "rgba(255,255,255,0.65)" }]}>

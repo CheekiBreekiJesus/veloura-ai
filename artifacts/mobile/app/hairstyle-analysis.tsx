@@ -3,6 +3,7 @@ import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
+import BackButton from "@/components/BackButton";
 import React, { useEffect, useRef } from "react";
 import {
   Animated,
@@ -567,22 +568,11 @@ export default function HairstyleAnalysisScreen() {
           },
         ]}
       >
-        <Pressable
-          onPress={async () => {
-            await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            router.back();
-          }}
-          style={({ pressed }) => [
-            styles.backPill,
-            { backgroundColor: colors.secondary, opacity: pressed ? 0.7 : 1 },
-          ]}
-        >
-          <Ionicons name="arrow-back" size={18} color={colors.foreground} />
-        </Pressable>
+        <BackButton />
         <Text style={[styles.headerTitle, { color: colors.foreground }]}>
           Hairstyle Analysis
         </Text>
-        <View style={styles.backPill} />
+        <View style={{ width: 40 }} />
       </View>
 
       <ScrollView

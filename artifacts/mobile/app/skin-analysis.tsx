@@ -3,6 +3,7 @@ import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
+import BackButton from "@/components/BackButton";
 import React, { useEffect, useRef } from "react";
 import {
   Animated,
@@ -503,12 +504,9 @@ export default function SkinAnalysisScreen() {
   if (!analysis) {
     return (
       <View style={[emptyStyles.root, { backgroundColor: colors.background, paddingTop: topPad + 24 }]}>
-        <Pressable
-          onPress={() => router.back()}
-          style={[emptyStyles.backBtn, { backgroundColor: colors.secondary, top: topPad + 10, left: 20 }]}
-        >
-          <Ionicons name="arrow-back" size={20} color={colors.foreground} />
-        </Pressable>
+        <BackButton
+          style={[emptyStyles.backBtn, { top: topPad + 10, left: 20 }]}
+        />
         <Ionicons name="water-outline" size={64} color={colors.mutedForeground} />
         <Text style={[emptyStyles.title, { color: colors.foreground }]}>No analysis yet</Text>
         <Text style={[emptyStyles.sub, { color: colors.mutedForeground }]}>
@@ -550,15 +548,9 @@ export default function SkinAnalysisScreen() {
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
-      <Pressable
-        onPress={async () => {
-          await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          router.back();
-        }}
+      <BackButton
         style={[styles.backBtn, { top: topPad + 10, backgroundColor: "rgba(255,255,255,0.92)" }]}
-      >
-        <Ionicons name="arrow-back" size={20} color={colors.foreground} />
-      </Pressable>
+      />
 
       <ScrollView
         showsVerticalScrollIndicator={false}

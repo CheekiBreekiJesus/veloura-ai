@@ -4,6 +4,7 @@ import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
+import BackButton from "@/components/BackButton";
 import React, { useRef, useState } from "react";
 import {
   Keyboard,
@@ -106,15 +107,7 @@ export default function UploadScreen() {
           <Text style={[styles.headerTitle, { color: colors.foreground }]}>
             Upload Photo
           </Text>
-          <Pressable
-            onPress={() => router.back()}
-            style={({ pressed }) => [
-              styles.closeBtn,
-              { backgroundColor: colors.secondary, opacity: pressed ? 0.7 : 1 },
-            ]}
-          >
-            <Ionicons name="close" size={20} color={colors.foreground} />
-          </Pressable>
+          <BackButton variant="close" />
         </View>
 
         <ScrollView
