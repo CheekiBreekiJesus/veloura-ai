@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
 import React, { useState } from "react";
 import {
   Dimensions,
@@ -32,93 +33,161 @@ type Product = {
   gradient: [string, string];
   featured?: boolean;
   description: string;
+  shopUrl: string;
+  retailer: string;
 };
+
+// Build a search URL from a keyword (Amazon product search)
+function buildKeywordUrl(keyword: string): string {
+  const encoded = encodeURIComponent(keyword);
+  return `https://www.amazon.com/s?k=${encoded}`;
+}
+
+// Open a URL in the in-app browser with haptic feedback
+async function openShopUrl(url: string) {
+  await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+  await WebBrowser.openBrowserAsync(url, {
+    presentationStyle: WebBrowser.WebBrowserPresentationStyle.PAGE_SHEET,
+    toolbarColor: "#FAF8F5",
+  });
+}
 
 const BASE_PRODUCTS: Product[] = [
   {
     id: "1",
-    name: "Hydrating Serum",
+    name: "Hydrating Vitamin C Serum",
     category: "Skincare",
     reason: "Boosts radiance for warm skin tones",
-    description: "A lightweight hyaluronic serum that deeply hydrates while enhancing your natural glow. Formulated with niacinamide and vitamin C to even skin tone and reduce dullness — ideal for warm, dewy skin looks.",
-    price: "$48",
+    description:
+      "A lightweight hyaluronic serum that deeply hydrates while enhancing your natural glow. Formulated with niacinamide and vitamin C to even skin tone and reduce dullness — ideal for warm, dewy skin looks.",
+    price: "from $28",
     icon: "water-outline",
     gradient: ["#FDECD3", "#F5D5B0"],
     featured: true,
+    shopUrl: "https://www.sephora.com/search?keyword=vitamin+c+hydrating+serum",
+    retailer: "Sephora",
   },
   {
     id: "2",
     name: "Soft Glow Foundation",
     category: "Makeup",
     reason: "Matches warm undertone perfectly",
-    description: "A buildable, skin-like foundation with a soft satin finish. Its undertone-adaptive formula means warm undertones get that golden, lit-from-within look without looking orange or flat.",
-    price: "$52",
+    description:
+      "A buildable, skin-like foundation with a soft satin finish. Its undertone-adaptive formula means warm undertones get that golden, lit-from-within look without looking orange or flat.",
+    price: "from $34",
     icon: "color-fill-outline",
     gradient: ["#F5EDE3", "#EDE3D9"],
+    shopUrl: "https://www.sephora.com/search?keyword=soft+glow+foundation+warm+undertone",
+    retailer: "Sephora",
   },
   {
     id: "3",
     name: "Terracotta Eyeshadow Palette",
     category: "Makeup",
     reason: "Complements your eye shape beautifully",
-    description: "10 curated shades from champagne to rich rust, designed to sculpt and define any eye shape. Perfect for creating depth that enhances almond, hooded, or upturned eyes with ease.",
-    price: "$64",
+    description:
+      "10 curated shades from champagne to rich rust, designed to sculpt and define any eye shape. Perfect for creating depth that enhances almond, hooded, or upturned eyes with ease.",
+    price: "from $42",
     icon: "layers-outline",
     gradient: ["#F0E4F5", "#DFC8EF"],
     featured: true,
+    shopUrl: "https://www.sephora.com/search?keyword=terracotta+eyeshadow+palette",
+    retailer: "Sephora",
   },
   {
     id: "4",
     name: "Silk Slip Dress",
     category: "Fashion",
     reason: "Flatters your face and style archetype",
-    description: "A luxurious slip dress cut on the bias for a fluid, flattering silhouette. The clean lines balance structured faces while the silky drape adds elegance — a wardrobe essential for the Modern Romantic.",
-    price: "$145",
+    description:
+      "A luxurious slip dress cut on the bias for a fluid, flattering silhouette. The clean lines balance structured faces while the silky drape adds elegance — a wardrobe essential for the Modern Romantic.",
+    price: "from $60",
     icon: "shirt-outline",
     gradient: ["#D9EEF5", "#B8DCEA"],
+    shopUrl: "https://www.asos.com/search/?q=silk+slip+dress",
+    retailer: "ASOS",
   },
   {
     id: "5",
     name: "Argan Oil Hair Mask",
     category: "Haircare",
     reason: "Nourishes and defines your hair type",
-    description: "A rich weekly treatment infused with pure argan oil and keratin proteins. Reduces frizz, enhances natural wave pattern, and adds long-lasting shine — perfect for fine wavy to thick curly hair types.",
-    price: "$34",
+    description:
+      "A rich weekly treatment infused with pure argan oil and keratin proteins. Reduces frizz, enhances natural wave pattern, and adds long-lasting shine — perfect for fine wavy to thick curly hair types.",
+    price: "from $18",
     icon: "cut-outline",
     gradient: ["#D9F5E4", "#B8EAD0"],
+    shopUrl: "https://www.amazon.com/s?k=argan+oil+hair+mask",
+    retailer: "Amazon",
   },
   {
     id: "6",
     name: "Gold Oval Frames",
     category: "Eyewear",
     reason: "Balances and enhances your face shape",
-    description: "Timeless oval frames in warm gold-tone metal. The soft curves complement angular jawlines while the gold tone harmonizes with warm undertones for a polished, editorial look.",
-    price: "$220",
+    description:
+      "Timeless oval frames in warm gold-tone metal. The soft curves complement angular jawlines while the gold tone harmonizes with warm undertones for a polished, editorial look.",
+    price: "from $95",
     icon: "glasses-outline",
     gradient: ["#F5F0D9", "#EADCB8"],
     featured: true,
+    shopUrl: "https://www.warbyparker.com/eyeglasses/women/oval",
+    retailer: "Warby Parker",
   },
   {
     id: "7",
     name: "Tinted Lip Balm",
     category: "Makeup",
     reason: "Enhances your natural lip shape",
-    description: "A sheer, buildable tint that gives your lips the perfect wash of color while keeping them moisturized. Available in terracotta, rose, and berry — all flattering for warm and neutral undertones.",
-    price: "$22",
+    description:
+      "A sheer, buildable tint that gives your lips the perfect wash of color while keeping them moisturized. Available in terracotta, rose, and berry — all flattering for warm and neutral undertones.",
+    price: "from $14",
     icon: "heart-outline",
     gradient: ["#FDECD3", "#F5D5B0"],
+    shopUrl: "https://www.sephora.com/search?keyword=tinted+lip+balm+warm",
+    retailer: "Sephora",
   },
   {
     id: "8",
     name: "Linen Blazer",
     category: "Fashion",
     reason: "Versatile piece for your wardrobe",
-    description: "A perfectly cut linen blazer that works for everything from brunch to boardroom. The relaxed, unstructured silhouette suits most body types while projecting effortless polished style.",
-    price: "$178",
+    description:
+      "A perfectly cut linen blazer that works for everything from brunch to boardroom. The relaxed, unstructured silhouette suits most body types while projecting effortless polished style.",
+    price: "from $55",
     icon: "shirt-outline",
     gradient: ["#D9EEF5", "#B8DCEA"],
+    shopUrl: "https://www.asos.com/search/?q=linen+blazer+women",
+    retailer: "ASOS",
   },
 ];
+
+// ── Retailer icon helper ──────────────────────────────────────────────────────
+
+const RETAILER_ICONS: Record<string, React.ComponentProps<typeof Ionicons>["name"]> = {
+  Sephora: "flower-outline",
+  Amazon: "cart-outline",
+  ASOS: "bag-outline",
+  "Warby Parker": "glasses-outline",
+};
+
+function RetailerBadge({
+  retailer,
+  colors,
+}: {
+  retailer: string;
+  colors: ReturnType<typeof useColors>;
+}) {
+  const icon = RETAILER_ICONS[retailer] ?? "open-outline";
+  return (
+    <View style={[styles.retailerBadge, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
+      <Ionicons name={icon} size={12} color={colors.mutedForeground} />
+      <Text style={[styles.retailerText, { color: colors.mutedForeground }]}>{retailer}</Text>
+    </View>
+  );
+}
+
+// ── Product Detail Modal ──────────────────────────────────────────────────────
 
 function ProductDetailModal({
   product,
@@ -133,6 +202,14 @@ function ProductDetailModal({
 }) {
   const insets = useSafeAreaInsets();
   if (!product) return null;
+
+  const handleShopNow = async () => {
+    onClose();
+    // Small delay so the modal closes before browser opens
+    setTimeout(() => {
+      openShopUrl(product.shopUrl);
+    }, 300);
+  };
 
   return (
     <Modal
@@ -168,11 +245,14 @@ function ProductDetailModal({
           </LinearGradient>
 
           <View style={styles.modalContent}>
-            {/* Category badge */}
-            <View style={[styles.modalCatBadge, { backgroundColor: colors.primary + "18" }]}>
-              <Text style={[styles.modalCatText, { color: colors.primary }]}>
-                {product.category}
-              </Text>
+            {/* Category + retailer row */}
+            <View style={styles.modalBadgeRow}>
+              <View style={[styles.modalCatBadge, { backgroundColor: colors.primary + "18" }]}>
+                <Text style={[styles.modalCatText, { color: colors.primary }]}>
+                  {product.category}
+                </Text>
+              </View>
+              <RetailerBadge retailer={product.retailer} colors={colors} />
             </View>
 
             <Text style={[styles.modalName, { color: colors.foreground }]}>
@@ -197,10 +277,7 @@ function ProductDetailModal({
 
             {/* CTA */}
             <Pressable
-              onPress={async () => {
-                await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                onClose();
-              }}
+              onPress={handleShopNow}
               style={({ pressed }) => [
                 styles.shopNowBtn,
                 { backgroundColor: colors.primary, opacity: pressed ? 0.85 : 1 },
@@ -208,13 +285,13 @@ function ProductDetailModal({
             >
               <Ionicons name="bag-outline" size={18} color={colors.primaryForeground} />
               <Text style={[styles.shopNowText, { color: colors.primaryForeground }]}>
-                Shop Now
+                Shop on {product.retailer}
               </Text>
-              <Ionicons name="arrow-forward" size={16} color={colors.primaryForeground} />
+              <Ionicons name="open-outline" size={15} color={colors.primaryForeground} />
             </Pressable>
 
-            <Text style={[styles.mockNote, { color: colors.mutedForeground }]}>
-              Links are illustrative — real products coming soon
+            <Text style={[styles.disclosureNote, { color: colors.mutedForeground }]}>
+              Opens {product.retailer} · prices vary by retailer
             </Text>
           </View>
         </View>
@@ -222,6 +299,59 @@ function ProductDetailModal({
     </Modal>
   );
 }
+
+// ── Shopping keywords section ─────────────────────────────────────────────────
+
+function KeywordsSection({
+  keywords,
+  colors,
+}: {
+  keywords: string[];
+  colors: ReturnType<typeof useColors>;
+}) {
+  if (!keywords || keywords.length === 0) return null;
+
+  return (
+    <View style={styles.keywordsSection}>
+      <View style={styles.keywordsHeader}>
+        <Ionicons name="search-outline" size={16} color={colors.primary} />
+        <Text style={[styles.keywordsTitle, { color: colors.foreground }]}>
+          Shop Your Keywords
+        </Text>
+      </View>
+      <Text style={[styles.keywordsSub, { color: colors.mutedForeground }]}>
+        Aura picked these search terms from your profile — tap to shop
+      </Text>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.keywordsScroll}
+      >
+        {keywords.slice(0, 10).map((keyword) => (
+          <Pressable
+            key={keyword}
+            onPress={() => openShopUrl(buildKeywordUrl(keyword))}
+            style={({ pressed }) => [
+              styles.keywordChip,
+              {
+                backgroundColor: pressed ? colors.primary + "22" : colors.card,
+                borderColor: colors.primary + "40",
+              },
+            ]}
+          >
+            <Ionicons name="cart-outline" size={13} color={colors.primary} />
+            <Text style={[styles.keywordText, { color: colors.foreground }]}>
+              {keyword}
+            </Text>
+            <Ionicons name="open-outline" size={11} color={colors.mutedForeground} />
+          </Pressable>
+        ))}
+      </ScrollView>
+    </View>
+  );
+}
+
+// ── Main screen ───────────────────────────────────────────────────────────────
 
 export default function ShopScreen() {
   const colors = useColors();
@@ -275,6 +405,31 @@ export default function ShopScreen() {
           )}
         </LinearGradient>
 
+        {/* Personalized banner */}
+        {analysis && (
+          <View style={styles.sectionPad}>
+            <View
+              style={[
+                styles.personalBanner,
+                { backgroundColor: colors.primary + "15", borderColor: colors.primary + "30" },
+              ]}
+            >
+              <Ionicons name="sparkles" size={16} color={colors.primary} />
+              <Text style={[styles.personalText, { color: colors.primary }]}>
+                Products selected based on your {analysis.undertone.toLowerCase()} undertone and {analysis.face_shape.toLowerCase()} face shape
+              </Text>
+            </View>
+          </View>
+        )}
+
+        {/* Shopping keywords from analysis */}
+        {analysis?.shopping_keywords && analysis.shopping_keywords.length > 0 && (
+          <KeywordsSection
+            keywords={analysis.shopping_keywords}
+            colors={colors}
+          />
+        )}
+
         {/* Category filter */}
         <ScrollView
           horizontal
@@ -314,23 +469,6 @@ export default function ShopScreen() {
             </Pressable>
           ))}
         </ScrollView>
-
-        {/* Personalized banner */}
-        {analysis && activeCategory === "All" && (
-          <View style={styles.sectionPad}>
-            <View
-              style={[
-                styles.personalBanner,
-                { backgroundColor: colors.primary + "15", borderColor: colors.primary + "30" },
-              ]}
-            >
-              <Ionicons name="sparkles" size={16} color={colors.primary} />
-              <Text style={[styles.personalText, { color: colors.primary }]}>
-                Products selected based on your {analysis.undertone.toLowerCase()} undertone and {analysis.face_shape.toLowerCase()} face shape
-              </Text>
-            </View>
-          </View>
-        )}
 
         {/* Featured products */}
         {featured.length > 0 && (
@@ -378,6 +516,7 @@ export default function ShopScreen() {
           </>
         )}
 
+        {/* No analysis CTA */}
         {!analysis && (
           <View style={styles.analysisPrompt}>
             <View
@@ -407,6 +546,11 @@ export default function ShopScreen() {
             </View>
           </View>
         )}
+
+        {/* Disclosure */}
+        <Text style={[styles.globalDisclosure, { color: colors.mutedForeground }]}>
+          Veloura earns no commission — links open retailer search results directly
+        </Text>
       </ScrollView>
 
       <ProductDetailModal
@@ -418,6 +562,8 @@ export default function ShopScreen() {
     </View>
   );
 }
+
+// ── Sub-components ────────────────────────────────────────────────────────────
 
 function FeaturedCard({
   product,
@@ -454,9 +600,14 @@ function FeaturedCard({
           {product.reason}
         </Text>
         <View style={styles.featFooter}>
-          <Text style={[styles.featPrice, { color: colors.foreground }]}>
-            {product.price}
-          </Text>
+          <View>
+            <Text style={[styles.featPrice, { color: colors.foreground }]}>
+              {product.price}
+            </Text>
+            <Text style={[styles.featRetailer, { color: colors.mutedForeground }]}>
+              {product.retailer}
+            </Text>
+          </View>
           <View style={[styles.featBtn, { backgroundColor: colors.primary }]}>
             <Text style={[styles.featBtnText, { color: colors.primaryForeground }]}>
               View
@@ -514,6 +665,9 @@ function ProductRow({
         <Text style={[styles.productPrice, { color: colors.foreground }]}>
           {product.price}
         </Text>
+        <Text style={[styles.productRetailer, { color: colors.mutedForeground }]}>
+          {product.retailer}
+        </Text>
         <View style={[styles.viewBtn, { backgroundColor: colors.secondary }]}>
           <Text style={[styles.viewBtnText, { color: colors.primary }]}>View</Text>
         </View>
@@ -521,6 +675,8 @@ function ProductRow({
     </Pressable>
   );
 }
+
+// ── Styles ────────────────────────────────────────────────────────────────────
 
 const CARD_W = width * 0.55;
 
@@ -545,6 +701,25 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   personalText: { flex: 1, fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 18 },
+
+  // Keywords section
+  keywordsSection: { paddingHorizontal: 20, marginBottom: 8 },
+  keywordsHeader: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 4 },
+  keywordsTitle: { fontSize: 16, fontFamily: "Inter_600SemiBold" },
+  keywordsSub: { fontSize: 12, fontFamily: "Inter_400Regular", marginBottom: 10 },
+  keywordsScroll: { gap: 8 },
+  keywordChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  keywordText: { fontSize: 13, fontFamily: "Inter_400Regular" },
+
+  // Featured
   featuredScroll: { paddingHorizontal: 20, gap: 12, marginBottom: 16 },
   featCard: {
     width: CARD_W,
@@ -560,8 +735,11 @@ const styles = StyleSheet.create({
   featReason: { fontSize: 12, fontFamily: "Inter_400Regular", lineHeight: 18 },
   featFooter: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 4 },
   featPrice: { fontSize: 16, fontFamily: "Inter_700Bold" },
+  featRetailer: { fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 1 },
   featBtn: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 12 },
   featBtnText: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
+
+  // Product row
   productRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -577,16 +755,44 @@ const styles = StyleSheet.create({
   catBadgeText: { fontSize: 10, fontFamily: "Inter_600SemiBold" },
   productName: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
   productReason: { fontSize: 12, fontFamily: "Inter_400Regular" },
-  productRight: { alignItems: "flex-end", gap: 6 },
+  productRight: { alignItems: "flex-end", gap: 4 },
   productPrice: { fontSize: 15, fontFamily: "Inter_700Bold" },
+  productRetailer: { fontSize: 11, fontFamily: "Inter_400Regular" },
   viewBtn: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 10 },
   viewBtnText: { fontSize: 13, fontFamily: "Inter_500Medium" },
+
+  // No analysis prompt
   analysisPrompt: { paddingHorizontal: 20, paddingTop: 8 },
   promptCard: { borderRadius: 20, padding: 24, borderWidth: 1, alignItems: "center", gap: 12 },
   promptTitle: { fontSize: 18, fontFamily: "Inter_600SemiBold" },
   promptDesc: { fontSize: 14, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 22 },
   promptBtn: { paddingHorizontal: 28, paddingVertical: 14, borderRadius: 14, marginTop: 4 },
   promptBtnText: { fontSize: 15, fontFamily: "Inter_600SemiBold" },
+
+  // Global disclosure
+  globalDisclosure: {
+    textAlign: "center",
+    fontSize: 11,
+    fontFamily: "Inter_400Regular",
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    paddingBottom: 8,
+    lineHeight: 16,
+  },
+
+  // Retailer badge
+  retailerBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  retailerText: { fontSize: 11, fontFamily: "Inter_500Medium" },
+
+  // Modal
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.45)",
@@ -621,6 +827,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   modalContent: { paddingHorizontal: 20, gap: 12 },
+  modalBadgeRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   modalCatBadge: { alignSelf: "flex-start", paddingHorizontal: 12, paddingVertical: 5, borderRadius: 10 },
   modalCatText: { fontSize: 12, fontFamily: "Inter_600SemiBold" },
   modalName: { fontSize: 22, fontFamily: "Inter_700Bold" },
@@ -645,5 +852,5 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   shopNowText: { fontSize: 16, fontFamily: "Inter_600SemiBold" },
-  mockNote: { textAlign: "center", fontSize: 11, fontFamily: "Inter_400Regular", marginTop: -4 },
+  disclosureNote: { textAlign: "center", fontSize: 11, fontFamily: "Inter_400Regular", marginTop: -4 },
 });
