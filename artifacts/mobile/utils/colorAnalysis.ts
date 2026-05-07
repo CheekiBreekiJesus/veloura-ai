@@ -41,35 +41,35 @@ export function deriveColorSwatches(
   analysis: Pick<AnalysisResult, "color_palette" | "undertone">
 ): SwatchGroup[] {
   const palette = (analysis.color_palette?.length ? analysis.color_palette : FALLBACK_PALETTE).map(normalize);
-  const [a, b, c, d, e] = palette;
   const warm = /warm|golden|yellow|peach|olive|amber/i.test(analysis.undertone);
+  const pick = (index: number, fallback: string) => palette[index] ?? fallback;
   return [
     {
       title: "Best Neutrals",
       swatches: [
-        { label: warm ? "Ivory" : "Pearl", hex: palette[1] ?? "#F5EDE3" },
-        { label: warm ? "Camel" : "Taupe", hex: palette[3] ?? "#B8DCEA" },
+        { label: warm ? "Ivory" : "Pearl", hex: pick(1, "#F5EDE3") },
+        { label: warm ? "Camel" : "Taupe", hex: pick(3, "#B8DCEA") },
       ],
     },
     {
       title: "Accent Colors",
       swatches: [
-        { label: "Glow", hex: a },
-        { label: "Lift", hex: b },
+        { label: "Glow", hex: pick(0, "#C4956A") },
+        { label: "Lift", hex: pick(1, "#F5EDE3") },
       ],
     },
     {
       title: "Statement Colors",
       swatches: [
-        { label: "Hero", hex: c },
-        { label: "Pop", hex: d },
+        { label: "Hero", hex: pick(2, "#E8C4A0") },
+        { label: "Pop", hex: pick(3, "#B8DCEA") },
       ],
     },
     {
       title: "Soft Tones",
       swatches: [
-        { label: "Mist", hex: e },
-        { label: "Air", hex: palette[1] ?? "#F5EDE3" },
+        { label: "Mist", hex: pick(4, "#8B5E3C") },
+        { label: "Air", hex: pick(1, "#F5EDE3") },
       ],
     },
     {

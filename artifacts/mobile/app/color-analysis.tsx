@@ -14,7 +14,6 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { getSeasonProfile } from "@/constants/seasons";
 import { useAnalysis } from "@/context/AnalysisContext";
 import { useColors } from "@/hooks/useColors";
 import {
@@ -108,7 +107,6 @@ export default function ColorAnalysisScreen() {
   }
 
   const season = deriveSeasonLabel(analysis.undertone, analysis.contrast_level);
-  const seasonProfile = getSeasonProfile((season.startsWith("Soft") || season.startsWith("Light") ? "Summer" : season.includes("Autumn") || season.includes("Spring") ? "Spring" : "Winter") as never);
   const swatches = deriveColorSwatches(analysis);
   const tones = deriveClothingTones(analysis);
 
