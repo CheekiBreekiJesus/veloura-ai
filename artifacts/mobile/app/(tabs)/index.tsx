@@ -329,6 +329,7 @@ export default function HomeScreen() {
         onClose={() => setShareVisible(false)}
         analysis={analysis}
         userName={userName}
+        imageUri={imageUri}
       />
     </>
   );

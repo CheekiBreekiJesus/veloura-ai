@@ -1,6 +1,7 @@
+import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { forwardRef } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Image, StyleSheet, Text, View } from "react-native";
 
 import { type AnalysisResult } from "@/context/AnalysisContext";
 import { getColorSeason, getSeasonProfile } from "@/constants/seasons";
@@ -17,9 +18,25 @@ const BORDER = "#E5D9CF";
 type Props = {
   analysis: AnalysisResult;
   userName: string | null;
+  imageUri?: string | null;
 };
 
-const ShareProfileCard = forwardRef<View, Props>(({ analysis, userName }, ref) => {
+function AvatarCircle({ uri }: { uri?: string | null }) {
+  if (uri) {
+    return (
+      <View style={styles.avatarWrap}>
+        <Image source={{ uri }} style={styles.avatarImage} />
+      </View>
+    );
+  }
+  return (
+    <View style={[styles.avatarWrap, styles.avatarFallback]}>
+      <Ionicons name="person" size={28} color={MUTED} />
+    </View>
+  );
+}
+
+const ShareProfileCard = forwardRef<View, Props>(({ analysis, userName, imageUri }, ref) => {
   const season = getColorSeason(analysis.undertone, analysis.skin_tone);
   const seasonProfile = getSeasonProfile(season);
 
@@ -43,7 +60,7 @@ const ShareProfileCard = forwardRef<View, Props>(({ analysis, userName }, ref) =
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
       >
-        <Text style={styles.bannerEmoji}>{seasonProfile.emoji}</Text>
+        <AvatarCircle uri={imageUri} />
         <View style={styles.bannerText}>
           <Text style={styles.bannerSeason}>{seasonProfile.season}</Text>
           <Text style={styles.bannerSubtitle}>{seasonProfile.subtitle}</Text>
@@ -151,7 +168,24 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     gap: 14,
   },
-  bannerEmoji: { fontSize: 40 },
+  avatarWrap: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    borderWidth: 2.5,
+    borderColor: "rgba(255,255,255,0.85)",
+    overflow: "hidden",
+    flexShrink: 0,
+  },
+  avatarImage: {
+    width: "100%",
+    height: "100%",
+  },
+  avatarFallback: {
+    backgroundColor: "rgba(255,255,255,0.55)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   bannerText: { flex: 1 },
   bannerSeason: {
     fontSize: 22,

@@ -589,6 +589,7 @@ export default function ProfileScreen() {
         onClose={() => setShareVisible(false)}
         analysis={analysis}
         userName={userName}
+        imageUri={imageUri}
       />
     </View>
   );

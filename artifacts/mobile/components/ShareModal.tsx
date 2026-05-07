@@ -26,6 +26,7 @@ type Props = {
   onClose: () => void;
   analysis: AnalysisResult;
   userName: string | null;
+  imageUri?: string | null;
 };
 
 function Toast({ message, visible }: { message: string; visible: boolean }) {
@@ -55,7 +56,7 @@ function Toast({ message, visible }: { message: string; visible: boolean }) {
   );
 }
 
-export default function ShareModal({ visible, onClose, analysis, userName }: Props) {
+export default function ShareModal({ visible, onClose, analysis, userName, imageUri }: Props) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const cardRef = useRef<View>(null);
@@ -193,7 +194,7 @@ export default function ShareModal({ visible, onClose, analysis, userName }: Pro
 
           {/* Card preview */}
           <View style={styles.cardWrap}>
-            <ShareProfileCard ref={cardRef} analysis={analysis} userName={userName} />
+            <ShareProfileCard ref={cardRef} analysis={analysis} userName={userName} imageUri={imageUri} />
           </View>
 
           {/* Error */}
