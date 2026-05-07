@@ -229,6 +229,11 @@ export default function StylistChatScreen() {
   // Track the previous analysis object reference so we can detect a fresh
   // analysis replacing the old one (analysis !== null → different analysis).
   const prevAnalysisRef = useRef<typeof analysis | undefined>(undefined);
+  // When a re-analysis reset fires, the auto-persist effect runs in the same
+  // render cycle with the old closure values (messages = stale, initialized =
+  // true). Setting this flag in the reset effect (which runs first) tells the
+  // persist effect to skip that one invocation before state updates land.
+  const skipNextPersistRef = useRef(false);
 
   const baseUrl = (() => {
     const d = process.env["EXPO_PUBLIC_DOMAIN"];
@@ -260,6 +265,10 @@ export default function StylistChatScreen() {
     if (prev !== undefined && prev !== null && prev !== analysis) {
       // A brand-new analysis replaced the previous one — wipe stale messages
       // so Aura generates a fresh greeting on next render.
+      // Set the skip flag BEFORE state updates so the auto-persist effect
+      // (which runs later in the same cycle with old closure values) does not
+      // re-save the stale history back to storage.
+      skipNextPersistRef.current = true;
       setMessages([]);
       setInitialized(false);
     }
@@ -292,8 +301,15 @@ export default function StylistChatScreen() {
     setMessages(initial);
   }, [analysis, chatHistory, initialized, userName]);
 
-  // Auto-persist all message mutations (greeting, user optimistic, assistant reply, error rollback)
+  // Auto-persist all message mutations (greeting, user optimistic, assistant reply, error rollback).
+  // skipNextPersistRef guards against a stale re-save when a re-analysis reset
+  // fires: the reset effect runs first (same cycle) and sets the flag so this
+  // effect skips the invocation where messages/initialized still hold old values.
   useEffect(() => {
+    if (skipNextPersistRef.current) {
+      skipNextPersistRef.current = false;
+      return;
+    }
     if (!initialized || !analysis || messages.length === 0) return;
     void saveChatHistory(messages);
   }, [messages, initialized, analysis, saveChatHistory]);
