@@ -20,6 +20,7 @@ import { AnalysisProvider } from "@/context/AnalysisContext";
 import { BodyProfileProvider } from "@/context/BodyProfileContext";
 import { PortraitHistoryProvider } from "@/context/PortraitHistoryContext";
 import { ThemeProvider } from "@/context/ThemeContext";
+import { TodayOutfitProvider } from "@/context/TodayOutfitContext";
 import { WardrobeProvider } from "@/context/WardrobeContext";
 import { WishlistProductProvider } from "@/context/WishlistProductContext";
 
@@ -104,9 +105,11 @@ export default function RootLayout() {
                   <PortraitHistoryProvider>
                     <BodyProfileProvider>
                       <WardrobeProvider>
-                        <WishlistProductProvider>
-                          <RootLayoutNav />
-                        </WishlistProductProvider>
+                        <TodayOutfitProvider>
+                          <WishlistProductProvider>
+                            <RootLayoutNav />
+                          </WishlistProductProvider>
+                        </TodayOutfitProvider>
                       </WardrobeProvider>
                     </BodyProfileProvider>
                   </PortraitHistoryProvider>

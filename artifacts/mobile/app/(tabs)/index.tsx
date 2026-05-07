@@ -23,6 +23,7 @@ import { getDailyTip } from "@/constants/tips";
 import { getColorSeason, getSeasonProfile } from "@/constants/seasons";
 import { useColors } from "@/hooks/useColors";
 import ShareModal from "@/components/ShareModal";
+import TodayOutfitCard from "@/components/TodayOutfitCard";
 
 const ND = Platform.OS !== "web";
 
@@ -362,6 +363,7 @@ export default function HomeScreen() {
         <PaletteStrip palette={analysis.color_palette} colors={colors} />
         <FeatureDNA analysis={analysis} colors={colors} />
         <SeasonCard seasonProfile={seasonProfile} colors={colors} />
+        <TodayOutfitCard />
         <DailyTip tip={tip} colors={colors} />
         <TodayForYou cats={cats} colors={colors} />
         <AIRecommendations recs={recs} colors={colors} />
