@@ -1,0 +1,537 @@
+import { Ionicons } from "@expo/vector-icons";
+import React from "react";
+
+export type PriceTier = "budget" | "mid" | "luxury";
+
+export type Product = {
+  id: string;
+  name: string;
+  category: string;
+  reason: string;
+  price: string;
+  priceNumeric: number;
+  priceTier: PriceTier;
+  icon: React.ComponentProps<typeof Ionicons>["name"];
+  gradient: [string, string];
+  featured?: boolean;
+  isNew?: boolean;
+  description: string;
+  highlights: string[];
+  shopUrl: string;
+  retailer: string;
+};
+
+export const PRODUCTS: Product[] = [
+  // ─── Skincare ─────────────────────────────────────────────────────────────
+  {
+    id: "sk-1",
+    name: "Hydrating Vitamin C Serum",
+    category: "Skincare",
+    reason: "Boosts radiance for warm skin tones",
+    description:
+      "A lightweight hyaluronic serum that deeply hydrates while enhancing your natural glow. Formulated with niacinamide and 15% vitamin C to even skin tone and reduce dullness — ideal for warm, dewy skin looks.",
+    highlights: ["15% Vitamin C", "Hyaluronic acid", "Fragrance-free"],
+    price: "$28+",
+    priceNumeric: 28,
+    priceTier: "budget",
+    icon: "water-outline",
+    gradient: ["#FDECD3", "#F5D5B0"],
+    featured: true,
+    shopUrl: "https://www.sephora.com/search?keyword=vitamin+c+hydrating+serum",
+    retailer: "Sephora",
+  },
+  {
+    id: "sk-2",
+    name: "Niacinamide Pore Serum",
+    category: "Skincare",
+    reason: "Minimizes pores and balances skin",
+    description:
+      "The Ordinary's cult-favorite 10% niacinamide + 1% zinc formula visibly reduces the appearance of blemishes and congestion in just two weeks. A budget staple that works.",
+    highlights: ["10% Niacinamide", "1% Zinc", "Vegan formula"],
+    price: "$7+",
+    priceNumeric: 7,
+    priceTier: "budget",
+    icon: "flask-outline",
+    gradient: ["#E8F5E9", "#C8E6C9"],
+    shopUrl: "https://www.sephora.com/search?keyword=niacinamide+pore+serum",
+    retailer: "Sephora",
+  },
+  {
+    id: "sk-3",
+    name: "SPF 50 Tinted Moisturizer",
+    category: "Skincare",
+    reason: "Sun protection with a natural tint",
+    description:
+      "A sheer tinted formula that offers broad-spectrum SPF 50 protection while evening out your complexion. Non-greasy, reef-safe, and perfect as a light makeup base for your skin tone.",
+    highlights: ["SPF 50 PA++++", "8 shades", "Reef-safe mineral"],
+    price: "$36+",
+    priceNumeric: 36,
+    priceTier: "mid",
+    icon: "sunny-outline",
+    gradient: ["#FFF9C4", "#FFF176"],
+    featured: true,
+    isNew: true,
+    shopUrl: "https://www.ulta.com/search?search=tinted+spf+moisturizer",
+    retailer: "Ulta",
+  },
+  {
+    id: "sk-4",
+    name: "Overnight Retinol Cream",
+    category: "Skincare",
+    reason: "Resurfaces and refines skin texture",
+    description:
+      "Paula's Choice clinical 1% retinol cream works overnight to diminish fine lines, smooth uneven texture, and stimulate collagen. Ideal for all skin types; pairs with a rich moisturizer.",
+    highlights: ["1% Retinol", "Clinical strength", "Peptide complex"],
+    price: "$52+",
+    priceNumeric: 52,
+    priceTier: "mid",
+    icon: "moon-outline",
+    gradient: ["#EDE7F6", "#D1C4E9"],
+    shopUrl: "https://www.paulas-choice.com",
+    retailer: "Paula's Choice",
+  },
+  {
+    id: "sk-5",
+    name: "Rosehip Face Oil",
+    category: "Skincare",
+    reason: "Deeply nourishes and evens skin tone",
+    description:
+      "Cold-pressed rosehip seed oil rich in vitamin A and omega fatty acids. Absorbs quickly without clogging pores, leaving skin luminous and soft — a natural complement for warm undertones.",
+    highlights: ["Cold-pressed", "Vitamin A & C", "Non-comedogenic"],
+    price: "$22+",
+    priceNumeric: 22,
+    priceTier: "budget",
+    icon: "leaf-outline",
+    gradient: ["#FCE4EC", "#F8BBD0"],
+    shopUrl: "https://www.amazon.com/s?k=rosehip+face+oil",
+    retailer: "Amazon",
+  },
+  {
+    id: "sk-6",
+    name: "Gentle Foaming Cleanser",
+    category: "Skincare",
+    reason: "Cleans without stripping your skin barrier",
+    description:
+      "CeraVe's dermatologist-developed cleanser with ceramides, niacinamide, and hyaluronic acid. Removes makeup and impurities while reinforcing the skin barrier — suitable for all skin types.",
+    highlights: ["3 Ceramides", "Hyaluronic acid", "Fragrance-free"],
+    price: "$16+",
+    priceNumeric: 16,
+    priceTier: "budget",
+    icon: "sparkles-outline",
+    gradient: ["#E3F2FD", "#BBDEFB"],
+    shopUrl: "https://www.ulta.com/search?search=cerave+foaming+cleanser",
+    retailer: "Ulta",
+  },
+
+  // ─── Makeup ────────────────────────────────────────────────────────────────
+  {
+    id: "mk-1",
+    name: "Soft Glow Foundation",
+    category: "Makeup",
+    reason: "Matches warm undertones perfectly",
+    description:
+      "A buildable, skin-like foundation with a soft satin finish. Its undertone-adaptive formula means warm undertones get that golden, lit-from-within look without looking flat or orange.",
+    highlights: ["40 shades", "Buildable coverage", "12-hour wear"],
+    price: "$34+",
+    priceNumeric: 34,
+    priceTier: "mid",
+    icon: "color-fill-outline",
+    gradient: ["#F5EDE3", "#EDE3D9"],
+    shopUrl: "https://www.sephora.com/search?keyword=soft+glow+foundation+warm+undertone",
+    retailer: "Sephora",
+  },
+  {
+    id: "mk-2",
+    name: "Terracotta Eyeshadow Palette",
+    category: "Makeup",
+    reason: "Sculpts and defines your eye shape",
+    description:
+      "10 curated shades from champagne to deep rust, engineered to sculpt and define any eye shape. Perfect for creating depth that enhances almond, hooded, or upturned eyes with professional ease.",
+    highlights: ["10 pigment-rich shades", "Buildable pigment", "Long-wear formula"],
+    price: "$42+",
+    priceNumeric: 42,
+    priceTier: "mid",
+    icon: "layers-outline",
+    gradient: ["#F0E4F5", "#DFC8EF"],
+    featured: true,
+    shopUrl: "https://www.sephora.com/search?keyword=terracotta+eyeshadow+palette",
+    retailer: "Sephora",
+  },
+  {
+    id: "mk-3",
+    name: "Tinted Lip Balm",
+    category: "Makeup",
+    reason: "Enhances your natural lip shape",
+    description:
+      "A sheer, buildable tint that gives lips a perfect wash of color while keeping them moisturized. Available in terracotta, rose, and berry — all flattering for warm and neutral undertones.",
+    highlights: ["Buildable color", "Jojoba + Shea", "6 shades"],
+    price: "$14+",
+    priceNumeric: 14,
+    priceTier: "budget",
+    icon: "heart-outline",
+    gradient: ["#FDECD3", "#F5D5B0"],
+    shopUrl: "https://www.sephora.com/search?keyword=tinted+lip+balm+warm",
+    retailer: "Sephora",
+  },
+  {
+    id: "mk-4",
+    name: "Blush & Highlight Duo",
+    category: "Makeup",
+    reason: "Complements your natural warmth",
+    description:
+      "Fenty Beauty's iconic cheek palette combines a buildable rosy blush with a luminous champagne highlight. Designed for all skin tones with Rihanna's commitment to inclusivity.",
+    highlights: ["Dual-ended brush", "All skin tones", "Buildable finish"],
+    price: "$38+",
+    priceNumeric: 38,
+    priceTier: "mid",
+    icon: "flower-outline",
+    gradient: ["#FCE4EC", "#F48FB1"],
+    featured: true,
+    isNew: true,
+    shopUrl: "https://www.sephora.com/search?keyword=fenty+blush+highlight+duo",
+    retailer: "Sephora",
+  },
+  {
+    id: "mk-5",
+    name: "Longwear Brow Pencil",
+    category: "Makeup",
+    reason: "Defines brows to frame your face",
+    description:
+      "Charlotte Tilbury's award-winning brow pencil with a micro-precision tip. The waxy formula mimics natural hair strokes for a defined yet effortless arch that lasts all day.",
+    highlights: ["Micro-precision tip", "12-hour wear", "6 shades"],
+    price: "$29+",
+    priceNumeric: 29,
+    priceTier: "budget",
+    icon: "brush-outline",
+    gradient: ["#EFEBE9", "#D7CCC8"],
+    shopUrl: "https://www.sephora.com/search?keyword=charlotte+tilbury+brow+pencil",
+    retailer: "Sephora",
+  },
+  {
+    id: "mk-6",
+    name: "Cream Contour Stick",
+    category: "Makeup",
+    reason: "Sculpts your face shape with ease",
+    description:
+      "NARS' creamy contour stick blends effortlessly to define cheekbones, slim the nose, and add dimension. The buildable formula works on all skin tones with a natural matte finish.",
+    highlights: ["Crease-resistant", "Blendable", "Matte finish"],
+    price: "$36+",
+    priceNumeric: 36,
+    priceTier: "mid",
+    icon: "pencil-outline",
+    gradient: ["#F3E5F5", "#CE93D8"],
+    isNew: true,
+    shopUrl: "https://www.sephora.com/search?keyword=NARS+cream+contour+stick",
+    retailer: "Sephora",
+  },
+
+  // ─── Fashion ───────────────────────────────────────────────────────────────
+  {
+    id: "fa-1",
+    name: "Silk Slip Dress",
+    category: "Fashion",
+    reason: "Flatters your face shape & archetype",
+    description:
+      "A luxurious slip dress cut on the bias for a fluid, flattering silhouette. Clean lines balance structured faces while the silky drape adds elegance — a wardrobe essential for the Modern Romantic.",
+    highlights: ["Bias-cut silhouette", "TENCEL™ fabric", "Midi length"],
+    price: "$60+",
+    priceNumeric: 60,
+    priceTier: "mid",
+    icon: "shirt-outline",
+    gradient: ["#D9EEF5", "#B8DCEA"],
+    shopUrl: "https://www.asos.com/search/?q=silk+slip+dress",
+    retailer: "ASOS",
+  },
+  {
+    id: "fa-2",
+    name: "Linen Blazer",
+    category: "Fashion",
+    reason: "Versatile piece for your wardrobe",
+    description:
+      "A perfectly cut linen blazer that works from brunch to boardroom. The relaxed, unstructured silhouette suits most body types while projecting effortless polished style.",
+    highlights: ["100% Linen", "Relaxed fit", "5 neutral colors"],
+    price: "$55+",
+    priceNumeric: 55,
+    priceTier: "mid",
+    icon: "shirt-outline",
+    gradient: ["#D9EEF5", "#B8DCEA"],
+    shopUrl: "https://www.asos.com/search/?q=linen+blazer+women",
+    retailer: "ASOS",
+  },
+  {
+    id: "fa-3",
+    name: "High-Waist Tailored Trousers",
+    category: "Fashion",
+    reason: "Elongates and balances your proportions",
+    description:
+      "Sleek high-waisted trousers with a wide-leg cut that elongate the silhouette. The structured fabric holds shape all day while the neutral palette makes them endlessly versatile.",
+    highlights: ["High-waist cut", "Wide leg", "Stretch blend"],
+    price: "$50+",
+    priceNumeric: 50,
+    priceTier: "mid",
+    icon: "apps-outline",
+    gradient: ["#F5F0D9", "#EADCB8"],
+    featured: true,
+    shopUrl: "https://www.zara.com/us/en/search?searchTerm=tailored+high+waist+trousers",
+    retailer: "Zara",
+  },
+  {
+    id: "fa-4",
+    name: "Ribbed Cashmere Turtleneck",
+    category: "Fashion",
+    reason: "Elegant layering piece for your palette",
+    description:
+      "A fine-gauge cashmere turtleneck in a ribbed knit that layers beautifully and flatters every neckline. Available in ivory, camel, and oatmeal — all harmonious with warm undertone palettes.",
+    highlights: ["100% Cashmere", "Ribbed knit", "Capsule wardrobe essential"],
+    price: "$45+",
+    priceNumeric: 45,
+    priceTier: "mid",
+    icon: "shirt-outline",
+    gradient: ["#FFF8E1", "#FFECB3"],
+    isNew: true,
+    shopUrl: "https://www.hm.com/us/search?q=cashmere+turtleneck",
+    retailer: "H&M",
+  },
+  {
+    id: "fa-5",
+    name: "Wrap Midi Dress",
+    category: "Fashion",
+    reason: "Defines the waist for your archetype",
+    description:
+      "A wrap dress in fluid georgette that cinches at the waist and flows to mid-calf. The adjustable tie allows a perfect fit while the wrap neckline flatters most bust shapes.",
+    highlights: ["Adjustable wrap", "Midi length", "Georgette fabric"],
+    price: "$98+",
+    priceNumeric: 98,
+    priceTier: "luxury",
+    icon: "shirt-outline",
+    gradient: ["#E8EAF6", "#C5CAE9"],
+    featured: true,
+    shopUrl: "https://www.revolve.com/search/?q=wrap+midi+dress",
+    retailer: "Revolve",
+  },
+  {
+    id: "fa-6",
+    name: "Straight-Leg Cropped Jeans",
+    category: "Fashion",
+    reason: "Classic denim that suits your build",
+    description:
+      "A modern straight-leg silhouette cropped just above the ankle to show off your shoes. High-rise fit with a slight stretch makes these the most flattering everyday jeans in your rotation.",
+    highlights: ["High-rise fit", "2% stretch", "Raw hem"],
+    price: "$88+",
+    priceNumeric: 88,
+    priceTier: "luxury",
+    icon: "apps-outline",
+    gradient: ["#E3F2FD", "#90CAF9"],
+    shopUrl: "https://www.anthropologie.com/search?q=straight+leg+cropped+jeans",
+    retailer: "Anthropologie",
+  },
+
+  // ─── Haircare ─────────────────────────────────────────────────────────────
+  {
+    id: "hc-1",
+    name: "Argan Oil Hair Mask",
+    category: "Haircare",
+    reason: "Nourishes and defines your hair type",
+    description:
+      "A rich weekly treatment infused with pure argan oil and keratin proteins. Reduces frizz, enhances natural wave pattern, and adds long-lasting shine — perfect for fine wavy to thick curly hair types.",
+    highlights: ["Pure argan oil", "Keratin proteins", "Anti-frizz formula"],
+    price: "$18+",
+    priceNumeric: 18,
+    priceTier: "budget",
+    icon: "cut-outline",
+    gradient: ["#D9F5E4", "#B8EAD0"],
+    shopUrl: "https://www.amazon.com/s?k=argan+oil+hair+mask",
+    retailer: "Amazon",
+  },
+  {
+    id: "hc-2",
+    name: "Glossing Hair Serum",
+    category: "Haircare",
+    reason: "Adds mirror-like shine to your hair type",
+    description:
+      "A weightless finishing serum that wraps each strand in a reflective, frizz-free gloss. A few drops tamed through damp or dry hair delivers salon-grade shine that lasts all day.",
+    highlights: ["Weightless formula", "Frizz-free", "Heat protectant"],
+    price: "$28+",
+    priceNumeric: 28,
+    priceTier: "budget",
+    icon: "sparkles-outline",
+    gradient: ["#F0F4C3", "#E6EE9C"],
+    featured: true,
+    shopUrl: "https://www.sephora.com/search?keyword=glossing+hair+serum",
+    retailer: "Sephora",
+  },
+  {
+    id: "hc-3",
+    name: "Scalp Detox Shampoo",
+    category: "Haircare",
+    reason: "Rebalances scalp for healthier growth",
+    description:
+      "A deep-cleansing, low-lather shampoo with salicylic acid and peppermint to remove buildup and refresh the scalp. Stimulates circulation while leaving hair light and clean — not stripped.",
+    highlights: ["Salicylic acid", "Peppermint oil", "Sulfate-free"],
+    price: "$22+",
+    priceNumeric: 22,
+    priceTier: "budget",
+    icon: "water-outline",
+    gradient: ["#E0F2F1", "#B2DFDB"],
+    shopUrl: "https://www.ulta.com/search?search=scalp+detox+shampoo",
+    retailer: "Ulta",
+  },
+  {
+    id: "hc-4",
+    name: "Curl Defining Cream",
+    category: "Haircare",
+    reason: "Defines and moisturizes your curl pattern",
+    description:
+      "A rich defining cream that enhances natural curl and wave patterns without crunch. Coconut oil and aloe vera deeply moisturize each coil from root to tip for 48 hours of defined, frizz-free texture.",
+    highlights: ["Coconut oil", "Aloe vera", "No crunch"],
+    price: "$16+",
+    priceNumeric: 16,
+    priceTier: "budget",
+    icon: "flower-outline",
+    gradient: ["#FFF3E0", "#FFE0B2"],
+    shopUrl: "https://www.amazon.com/s?k=curl+defining+cream",
+    retailer: "Amazon",
+  },
+
+  // ─── Eyewear ──────────────────────────────────────────────────────────────
+  {
+    id: "ey-1",
+    name: "Gold Oval Frames",
+    category: "Eyewear",
+    reason: "Balances and enhances your face shape",
+    description:
+      "Timeless oval frames in warm gold-tone metal. The soft curves complement angular jawlines while the gold tone harmonizes with warm undertones for a polished, editorial look.",
+    highlights: ["Titanium frame", "Spring hinges", "UV400 lenses"],
+    price: "$95+",
+    priceNumeric: 95,
+    priceTier: "luxury",
+    icon: "glasses-outline",
+    gradient: ["#F5F0D9", "#EADCB8"],
+    featured: true,
+    shopUrl: "https://www.warbyparker.com/eyeglasses/women/oval",
+    retailer: "Warby Parker",
+  },
+  {
+    id: "ey-2",
+    name: "Tortoise Cat-Eye Sunglasses",
+    category: "Eyewear",
+    reason: "Adds drama and lift to your eye shape",
+    description:
+      "A classic cat-eye silhouette in a warm tortoiseshell acetate. The upswept corners create an instant lift while the oversized lens offers generous UV protection — both stylish and functional.",
+    highlights: ["100% UV protection", "Polarized lenses", "Acetate frame"],
+    price: "$45+",
+    priceNumeric: 45,
+    priceTier: "mid",
+    icon: "glasses-outline",
+    gradient: ["#FBE9E7", "#FFCCBC"],
+    isNew: true,
+    shopUrl: "https://www.amazon.com/s?k=tortoise+cat+eye+sunglasses+women",
+    retailer: "Amazon",
+  },
+  {
+    id: "ey-3",
+    name: "Round Metal Frames",
+    category: "Eyewear",
+    reason: "Softens angular features with curves",
+    description:
+      "Delicate round frames in brushed gold metal that soften strong jawlines and square faces. The thin wire construction keeps the look light, intellectual, and effortlessly chic.",
+    highlights: ["Adjustable nose pads", "Lightweight titanium", "Blue-light option"],
+    price: "$115+",
+    priceNumeric: 115,
+    priceTier: "luxury",
+    icon: "glasses-outline",
+    gradient: ["#F3E5F5", "#E1BEE7"],
+    shopUrl: "https://www.warbyparker.com/eyeglasses/women/round",
+    retailer: "Warby Parker",
+  },
+
+  // ─── Accessories ─────────────────────────────────────────────────────────
+  {
+    id: "ac-1",
+    name: "Minimalist Gold Chain Necklace",
+    category: "Accessories",
+    reason: "Complements warm skin tones beautifully",
+    description:
+      "A dainty 18k gold-plated chain necklace that sits at the collarbone. The delicate link design layers perfectly and transitions from daytime to evening with zero effort.",
+    highlights: ["18k gold plated", "Waterproof", "Adjustable 16-18\""],
+    price: "$24+",
+    priceNumeric: 24,
+    priceTier: "budget",
+    icon: "ellipse-outline",
+    gradient: ["#FFF9C4", "#FFF59D"],
+    isNew: true,
+    shopUrl: "https://www.amazon.com/s?k=minimalist+gold+chain+necklace",
+    retailer: "Amazon",
+  },
+  {
+    id: "ac-2",
+    name: "Woven Leather Belt",
+    category: "Accessories",
+    reason: "Defines your waist and adds texture",
+    description:
+      "A hand-woven leather belt with a minimal gold buckle. The braided texture adds dimension to any outfit while the cognac shade complements warm undertone palettes perfectly.",
+    highlights: ["Genuine leather", "Cognac & black", "Adjustable fit"],
+    price: "$30+",
+    priceNumeric: 30,
+    priceTier: "budget",
+    icon: "apps-outline",
+    gradient: ["#EFEBE9", "#BCAAA4"],
+    shopUrl: "https://www.zara.com/us/en/search?searchTerm=woven+leather+belt",
+    retailer: "Zara",
+  },
+  {
+    id: "ac-3",
+    name: "Structured Tote Bag",
+    category: "Accessories",
+    reason: "Polished everyday carry for your style",
+    description:
+      "A clean-lined structured tote in vegan leather that holds everything without losing its shape. The minimalist design complements both casual and formal outfits — a true wardrobe anchor.",
+    highlights: ["Vegan leather", "Laptop sleeve", "Magnetic closure"],
+    price: "$65+",
+    priceNumeric: 65,
+    priceTier: "mid",
+    icon: "bag-outline",
+    gradient: ["#ECEFF1", "#CFD8DC"],
+    featured: true,
+    shopUrl: "https://www.amazon.com/s?k=structured+tote+bag+women+vegan+leather",
+    retailer: "Amazon",
+  },
+];
+
+export const CATEGORIES = [
+  "All",
+  "Skincare",
+  "Makeup",
+  "Fashion",
+  "Haircare",
+  "Eyewear",
+  "Accessories",
+];
+
+export const PRICE_TIER_LABELS: Record<PriceTier, string> = {
+  budget: "Budget",
+  mid: "Mid-Range",
+  luxury: "Luxury",
+};
+
+export const PRICE_TIER_COLORS: Record<PriceTier, string> = {
+  budget: "#4CAF50",
+  mid: "#FF9800",
+  luxury: "#9C27B0",
+};
+
+export const RETAILER_ICONS: Record<
+  string,
+  React.ComponentProps<typeof Ionicons>["name"]
+> = {
+  Sephora: "flower-outline",
+  Amazon: "cart-outline",
+  ASOS: "bag-outline",
+  "Warby Parker": "glasses-outline",
+  Ulta: "sparkles-outline",
+  Zara: "shirt-outline",
+  "H&M": "shirt-outline",
+  Revolve: "heart-outline",
+  Anthropologie: "leaf-outline",
+  "Paula's Choice": "flask-outline",
+};

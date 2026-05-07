@@ -3,7 +3,7 @@ import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   Dimensions,
   Modal,
@@ -12,38 +12,27 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAnalysis } from "@/context/AnalysisContext";
+import { useWishlistProducts } from "@/context/WishlistProductContext";
 import { useColors } from "@/hooks/useColors";
+import {
+  CATEGORIES,
+  PRICE_TIER_COLORS,
+  PRICE_TIER_LABELS,
+  PRODUCTS,
+  RETAILER_ICONS,
+  type PriceTier,
+  type Product,
+} from "@/data/products";
 
 const { width, height } = Dimensions.get("window");
+const CARD_W = width * 0.57;
 
-const CATEGORIES = ["All", "Skincare", "Makeup", "Fashion", "Haircare", "Eyewear"];
-
-type Product = {
-  id: string;
-  name: string;
-  category: string;
-  reason: string;
-  price: string;
-  icon: React.ComponentProps<typeof Ionicons>["name"];
-  gradient: [string, string];
-  featured?: boolean;
-  description: string;
-  shopUrl: string;
-  retailer: string;
-};
-
-// Build a search URL from a keyword (Amazon product search)
-function buildKeywordUrl(keyword: string): string {
-  const encoded = encodeURIComponent(keyword);
-  return `https://www.amazon.com/s?k=${encoded}`;
-}
-
-// Open a URL in the in-app browser with haptic feedback
 async function openShopUrl(url: string) {
   await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
   await WebBrowser.openBrowserAsync(url, {
@@ -52,325 +41,51 @@ async function openShopUrl(url: string) {
   });
 }
 
-const BASE_PRODUCTS: Product[] = [
-  {
-    id: "1",
-    name: "Hydrating Vitamin C Serum",
-    category: "Skincare",
-    reason: "Boosts radiance for warm skin tones",
-    description:
-      "A lightweight hyaluronic serum that deeply hydrates while enhancing your natural glow. Formulated with niacinamide and vitamin C to even skin tone and reduce dullness — ideal for warm, dewy skin looks.",
-    price: "from $28",
-    icon: "water-outline",
-    gradient: ["#FDECD3", "#F5D5B0"],
-    featured: true,
-    shopUrl: "https://www.sephora.com/search?keyword=vitamin+c+hydrating+serum",
-    retailer: "Sephora",
-  },
-  {
-    id: "2",
-    name: "Soft Glow Foundation",
-    category: "Makeup",
-    reason: "Matches warm undertone perfectly",
-    description:
-      "A buildable, skin-like foundation with a soft satin finish. Its undertone-adaptive formula means warm undertones get that golden, lit-from-within look without looking orange or flat.",
-    price: "from $34",
-    icon: "color-fill-outline",
-    gradient: ["#F5EDE3", "#EDE3D9"],
-    shopUrl: "https://www.sephora.com/search?keyword=soft+glow+foundation+warm+undertone",
-    retailer: "Sephora",
-  },
-  {
-    id: "3",
-    name: "Terracotta Eyeshadow Palette",
-    category: "Makeup",
-    reason: "Complements your eye shape beautifully",
-    description:
-      "10 curated shades from champagne to rich rust, designed to sculpt and define any eye shape. Perfect for creating depth that enhances almond, hooded, or upturned eyes with ease.",
-    price: "from $42",
-    icon: "layers-outline",
-    gradient: ["#F0E4F5", "#DFC8EF"],
-    featured: true,
-    shopUrl: "https://www.sephora.com/search?keyword=terracotta+eyeshadow+palette",
-    retailer: "Sephora",
-  },
-  {
-    id: "4",
-    name: "Silk Slip Dress",
-    category: "Fashion",
-    reason: "Flatters your face and style archetype",
-    description:
-      "A luxurious slip dress cut on the bias for a fluid, flattering silhouette. The clean lines balance structured faces while the silky drape adds elegance — a wardrobe essential for the Modern Romantic.",
-    price: "from $60",
-    icon: "shirt-outline",
-    gradient: ["#D9EEF5", "#B8DCEA"],
-    shopUrl: "https://www.asos.com/search/?q=silk+slip+dress",
-    retailer: "ASOS",
-  },
-  {
-    id: "5",
-    name: "Argan Oil Hair Mask",
-    category: "Haircare",
-    reason: "Nourishes and defines your hair type",
-    description:
-      "A rich weekly treatment infused with pure argan oil and keratin proteins. Reduces frizz, enhances natural wave pattern, and adds long-lasting shine — perfect for fine wavy to thick curly hair types.",
-    price: "from $18",
-    icon: "cut-outline",
-    gradient: ["#D9F5E4", "#B8EAD0"],
-    shopUrl: "https://www.amazon.com/s?k=argan+oil+hair+mask",
-    retailer: "Amazon",
-  },
-  {
-    id: "6",
-    name: "Gold Oval Frames",
-    category: "Eyewear",
-    reason: "Balances and enhances your face shape",
-    description:
-      "Timeless oval frames in warm gold-tone metal. The soft curves complement angular jawlines while the gold tone harmonizes with warm undertones for a polished, editorial look.",
-    price: "from $95",
-    icon: "glasses-outline",
-    gradient: ["#F5F0D9", "#EADCB8"],
-    featured: true,
-    shopUrl: "https://www.warbyparker.com/eyeglasses/women/oval",
-    retailer: "Warby Parker",
-  },
-  {
-    id: "7",
-    name: "Tinted Lip Balm",
-    category: "Makeup",
-    reason: "Enhances your natural lip shape",
-    description:
-      "A sheer, buildable tint that gives your lips the perfect wash of color while keeping them moisturized. Available in terracotta, rose, and berry — all flattering for warm and neutral undertones.",
-    price: "from $14",
-    icon: "heart-outline",
-    gradient: ["#FDECD3", "#F5D5B0"],
-    shopUrl: "https://www.sephora.com/search?keyword=tinted+lip+balm+warm",
-    retailer: "Sephora",
-  },
-  {
-    id: "8",
-    name: "Linen Blazer",
-    category: "Fashion",
-    reason: "Versatile piece for your wardrobe",
-    description:
-      "A perfectly cut linen blazer that works for everything from brunch to boardroom. The relaxed, unstructured silhouette suits most body types while projecting effortless polished style.",
-    price: "from $55",
-    icon: "shirt-outline",
-    gradient: ["#D9EEF5", "#B8DCEA"],
-    shopUrl: "https://www.asos.com/search/?q=linen+blazer+women",
-    retailer: "ASOS",
-  },
-];
-
-// ── Retailer icon helper ──────────────────────────────────────────────────────
-
-const RETAILER_ICONS: Record<string, React.ComponentProps<typeof Ionicons>["name"]> = {
-  Sephora: "flower-outline",
-  Amazon: "cart-outline",
-  ASOS: "bag-outline",
-  "Warby Parker": "glasses-outline",
-};
-
-function RetailerBadge({
-  retailer,
-  colors,
-}: {
-  retailer: string;
-  colors: ReturnType<typeof useColors>;
-}) {
-  const icon = RETAILER_ICONS[retailer] ?? "open-outline";
-  return (
-    <View style={[styles.retailerBadge, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
-      <Ionicons name={icon} size={12} color={colors.mutedForeground} />
-      <Text style={[styles.retailerText, { color: colors.mutedForeground }]}>{retailer}</Text>
-    </View>
-  );
+function buildKeywordUrl(keyword: string): string {
+  return `https://www.amazon.com/s?k=${encodeURIComponent(keyword)}`;
 }
-
-// ── Product Detail Modal ──────────────────────────────────────────────────────
-
-function ProductDetailModal({
-  product,
-  visible,
-  onClose,
-  colors,
-}: {
-  product: Product | null;
-  visible: boolean;
-  onClose: () => void;
-  colors: ReturnType<typeof useColors>;
-}) {
-  const insets = useSafeAreaInsets();
-  if (!product) return null;
-
-  const handleShopNow = async () => {
-    onClose();
-    // Small delay so the modal closes before browser opens
-    setTimeout(() => {
-      openShopUrl(product.shopUrl);
-    }, 300);
-  };
-
-  return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="slide"
-      onRequestClose={onClose}
-    >
-      <View style={styles.modalOverlay}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
-        <View
-          style={[
-            styles.modalSheet,
-            {
-              backgroundColor: colors.background,
-              paddingBottom: insets.bottom + 16,
-            },
-          ]}
-        >
-          {/* Drag handle */}
-          <View style={[styles.dragHandle, { backgroundColor: colors.border }]} />
-
-          {/* Product hero */}
-          <LinearGradient
-            colors={product.gradient}
-            style={styles.modalHero}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-          >
-            <View style={[styles.modalHeroIcon, { backgroundColor: "rgba(255,255,255,0.7)" }]}>
-              <Ionicons name={product.icon} size={40} color="#C4956A" />
-            </View>
-          </LinearGradient>
-
-          <View style={styles.modalContent}>
-            {/* Category + retailer row */}
-            <View style={styles.modalBadgeRow}>
-              <View style={[styles.modalCatBadge, { backgroundColor: colors.primary + "18" }]}>
-                <Text style={[styles.modalCatText, { color: colors.primary }]}>
-                  {product.category}
-                </Text>
-              </View>
-              <RetailerBadge retailer={product.retailer} colors={colors} />
-            </View>
-
-            <Text style={[styles.modalName, { color: colors.foreground }]}>
-              {product.name}
-            </Text>
-
-            <Text style={[styles.modalPrice, { color: colors.primary }]}>
-              {product.price}
-            </Text>
-
-            {/* Why it matches */}
-            <View style={[styles.matchBanner, { backgroundColor: colors.primary + "12", borderColor: colors.primary + "28" }]}>
-              <Ionicons name="sparkles" size={14} color={colors.primary} />
-              <Text style={[styles.matchText, { color: colors.primary }]}>
-                {product.reason}
-              </Text>
-            </View>
-
-            <Text style={[styles.modalDesc, { color: colors.mutedForeground }]}>
-              {product.description}
-            </Text>
-
-            {/* CTA */}
-            <Pressable
-              onPress={handleShopNow}
-              style={({ pressed }) => [
-                styles.shopNowBtn,
-                { backgroundColor: colors.primary, opacity: pressed ? 0.85 : 1 },
-              ]}
-            >
-              <Ionicons name="bag-outline" size={18} color={colors.primaryForeground} />
-              <Text style={[styles.shopNowText, { color: colors.primaryForeground }]}>
-                Shop on {product.retailer}
-              </Text>
-              <Ionicons name="open-outline" size={15} color={colors.primaryForeground} />
-            </Pressable>
-
-            <Text style={[styles.disclosureNote, { color: colors.mutedForeground }]}>
-              Opens {product.retailer} · prices vary by retailer
-            </Text>
-          </View>
-        </View>
-      </View>
-    </Modal>
-  );
-}
-
-// ── Shopping keywords section ─────────────────────────────────────────────────
-
-function KeywordsSection({
-  keywords,
-  colors,
-}: {
-  keywords: string[];
-  colors: ReturnType<typeof useColors>;
-}) {
-  if (!keywords || keywords.length === 0) return null;
-
-  return (
-    <View style={styles.keywordsSection}>
-      <View style={styles.keywordsHeader}>
-        <Ionicons name="search-outline" size={16} color={colors.primary} />
-        <Text style={[styles.keywordsTitle, { color: colors.foreground }]}>
-          Shop Your Keywords
-        </Text>
-      </View>
-      <Text style={[styles.keywordsSub, { color: colors.mutedForeground }]}>
-        Aura picked these search terms from your profile — tap to shop
-      </Text>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.keywordsScroll}
-      >
-        {keywords.slice(0, 10).map((keyword) => (
-          <Pressable
-            key={keyword}
-            onPress={() => openShopUrl(buildKeywordUrl(keyword))}
-            style={({ pressed }) => [
-              styles.keywordChip,
-              {
-                backgroundColor: pressed ? colors.primary + "22" : colors.card,
-                borderColor: colors.primary + "40",
-              },
-            ]}
-          >
-            <Ionicons name="cart-outline" size={13} color={colors.primary} />
-            <Text style={[styles.keywordText, { color: colors.foreground }]}>
-              {keyword}
-            </Text>
-            <Ionicons name="open-outline" size={11} color={colors.mutedForeground} />
-          </Pressable>
-        ))}
-      </ScrollView>
-    </View>
-  );
-}
-
-// ── Main screen ───────────────────────────────────────────────────────────────
 
 export default function ShopScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { analysis } = useAnalysis();
+  const { isSaved, toggleSave, savedCount } = useWishlistProducts();
+
   const [activeCategory, setActiveCategory] = useState("All");
+  const [searchQuery, setSearchQuery] = useState("");
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const botPad = Platform.OS === "web" ? 34 + 50 : insets.bottom + 80;
 
-  const filtered =
-    activeCategory === "All"
-      ? BASE_PRODUCTS
-      : BASE_PRODUCTS.filter((p) => p.category === activeCategory);
+  const filtered = useMemo(() => {
+    let list = PRODUCTS;
+    if (activeCategory !== "All") {
+      list = list.filter((p) => p.category === activeCategory);
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      list = list.filter(
+        (p) =>
+          p.name.toLowerCase().includes(q) ||
+          p.category.toLowerCase().includes(q) ||
+          p.reason.toLowerCase().includes(q) ||
+          p.retailer.toLowerCase().includes(q)
+      );
+    }
+    return list;
+  }, [activeCategory, searchQuery]);
 
-  const featured = filtered.filter((p) => p.featured);
-  const regular = filtered.filter((p) => !p.featured);
+  const featured = useMemo(() => filtered.filter((p) => p.featured), [filtered]);
+  const newArrivals = useMemo(
+    () => filtered.filter((p) => p.isNew && !p.featured).slice(0, 4),
+    [filtered]
+  );
+  const regular = useMemo(
+    () => filtered.filter((p) => !p.featured && !p.isNew),
+    [filtered]
+  );
 
   const openProduct = async (product: Product) => {
     await Haptics.selectionAsync();
@@ -378,11 +93,17 @@ export default function ShopScreen() {
     setModalVisible(true);
   };
 
+  const handleSave = async (product: Product) => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    await toggleSave(product.id);
+  };
+
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
       <ScrollView
         contentContainerStyle={{ paddingBottom: botPad }}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
         {/* Header */}
         <LinearGradient
@@ -393,18 +114,12 @@ export default function ShopScreen() {
         >
           <View style={styles.headerRow}>
             <View>
-              <Text style={[styles.headerTitle, { color: colors.foreground }]}>
-                Shop
+              <Text style={[styles.headerTitle, { color: colors.foreground }]}>Shop</Text>
+              <Text style={[styles.headerSub, { color: colors.mutedForeground }]}>
+                {analysis
+                  ? `Curated for ${analysis.style_archetype}`
+                  : `${PRODUCTS.length} products across ${CATEGORIES.length - 1} categories`}
               </Text>
-              {analysis ? (
-                <Text style={[styles.headerSub, { color: colors.mutedForeground }]}>
-                  Curated for {analysis.style_archetype}
-                </Text>
-              ) : (
-                <Text style={[styles.headerSub, { color: colors.mutedForeground }]}>
-                  Products for every style
-                </Text>
-              )}
             </View>
             <Pressable
               onPress={async () => {
@@ -416,35 +131,52 @@ export default function ShopScreen() {
                 { backgroundColor: colors.card, borderColor: colors.border, opacity: pressed ? 0.7 : 1 },
               ]}
             >
-              <Ionicons name="heart-outline" size={20} color={colors.primary} />
-              <Text style={[styles.wishlistBtnText, { color: colors.foreground }]}>Saved</Text>
+              <Ionicons
+                name={savedCount > 0 ? "heart" : "heart-outline"}
+                size={18}
+                color={savedCount > 0 ? "#D45F5F" : colors.primary}
+              />
+              <Text style={[styles.wishlistBtnText, { color: colors.foreground }]}>
+                {savedCount > 0 ? `${savedCount} Saved` : "Saved"}
+              </Text>
             </Pressable>
+          </View>
+
+          {/* Search bar */}
+          <View style={[styles.searchBar, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <Ionicons name="search-outline" size={16} color={colors.mutedForeground} />
+            <TextInput
+              style={[styles.searchInput, { color: colors.foreground }]}
+              placeholder="Search products, categories…"
+              placeholderTextColor={colors.mutedForeground}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              returnKeyType="search"
+              clearButtonMode="while-editing"
+            />
+            {searchQuery.length > 0 && (
+              <Pressable onPress={() => setSearchQuery("")}>
+                <Ionicons name="close-circle" size={16} color={colors.mutedForeground} />
+              </Pressable>
+            )}
           </View>
         </LinearGradient>
 
         {/* Personalized banner */}
-        {analysis && (
+        {analysis && !searchQuery && (
           <View style={styles.sectionPad}>
-            <View
-              style={[
-                styles.personalBanner,
-                { backgroundColor: colors.primary + "15", borderColor: colors.primary + "30" },
-              ]}
-            >
-              <Ionicons name="sparkles" size={16} color={colors.primary} />
+            <View style={[styles.personalBanner, { backgroundColor: colors.primary + "15", borderColor: colors.primary + "30" }]}>
+              <Ionicons name="sparkles" size={14} color={colors.primary} />
               <Text style={[styles.personalText, { color: colors.primary }]}>
-                Products selected based on your {analysis.undertone.toLowerCase()} undertone and {analysis.face_shape.toLowerCase()} face shape
+                Curated for your {analysis.undertone.toLowerCase()} undertone · {analysis.face_shape.toLowerCase()} face shape
               </Text>
             </View>
           </View>
         )}
 
-        {/* Shopping keywords from analysis */}
-        {analysis?.shopping_keywords && analysis.shopping_keywords.length > 0 && (
-          <KeywordsSection
-            keywords={analysis.shopping_keywords}
-            colors={colors}
-          />
+        {/* Shopping keywords */}
+        {analysis?.shopping_keywords && analysis.shopping_keywords.length > 0 && !searchQuery && (
+          <KeywordsSection keywords={analysis.shopping_keywords} colors={colors} />
         )}
 
         {/* Category filter */}
@@ -453,47 +185,64 @@ export default function ShopScreen() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.filterScroll}
         >
-          {CATEGORIES.map((cat) => (
-            <Pressable
-              key={cat}
-              onPress={async () => {
-                await Haptics.selectionAsync();
-                setActiveCategory(cat);
-              }}
-              style={[
-                styles.filterPill,
-                {
-                  backgroundColor:
-                    activeCategory === cat ? colors.primary : colors.secondary,
-                  borderColor:
-                    activeCategory === cat ? colors.primary : colors.border,
-                },
-              ]}
-            >
-              <Text
+          {CATEGORIES.map((cat) => {
+            const count = cat === "All" ? PRODUCTS.length : PRODUCTS.filter((p) => p.category === cat).length;
+            const active = activeCategory === cat;
+            return (
+              <Pressable
+                key={cat}
+                onPress={async () => {
+                  await Haptics.selectionAsync();
+                  setActiveCategory(cat);
+                }}
                 style={[
-                  styles.filterText,
+                  styles.filterPill,
                   {
-                    color:
-                      activeCategory === cat
-                        ? colors.primaryForeground
-                        : colors.foreground,
+                    backgroundColor: active ? colors.primary : colors.secondary,
+                    borderColor: active ? colors.primary : colors.border,
                   },
                 ]}
               >
-                {cat}
-              </Text>
-            </Pressable>
-          ))}
+                <Text style={[styles.filterText, { color: active ? colors.primaryForeground : colors.foreground }]}>
+                  {cat}
+                </Text>
+                <View style={[styles.filterCount, { backgroundColor: active ? "rgba(255,255,255,0.22)" : colors.primary + "20" }]}>
+                  <Text style={[styles.filterCountText, { color: active ? colors.primaryForeground : colors.primary }]}>
+                    {count}
+                  </Text>
+                </View>
+              </Pressable>
+            );
+          })}
         </ScrollView>
 
-        {/* Featured products */}
+        {/* Search results summary */}
+        {searchQuery.trim() !== "" && (
+          <View style={styles.sectionPad}>
+            <Text style={[styles.searchResultsText, { color: colors.mutedForeground }]}>
+              {filtered.length === 0
+                ? `No results for "${searchQuery}"`
+                : `${filtered.length} result${filtered.length !== 1 ? "s" : ""} for "${searchQuery}"`}
+            </Text>
+          </View>
+        )}
+
+        {filtered.length === 0 && searchQuery.trim() !== "" && (
+          <View style={[styles.noResults, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
+            <Ionicons name="search-outline" size={32} color={colors.mutedForeground} />
+            <Text style={[styles.noResultsTitle, { color: colors.foreground }]}>Nothing found</Text>
+            <Pressable onPress={() => setSearchQuery("")} style={[styles.noResultsBtn, { backgroundColor: colors.primary }]}>
+              <Text style={[styles.noResultsBtnText, { color: colors.primaryForeground }]}>Clear Search</Text>
+            </Pressable>
+          </View>
+        )}
+
+        {/* Curated Picks (featured) */}
         {featured.length > 0 && (
           <>
             <View style={styles.sectionHeader}>
-              <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
-                ✦ Curated Picks
-              </Text>
+              <Text style={[styles.sectionTitle, { color: colors.foreground }]}>✦ Curated Picks</Text>
+              <Text style={[styles.sectionCount, { color: colors.mutedForeground }]}>{featured.length}</Text>
             </View>
             <ScrollView
               horizontal
@@ -505,20 +254,50 @@ export default function ShopScreen() {
                   key={product.id}
                   product={product}
                   colors={colors}
+                  saved={isSaved(product.id)}
                   onPress={() => openProduct(product)}
+                  onSave={() => handleSave(product)}
                 />
               ))}
             </ScrollView>
           </>
         )}
 
-        {/* Regular products */}
+        {/* New Arrivals */}
+        {newArrivals.length > 0 && !searchQuery && (
+          <>
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionTitleRow}>
+                <Text style={[styles.sectionTitle, { color: colors.foreground }]}>New Arrivals</Text>
+                <View style={[styles.newBadge, { backgroundColor: "#4CAF50" }]}>
+                  <Text style={styles.newBadgeText}>NEW</Text>
+                </View>
+              </View>
+              <Text style={[styles.sectionCount, { color: colors.mutedForeground }]}>{newArrivals.length}</Text>
+            </View>
+            <View style={styles.sectionPad}>
+              {newArrivals.map((product) => (
+                <ProductRow
+                  key={product.id}
+                  product={product}
+                  colors={colors}
+                  saved={isSaved(product.id)}
+                  onPress={() => openProduct(product)}
+                  onSave={() => handleSave(product)}
+                />
+              ))}
+            </View>
+          </>
+        )}
+
+        {/* All other products */}
         {regular.length > 0 && (
           <>
             <View style={styles.sectionHeader}>
               <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
-                All Products
+                {searchQuery ? "Results" : activeCategory === "All" ? "All Products" : activeCategory}
               </Text>
+              <Text style={[styles.sectionCount, { color: colors.mutedForeground }]}>{regular.length}</Text>
             </View>
             <View style={styles.sectionPad}>
               {regular.map((product) => (
@@ -526,7 +305,9 @@ export default function ShopScreen() {
                   key={product.id}
                   product={product}
                   colors={colors}
+                  saved={isSaved(product.id)}
                   onPress={() => openProduct(product)}
+                  onSave={() => handleSave(product)}
                 />
               ))}
             </View>
@@ -534,18 +315,11 @@ export default function ShopScreen() {
         )}
 
         {/* No analysis CTA */}
-        {!analysis && (
-          <View style={styles.analysisPrompt}>
-            <View
-              style={[
-                styles.promptCard,
-                { backgroundColor: colors.secondary, borderColor: colors.border },
-              ]}
-            >
+        {!analysis && !searchQuery && (
+          <View style={styles.sectionPad}>
+            <View style={[styles.promptCard, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
               <Ionicons name="sparkles-outline" size={24} color={colors.primary} />
-              <Text style={[styles.promptTitle, { color: colors.foreground }]}>
-                Get personalized picks
-              </Text>
+              <Text style={[styles.promptTitle, { color: colors.foreground }]}>Get personalized picks</Text>
               <Text style={[styles.promptDesc, { color: colors.mutedForeground }]}>
                 Complete a style analysis to see products curated specifically for your features
               </Text>
@@ -556,15 +330,12 @@ export default function ShopScreen() {
                 }}
                 style={[styles.promptBtn, { backgroundColor: colors.primary }]}
               >
-                <Text style={[styles.promptBtnText, { color: colors.primaryForeground }]}>
-                  Analyze My Style
-                </Text>
+                <Text style={[styles.promptBtnText, { color: colors.primaryForeground }]}>Analyze My Style</Text>
               </Pressable>
             </View>
           </View>
         )}
 
-        {/* Disclosure */}
         <Text style={[styles.globalDisclosure, { color: colors.mutedForeground }]}>
           Veloura earns no commission — links open retailer search results directly
         </Text>
@@ -573,62 +344,75 @@ export default function ShopScreen() {
       <ProductDetailModal
         product={selectedProduct}
         visible={modalVisible}
+        saved={selectedProduct ? isSaved(selectedProduct.id) : false}
         onClose={() => setModalVisible(false)}
+        onSave={() => selectedProduct && handleSave(selectedProduct)}
         colors={colors}
       />
     </View>
   );
 }
 
-// ── Sub-components ────────────────────────────────────────────────────────────
-
 function FeaturedCard({
   product,
   colors,
+  saved,
   onPress,
+  onSave,
 }: {
   product: Product;
   colors: ReturnType<typeof useColors>;
+  saved: boolean;
   onPress: () => void;
+  onSave: () => void;
 }) {
   return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => ({ opacity: pressed ? 0.9 : 1 })}
-    >
+    <Pressable onPress={onPress} style={({ pressed }) => ({ opacity: pressed ? 0.9 : 1 })}>
       <LinearGradient
         colors={product.gradient}
         style={[styles.featCard, { borderColor: colors.border }]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
       >
-        <View style={[styles.featIcon, { backgroundColor: "rgba(255,255,255,0.7)" }]}>
-          <Ionicons name={product.icon} size={28} color={colors.primary} />
+        {/* Top row: icon + save */}
+        <View style={styles.featTopRow}>
+          <View style={[styles.featIcon, { backgroundColor: "rgba(255,255,255,0.72)" }]}>
+            <Ionicons name={product.icon} size={26} color="#C4956A" />
+          </View>
+          <Pressable
+            onPress={(e) => { e.stopPropagation(); onSave(); }}
+            hitSlop={10}
+            style={[styles.saveBtn, { backgroundColor: "rgba(255,255,255,0.75)" }]}
+          >
+            <Ionicons
+              name={saved ? "heart" : "heart-outline"}
+              size={17}
+              color={saved ? "#D45F5F" : "#8B6B4A"}
+            />
+          </Pressable>
         </View>
-        <View style={[styles.featCatBadge, { backgroundColor: colors.primary + "20" }]}>
-          <Text style={[styles.featCatText, { color: colors.primary }]}>
-            {product.category}
-          </Text>
+
+        {/* Badges */}
+        <View style={styles.featBadges}>
+          <View style={[styles.catBadge, { backgroundColor: "rgba(255,255,255,0.72)" }]}>
+            <Text style={[styles.catBadgeText, { color: "#C4956A" }]}>{product.category}</Text>
+          </View>
+          <PriceTierBadge tier={product.priceTier} />
+          {product.isNew && <NewBadge />}
         </View>
-        <Text style={[styles.featName, { color: colors.foreground }]}>
-          {product.name}
-        </Text>
-        <Text style={[styles.featReason, { color: colors.mutedForeground }]} numberOfLines={2}>
+
+        <Text style={[styles.featName, { color: "#2D1F14" }]}>{product.name}</Text>
+        <Text style={[styles.featReason, { color: "#6B4C35" }]} numberOfLines={2}>
           {product.reason}
         </Text>
+
         <View style={styles.featFooter}>
           <View>
-            <Text style={[styles.featPrice, { color: colors.foreground }]}>
-              {product.price}
-            </Text>
-            <Text style={[styles.featRetailer, { color: colors.mutedForeground }]}>
-              {product.retailer}
-            </Text>
+            <Text style={[styles.featPrice, { color: "#2D1F14" }]}>{product.price}</Text>
+            <Text style={[styles.featRetailer, { color: "#6B4C35" }]}>{product.retailer}</Text>
           </View>
-          <View style={[styles.featBtn, { backgroundColor: colors.primary }]}>
-            <Text style={[styles.featBtnText, { color: colors.primaryForeground }]}>
-              View
-            </Text>
+          <View style={[styles.featBtn, { backgroundColor: "#C4956A" }]}>
+            <Text style={styles.featBtnText}>View</Text>
           </View>
         </View>
       </LinearGradient>
@@ -639,241 +423,368 @@ function FeaturedCard({
 function ProductRow({
   product,
   colors,
+  saved,
   onPress,
+  onSave,
 }: {
   product: Product;
   colors: ReturnType<typeof useColors>;
+  saved: boolean;
   onPress: () => void;
+  onSave: () => void;
 }) {
   return (
     <Pressable
       onPress={onPress}
       style={({ pressed }) => [
         styles.productRow,
-        {
-          backgroundColor: colors.card,
-          borderColor: colors.border,
-          opacity: pressed ? 0.85 : 1,
-        },
+        { backgroundColor: colors.card, borderColor: colors.border, opacity: pressed ? 0.85 : 1 },
       ]}
     >
-      <LinearGradient
-        colors={product.gradient}
-        style={styles.productThumb}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-      >
-        <Ionicons name={product.icon} size={22} color={colors.primary} />
+      <LinearGradient colors={product.gradient} style={styles.productThumb} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+        <Ionicons name={product.icon} size={22} color="#C4956A" />
       </LinearGradient>
+
       <View style={styles.productInfo}>
-        <View style={[styles.catBadge, { backgroundColor: colors.primary + "18" }]}>
-          <Text style={[styles.catBadgeText, { color: colors.primary }]}>
-            {product.category}
-          </Text>
+        <View style={styles.productBadgeRow}>
+          <View style={[styles.catBadgeSmall, { backgroundColor: colors.primary + "18" }]}>
+            <Text style={[styles.catBadgeSmallText, { color: colors.primary }]}>{product.category}</Text>
+          </View>
+          {product.isNew && <NewBadge small />}
         </View>
-        <Text style={[styles.productName, { color: colors.foreground }]}>
-          {product.name}
-        </Text>
+        <Text style={[styles.productName, { color: colors.foreground }]}>{product.name}</Text>
         <Text style={[styles.productReason, { color: colors.mutedForeground }]} numberOfLines={1}>
           {product.reason}
         </Text>
       </View>
+
       <View style={styles.productRight}>
-        <Text style={[styles.productPrice, { color: colors.foreground }]}>
-          {product.price}
-        </Text>
-        <Text style={[styles.productRetailer, { color: colors.mutedForeground }]}>
-          {product.retailer}
-        </Text>
-        <View style={[styles.viewBtn, { backgroundColor: colors.secondary }]}>
-          <Text style={[styles.viewBtnText, { color: colors.primary }]}>View</Text>
+        <Text style={[styles.productPrice, { color: colors.foreground }]}>{product.price}</Text>
+        <Text style={[styles.productRetailerText, { color: colors.mutedForeground }]}>{product.retailer}</Text>
+        <View style={styles.productActions}>
+          <Pressable
+            onPress={(e) => { e.stopPropagation(); onSave(); }}
+            hitSlop={8}
+            style={[styles.rowSaveBtn, { backgroundColor: saved ? "#FFF0F0" : colors.secondary }]}
+          >
+            <Ionicons
+              name={saved ? "heart" : "heart-outline"}
+              size={15}
+              color={saved ? "#D45F5F" : colors.mutedForeground}
+            />
+          </Pressable>
+          <View style={[styles.viewBtn, { backgroundColor: colors.secondary }]}>
+            <Text style={[styles.viewBtnText, { color: colors.primary }]}>View</Text>
+          </View>
         </View>
       </View>
     </Pressable>
   );
 }
 
-// ── Styles ────────────────────────────────────────────────────────────────────
+function PriceTierBadge({ tier }: { tier: PriceTier }) {
+  const color = PRICE_TIER_COLORS[tier];
+  return (
+    <View style={[styles.tierBadge, { backgroundColor: color + "22", borderColor: color + "55" }]}>
+      <Text style={[styles.tierBadgeText, { color }]}>{PRICE_TIER_LABELS[tier]}</Text>
+    </View>
+  );
+}
 
-const CARD_W = width * 0.55;
+function NewBadge({ small }: { small?: boolean }) {
+  return (
+    <View style={[styles.newDot, small && styles.newDotSmall]}>
+      <Text style={[styles.newDotText, small && styles.newDotTextSmall]}>NEW</Text>
+    </View>
+  );
+}
+
+function KeywordsSection({ keywords, colors }: { keywords: string[]; colors: ReturnType<typeof useColors> }) {
+  if (!keywords || keywords.length === 0) return null;
+  return (
+    <View style={styles.keywordsSection}>
+      <View style={styles.keywordsHeader}>
+        <Ionicons name="search-outline" size={15} color={colors.primary} />
+        <Text style={[styles.keywordsTitle, { color: colors.foreground }]}>Shop Your Keywords</Text>
+      </View>
+      <Text style={[styles.keywordsSub, { color: colors.mutedForeground }]}>
+        Aura picked these from your profile — tap to shop
+      </Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.keywordsScroll}>
+        {keywords.slice(0, 10).map((kw) => (
+          <Pressable
+            key={kw}
+            onPress={() => openShopUrl(buildKeywordUrl(kw))}
+            style={({ pressed }) => [
+              styles.keywordChip,
+              { backgroundColor: pressed ? colors.primary + "22" : colors.card, borderColor: colors.primary + "40" },
+            ]}
+          >
+            <Ionicons name="cart-outline" size={13} color={colors.primary} />
+            <Text style={[styles.keywordText, { color: colors.foreground }]}>{kw}</Text>
+            <Ionicons name="open-outline" size={11} color={colors.mutedForeground} />
+          </Pressable>
+        ))}
+      </ScrollView>
+    </View>
+  );
+}
+
+function ProductDetailModal({
+  product,
+  visible,
+  saved,
+  onClose,
+  onSave,
+  colors,
+}: {
+  product: Product | null;
+  visible: boolean;
+  saved: boolean;
+  onClose: () => void;
+  onSave: () => void;
+  colors: ReturnType<typeof useColors>;
+}) {
+  const insets = useSafeAreaInsets();
+  if (!product) return null;
+
+  const tierColor = PRICE_TIER_COLORS[product.priceTier];
+  const retailerIcon = RETAILER_ICONS[product.retailer] ?? "open-outline";
+
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <View style={styles.modalOverlay}>
+        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
+        <View style={[styles.modalSheet, { backgroundColor: colors.background, paddingBottom: insets.bottom + 20 }]}>
+          <View style={[styles.dragHandle, { backgroundColor: colors.border }]} />
+
+          {/* Hero gradient */}
+          <LinearGradient
+            colors={product.gradient}
+            style={styles.modalHero}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          >
+            <View style={[styles.modalHeroIcon, { backgroundColor: "rgba(255,255,255,0.72)" }]}>
+              <Ionicons name={product.icon} size={44} color="#C4956A" />
+            </View>
+            {product.isNew && (
+              <View style={styles.modalNewBadge}>
+                <Text style={styles.modalNewText}>NEW</Text>
+              </View>
+            )}
+          </LinearGradient>
+
+          <ScrollView style={styles.modalContent} showsVerticalScrollIndicator={false}>
+            {/* Badge row */}
+            <View style={styles.modalBadgeRow}>
+              <View style={[styles.modalCatBadge, { backgroundColor: colors.primary + "18" }]}>
+                <Text style={[styles.modalCatText, { color: colors.primary }]}>{product.category}</Text>
+              </View>
+              <View style={[styles.tierBadge, { backgroundColor: tierColor + "18", borderColor: tierColor + "40" }]}>
+                <Text style={[styles.tierBadgeText, { color: tierColor }]}>{PRICE_TIER_LABELS[product.priceTier]}</Text>
+              </View>
+              <View style={[styles.retailerBadge, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
+                <Ionicons name={retailerIcon} size={11} color={colors.mutedForeground} />
+                <Text style={[styles.retailerText, { color: colors.mutedForeground }]}>{product.retailer}</Text>
+              </View>
+            </View>
+
+            <Text style={[styles.modalName, { color: colors.foreground }]}>{product.name}</Text>
+            <Text style={[styles.modalPrice, { color: colors.primary }]}>{product.price}</Text>
+
+            {/* Why it matches */}
+            <View style={[styles.matchBanner, { backgroundColor: colors.primary + "12", borderColor: colors.primary + "28" }]}>
+              <Ionicons name="sparkles" size={14} color={colors.primary} />
+              <Text style={[styles.matchText, { color: colors.primary }]}>{product.reason}</Text>
+            </View>
+
+            <Text style={[styles.modalDesc, { color: colors.mutedForeground }]}>{product.description}</Text>
+
+            {/* Highlights */}
+            {product.highlights.length > 0 && (
+              <View style={styles.highlightsRow}>
+                {product.highlights.map((h) => (
+                  <View key={h} style={[styles.highlightChip, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
+                    <Ionicons name="checkmark-circle" size={13} color={colors.primary} />
+                    <Text style={[styles.highlightText, { color: colors.foreground }]}>{h}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {/* Action buttons */}
+            <View style={styles.modalActions}>
+              <Pressable
+                onPress={onSave}
+                style={({ pressed }) => [
+                  styles.saveFullBtn,
+                  {
+                    backgroundColor: saved ? "#FFF0F0" : colors.secondary,
+                    borderColor: saved ? "#FFCDD2" : colors.border,
+                    opacity: pressed ? 0.8 : 1,
+                  },
+                ]}
+              >
+                <Ionicons name={saved ? "heart" : "heart-outline"} size={18} color={saved ? "#D45F5F" : colors.foreground} />
+                <Text style={[styles.saveFullBtnText, { color: saved ? "#D45F5F" : colors.foreground }]}>
+                  {saved ? "Saved" : "Save"}
+                </Text>
+              </Pressable>
+
+              <Pressable
+                onPress={async () => {
+                  onClose();
+                  setTimeout(() => { void openShopUrl(product.shopUrl); }, 300);
+                }}
+                style={({ pressed }) => [
+                  styles.shopNowBtn,
+                  { backgroundColor: colors.primary, flex: 1, opacity: pressed ? 0.85 : 1 },
+                ]}
+              >
+                <Ionicons name="bag-outline" size={17} color="#fff" />
+                <Text style={styles.shopNowText}>Shop on {product.retailer}</Text>
+                <Ionicons name="open-outline" size={14} color="rgba(255,255,255,0.75)" />
+              </Pressable>
+            </View>
+
+            <Text style={[styles.disclosureNote, { color: colors.mutedForeground }]}>
+              Opens {product.retailer} · prices vary by retailer
+            </Text>
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
+  );
+}
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  headerGrad: { paddingHorizontal: 20, paddingBottom: 20 },
+  headerGrad: { paddingHorizontal: 20, paddingBottom: 20, gap: 14 },
   headerRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  headerTitle: { fontSize: 28, fontFamily: "Inter_700Bold", marginBottom: 4 },
+  headerSub: { fontSize: 14, fontFamily: "Inter_400Regular" },
+
   wishlistBtn: {
     flexDirection: "row", alignItems: "center", gap: 6,
     paddingHorizontal: 14, paddingVertical: 9, borderRadius: 14, borderWidth: StyleSheet.hairlineWidth,
   },
   wishlistBtnText: { fontSize: 13, fontFamily: "Inter_500Medium" },
-  headerTitle: { fontSize: 28, fontFamily: "Inter_700Bold", marginBottom: 4 },
-  headerSub: { fontSize: 14, fontFamily: "Inter_400Regular" },
-  filterScroll: { paddingHorizontal: 20, gap: 8, paddingVertical: 16 },
-  filterPill: { paddingHorizontal: 18, paddingVertical: 9, borderRadius: 20, borderWidth: 1 },
-  filterText: { fontSize: 13, fontFamily: "Inter_500Medium" },
-  sectionPad: { paddingHorizontal: 20, marginBottom: 8 },
-  sectionHeader: { paddingHorizontal: 20, marginBottom: 12 },
-  sectionTitle: { fontSize: 17, fontFamily: "Inter_700Bold" },
-  personalBanner: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    padding: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    marginBottom: 4,
+
+  searchBar: {
+    flexDirection: "row", alignItems: "center", gap: 10,
+    paddingHorizontal: 14, paddingVertical: 11, borderRadius: 16, borderWidth: StyleSheet.hairlineWidth,
   },
+  searchInput: { flex: 1, fontSize: 14, fontFamily: "Inter_400Regular", paddingVertical: 0 },
+
+  sectionPad: { paddingHorizontal: 20, marginBottom: 8 },
+  sectionHeader: { paddingHorizontal: 20, marginBottom: 12, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  sectionTitle: { fontSize: 17, fontFamily: "Inter_700Bold" },
+  sectionTitleRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  sectionCount: { fontSize: 12, fontFamily: "Inter_500Medium" },
+
+  personalBanner: { flexDirection: "row", alignItems: "center", gap: 8, padding: 12, borderRadius: 12, borderWidth: 1, marginBottom: 4 },
   personalText: { flex: 1, fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 18 },
 
-  // Keywords section
-  keywordsSection: { paddingHorizontal: 20, marginBottom: 8 },
-  keywordsHeader: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 4 },
-  keywordsTitle: { fontSize: 16, fontFamily: "Inter_600SemiBold" },
+  keywordsSection: { paddingHorizontal: 20, marginBottom: 12 },
+  keywordsHeader: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 3 },
+  keywordsTitle: { fontSize: 15, fontFamily: "Inter_600SemiBold" },
   keywordsSub: { fontSize: 12, fontFamily: "Inter_400Regular", marginBottom: 10 },
   keywordsScroll: { gap: 8 },
-  keywordChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-  },
+  keywordChip: { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, borderWidth: 1 },
   keywordText: { fontSize: 13, fontFamily: "Inter_400Regular" },
 
-  // Featured
-  featuredScroll: { paddingHorizontal: 20, gap: 12, marginBottom: 16 },
-  featCard: {
-    width: CARD_W,
-    padding: 18,
-    borderRadius: 20,
-    borderWidth: 1,
-    gap: 10,
-  },
-  featIcon: { width: 56, height: 56, borderRadius: 16, alignItems: "center", justifyContent: "center" },
-  featCatBadge: { alignSelf: "flex-start", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 },
-  featCatText: { fontSize: 11, fontFamily: "Inter_600SemiBold" },
+  filterScroll: { paddingHorizontal: 20, gap: 8, paddingVertical: 16 },
+  filterPill: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 20, borderWidth: 1 },
+  filterText: { fontSize: 13, fontFamily: "Inter_500Medium" },
+  filterCount: { paddingHorizontal: 6, paddingVertical: 1, borderRadius: 8 },
+  filterCountText: { fontSize: 10, fontFamily: "Inter_700Bold" },
+
+  searchResultsText: { fontSize: 13, fontFamily: "Inter_400Regular", marginBottom: 8 },
+  noResults: { marginHorizontal: 20, padding: 28, borderRadius: 18, borderWidth: 1, alignItems: "center", gap: 10, marginBottom: 16 },
+  noResultsTitle: { fontSize: 16, fontFamily: "Inter_600SemiBold" },
+  noResultsBtn: { paddingHorizontal: 20, paddingVertical: 10, borderRadius: 12, marginTop: 4 },
+  noResultsBtnText: { fontSize: 14, fontFamily: "Inter_600SemiBold", color: "#fff" },
+
+  newBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
+  newBadgeText: { fontSize: 10, fontFamily: "Inter_700Bold", color: "#fff", letterSpacing: 0.5 },
+  newDot: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6, backgroundColor: "#4CAF50" },
+  newDotSmall: { paddingHorizontal: 5, paddingVertical: 1 },
+  newDotText: { fontSize: 9, fontFamily: "Inter_700Bold", color: "#fff", letterSpacing: 0.4 },
+  newDotTextSmall: { fontSize: 8 },
+
+  tierBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, borderWidth: 1 },
+  tierBadgeText: { fontSize: 10, fontFamily: "Inter_600SemiBold" },
+
+  // Featured cards
+  featuredScroll: { paddingHorizontal: 20, gap: 12, marginBottom: 20 },
+  featCard: { width: CARD_W, padding: 16, borderRadius: 20, borderWidth: 1, gap: 10 },
+  featTopRow: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between" },
+  featIcon: { width: 52, height: 52, borderRadius: 14, alignItems: "center", justifyContent: "center" },
+  saveBtn: { width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center" },
+  featBadges: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
+  catBadge: { alignSelf: "flex-start", paddingHorizontal: 9, paddingVertical: 4, borderRadius: 9 },
+  catBadgeText: { fontSize: 11, fontFamily: "Inter_600SemiBold" },
   featName: { fontSize: 15, fontFamily: "Inter_600SemiBold" },
   featReason: { fontSize: 12, fontFamily: "Inter_400Regular", lineHeight: 18 },
-  featFooter: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 4 },
+  featFooter: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 2 },
   featPrice: { fontSize: 16, fontFamily: "Inter_700Bold" },
   featRetailer: { fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 1 },
-  featBtn: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 12 },
-  featBtnText: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
+  featBtn: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 12 },
+  featBtnText: { fontSize: 13, fontFamily: "Inter_600SemiBold", color: "#fff" },
 
-  // Product row
-  productRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 14,
-    borderRadius: 16,
-    borderWidth: 1,
-    marginBottom: 10,
-    gap: 12,
-  },
-  productThumb: { width: 54, height: 54, borderRadius: 14, alignItems: "center", justifyContent: "center" },
+  // Product rows
+  productRow: { flexDirection: "row", alignItems: "center", padding: 13, borderRadius: 16, borderWidth: 1, marginBottom: 10, gap: 12 },
+  productThumb: { width: 52, height: 52, borderRadius: 14, alignItems: "center", justifyContent: "center", flexShrink: 0 },
   productInfo: { flex: 1, gap: 4 },
-  catBadge: { alignSelf: "flex-start", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
-  catBadgeText: { fontSize: 10, fontFamily: "Inter_600SemiBold" },
+  productBadgeRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  catBadgeSmall: { alignSelf: "flex-start", paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6 },
+  catBadgeSmallText: { fontSize: 9, fontFamily: "Inter_600SemiBold" },
   productName: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
   productReason: { fontSize: 12, fontFamily: "Inter_400Regular" },
   productRight: { alignItems: "flex-end", gap: 4 },
-  productPrice: { fontSize: 15, fontFamily: "Inter_700Bold" },
-  productRetailer: { fontSize: 11, fontFamily: "Inter_400Regular" },
-  viewBtn: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 10 },
-  viewBtnText: { fontSize: 13, fontFamily: "Inter_500Medium" },
+  productPrice: { fontSize: 14, fontFamily: "Inter_700Bold" },
+  productRetailerText: { fontSize: 11, fontFamily: "Inter_400Regular" },
+  productActions: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 2 },
+  rowSaveBtn: { width: 28, height: 28, borderRadius: 14, alignItems: "center", justifyContent: "center" },
+  viewBtn: { paddingHorizontal: 11, paddingVertical: 6, borderRadius: 10 },
+  viewBtnText: { fontSize: 12, fontFamily: "Inter_500Medium" },
 
-  // No analysis prompt
-  analysisPrompt: { paddingHorizontal: 20, paddingTop: 8 },
-  promptCard: { borderRadius: 20, padding: 24, borderWidth: 1, alignItems: "center", gap: 12 },
+  // Prompt
+  promptCard: { borderRadius: 20, padding: 24, borderWidth: 1, alignItems: "center", gap: 12, marginBottom: 16 },
   promptTitle: { fontSize: 18, fontFamily: "Inter_600SemiBold" },
   promptDesc: { fontSize: 14, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 22 },
   promptBtn: { paddingHorizontal: 28, paddingVertical: 14, borderRadius: 14, marginTop: 4 },
   promptBtnText: { fontSize: 15, fontFamily: "Inter_600SemiBold" },
 
-  // Global disclosure
-  globalDisclosure: {
-    textAlign: "center",
-    fontSize: 11,
-    fontFamily: "Inter_400Regular",
-    paddingHorizontal: 24,
-    paddingTop: 16,
-    paddingBottom: 8,
-    lineHeight: 16,
-  },
-
-  // Retailer badge
-  retailerBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    borderWidth: 1,
-  },
-  retailerText: { fontSize: 11, fontFamily: "Inter_500Medium" },
+  globalDisclosure: { textAlign: "center", fontSize: 11, fontFamily: "Inter_400Regular", paddingHorizontal: 24, paddingTop: 16, paddingBottom: 8 },
 
   // Modal
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.45)",
-    justifyContent: "flex-end",
-  },
-  modalSheet: {
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    paddingTop: 12,
-    maxHeight: height * 0.85,
-  },
-  dragHandle: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    alignSelf: "center",
-    marginBottom: 16,
-  },
-  modalHero: {
-    height: 120,
-    marginHorizontal: 20,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 20,
-  },
-  modalHeroIcon: {
-    width: 72,
-    height: 72,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  modalContent: { paddingHorizontal: 20, gap: 12 },
-  modalBadgeRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  modalCatBadge: { alignSelf: "flex-start", paddingHorizontal: 12, paddingVertical: 5, borderRadius: 10 },
+  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "flex-end" },
+  modalSheet: { borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 12, maxHeight: height * 0.9 },
+  dragHandle: { width: 40, height: 4, borderRadius: 2, alignSelf: "center", marginBottom: 16 },
+  modalHero: { height: 130, marginHorizontal: 20, borderRadius: 20, alignItems: "center", justifyContent: "center", marginBottom: 16 },
+  modalHeroIcon: { width: 76, height: 76, borderRadius: 18, alignItems: "center", justifyContent: "center" },
+  modalNewBadge: { position: "absolute", top: 12, right: 12, backgroundColor: "#4CAF50", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
+  modalNewText: { fontSize: 10, fontFamily: "Inter_700Bold", color: "#fff" },
+  modalContent: { paddingHorizontal: 20 },
+  modalBadgeRow: { flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 10 },
+  modalCatBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
   modalCatText: { fontSize: 12, fontFamily: "Inter_600SemiBold" },
-  modalName: { fontSize: 22, fontFamily: "Inter_700Bold" },
-  modalPrice: { fontSize: 20, fontFamily: "Inter_700Bold" },
-  matchBanner: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    padding: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  matchText: { flex: 1, fontSize: 13, fontFamily: "Inter_500Medium", lineHeight: 18 },
-  modalDesc: { fontSize: 14, fontFamily: "Inter_400Regular", lineHeight: 22 },
-  shopNowBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    paddingVertical: 16,
-    borderRadius: 18,
-    marginTop: 4,
-  },
-  shopNowText: { fontSize: 16, fontFamily: "Inter_600SemiBold" },
-  disclosureNote: { textAlign: "center", fontSize: 11, fontFamily: "Inter_400Regular", marginTop: -4 },
+  retailerBadge: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, borderWidth: 1 },
+  retailerText: { fontSize: 11, fontFamily: "Inter_500Medium" },
+  modalName: { fontSize: 20, fontFamily: "Inter_700Bold", marginBottom: 4 },
+  modalPrice: { fontSize: 22, fontFamily: "Inter_700Bold", marginBottom: 12 },
+  matchBanner: { flexDirection: "row", alignItems: "center", gap: 8, padding: 11, borderRadius: 12, borderWidth: 1, marginBottom: 12 },
+  matchText: { flex: 1, fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 18 },
+  modalDesc: { fontSize: 14, fontFamily: "Inter_400Regular", lineHeight: 23, marginBottom: 14 },
+  highlightsRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 20 },
+  highlightChip: { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10, borderWidth: StyleSheet.hairlineWidth },
+  highlightText: { fontSize: 12, fontFamily: "Inter_500Medium" },
+  modalActions: { flexDirection: "row", gap: 10, marginBottom: 10 },
+  saveFullBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingHorizontal: 18, paddingVertical: 14, borderRadius: 16, borderWidth: 1 },
+  saveFullBtnText: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
+  shopNowBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 14, borderRadius: 16 },
+  shopNowText: { fontSize: 14, fontFamily: "Inter_700Bold", color: "#fff", flex: 1, textAlign: "center" },
+  disclosureNote: { textAlign: "center", fontSize: 11, fontFamily: "Inter_400Regular", paddingBottom: 4, lineHeight: 16 },
 });

@@ -19,6 +19,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AnalysisProvider } from "@/context/AnalysisContext";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { WardrobeProvider } from "@/context/WardrobeContext";
+import { WishlistProductProvider } from "@/context/WishlistProductContext";
 
 const domain = process.env["EXPO_PUBLIC_DOMAIN"];
 if (domain) {
@@ -91,7 +92,9 @@ export default function RootLayout() {
               <ThemeProvider>
                 <AnalysisProvider>
                   <WardrobeProvider>
-                    <RootLayoutNav />
+                    <WishlistProductProvider>
+                      <RootLayoutNav />
+                    </WishlistProductProvider>
                   </WardrobeProvider>
                 </AnalysisProvider>
               </ThemeProvider>
