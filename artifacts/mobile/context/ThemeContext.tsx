@@ -23,7 +23,7 @@ const STORAGE_KEY = "veloura_theme";
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const systemScheme = useColorScheme();
-  const [preference, setPreferenceState] = useState<ThemePreference>("system");
+  const [preference, setPreferenceState] = useState<ThemePreference>("light");
 
   useEffect(() => {
     AsyncStorage.getItem(STORAGE_KEY).then((v) => {
