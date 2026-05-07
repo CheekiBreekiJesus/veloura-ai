@@ -16,6 +16,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAnalysis } from "@/context/AnalysisContext";
+import { useCountry } from "@/context/CountryContext";
 import { useWishlistProducts } from "@/context/WishlistProductContext";
 import { useColors } from "@/hooks/useColors";
 import {
@@ -23,6 +24,7 @@ import {
   PRICE_TIER_LABELS,
   PRODUCTS,
   RETAILER_ICONS,
+  getProductUrl,
   type Product,
 } from "@/data/products";
 
@@ -38,6 +40,7 @@ export default function WishlistScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { analysis } = useAnalysis();
+  const { country } = useCountry();
   const { savedIds, isSaved, toggleSave, clearWishlist, savedCount } = useWishlistProducts();
 
   const [activeTab, setActiveTab] = useState<"saved" | "recs">("saved");
@@ -165,8 +168,9 @@ export default function WishlistScreen() {
                   key={product.id}
                   product={product}
                   colors={colors}
+                  country={country}
                   onRemove={() => handleRemove(product)}
-                  onShop={() => openShopUrl(product.shopUrl)}
+                  onShop={() => openShopUrl(getProductUrl(product, country).url)}
                 />
               ))
             )}
@@ -271,16 +275,19 @@ export default function WishlistScreen() {
 function SavedProductCard({
   product,
   colors,
+  country,
   onRemove,
   onShop,
 }: {
   product: Product;
   colors: ReturnType<typeof useColors>;
+  country: string;
   onRemove: () => void;
   onShop: () => void;
 }) {
   const tierColor = PRICE_TIER_COLORS[product.priceTier];
-  const retailerIcon = RETAILER_ICONS[product.retailer] ?? "open-outline";
+  const { retailer } = getProductUrl(product, country);
+  const retailerIcon = RETAILER_ICONS[retailer] ?? "open-outline";
 
   return (
     <View style={[styles.savedCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
@@ -308,7 +315,7 @@ function SavedProductCard({
         <View style={styles.savedFooter}>
           <View style={styles.savedRetailerRow}>
             <Ionicons name={retailerIcon} size={11} color={colors.mutedForeground} />
-            <Text style={[styles.savedRetailer, { color: colors.mutedForeground }]}>{product.retailer}</Text>
+            <Text style={[styles.savedRetailer, { color: colors.mutedForeground }]}>{retailer}</Text>
           </View>
           <Text style={[styles.savedPrice, { color: colors.primary }]}>{product.price}</Text>
         </View>

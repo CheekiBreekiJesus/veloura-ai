@@ -6,6 +6,7 @@ import React, { useState } from "react";
 import {
   Alert,
   Keyboard,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -18,6 +19,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAnalysis } from "@/context/AnalysisContext";
+import { COUNTRIES, useCountry } from "@/context/CountryContext";
 import { useTheme, type ThemePreference } from "@/context/ThemeContext";
 import { useColors } from "@/hooks/useColors";
 
@@ -33,11 +35,13 @@ export default function SettingsScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { preference, setTheme } = useTheme();
+  const { country, countryFlag, countryLabel, setCountry } = useCountry();
   const { userName, setUserName, clearAnalysis, clearChatHistory, chatHistory, analysis } = useAnalysis();
   const companionName = analysis?.companion_name ?? "Aura";
   const [editingName, setEditingName] = useState(false);
   const [nameValue, setNameValue] = useState(userName ?? "");
   const [nameSaved, setNameSaved] = useState(false);
+  const [countryPickerVisible, setCountryPickerVisible] = useState(false);
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const botPad = Platform.OS === "web" ? 34 : insets.bottom + 20;
@@ -238,6 +242,54 @@ export default function SettingsScreen() {
             </View>
           </View>
 
+          {/* Shopping region */}
+          <View style={styles.group}>
+            <Text style={[styles.groupLabel, { color: colors.mutedForeground }]}>
+              SHOPPING
+            </Text>
+            <View
+              style={[
+                styles.card,
+                { backgroundColor: colors.card, borderColor: colors.border },
+              ]}
+            >
+              <Pressable
+                onPress={async () => {
+                  await Haptics.selectionAsync();
+                  setCountryPickerVisible(true);
+                }}
+                style={({ pressed }) => [styles.row, { opacity: pressed ? 0.7 : 1 }]}
+              >
+                <View style={[styles.rowIcon, { backgroundColor: colors.secondary }]}>
+                  <Ionicons name="globe-outline" size={18} color={colors.primary} />
+                </View>
+                <View style={styles.rowContent}>
+                  <Text style={[styles.rowLabel, { color: colors.foreground }]}>
+                    Country / Region
+                  </Text>
+                  <Text style={[styles.rowValue, { color: colors.mutedForeground }]}>
+                    {countryFlag} {countryLabel}
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color={colors.mutedForeground} />
+              </Pressable>
+              <View style={[styles.divider, { backgroundColor: colors.border }]} />
+              <View style={[styles.row, { paddingVertical: 10 }]}>
+                <View style={[styles.rowIcon, { backgroundColor: colors.secondary }]}>
+                  <Ionicons name="link-outline" size={18} color={colors.primary} />
+                </View>
+                <View style={styles.rowContent}>
+                  <Text style={[styles.rowLabel, { color: colors.foreground }]}>
+                    Affiliate Disclosure
+                  </Text>
+                  <Text style={[styles.rowValue, { color: colors.mutedForeground }]}>
+                    Veloura may earn a commission from purchases made through links in this app.
+                  </Text>
+                </View>
+              </View>
+            </View>
+          </View>
+
           {/* Appearance — theme toggle */}
           <View style={styles.group}>
             <Text style={[styles.groupLabel, { color: colors.mutedForeground }]}>
@@ -430,6 +482,55 @@ export default function SettingsScreen() {
             </View>
           </View>
         </ScrollView>
+
+        {/* Country picker modal */}
+        <Modal
+          visible={countryPickerVisible}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setCountryPickerVisible(false)}
+        >
+          <View style={cpStyles.overlay}>
+            <Pressable style={StyleSheet.absoluteFill} onPress={() => setCountryPickerVisible(false)} />
+            <View style={[cpStyles.sheet, { backgroundColor: colors.background, borderColor: colors.border }]}>
+              <View style={[cpStyles.handle, { backgroundColor: colors.border }]} />
+              <Text style={[cpStyles.sheetTitle, { color: colors.foreground }]}>Country / Region</Text>
+              <Text style={[cpStyles.sheetSub, { color: colors.mutedForeground }]}>
+                Shop links will open retailers in your selected region
+              </Text>
+              {COUNTRIES.map((c) => {
+                const selected = c.code === country;
+                return (
+                  <Pressable
+                    key={c.code}
+                    onPress={async () => {
+                      await Haptics.selectionAsync();
+                      await setCountry(c.code);
+                      setCountryPickerVisible(false);
+                    }}
+                    style={({ pressed }) => [
+                      cpStyles.countryRow,
+                      {
+                        backgroundColor: selected
+                          ? colors.primary + "15"
+                          : pressed
+                          ? colors.secondary
+                          : "transparent",
+                        borderBottomColor: colors.border,
+                      },
+                    ]}
+                  >
+                    <Text style={cpStyles.flag}>{c.flag}</Text>
+                    <Text style={[cpStyles.countryLabel, { color: colors.foreground }]}>{c.label}</Text>
+                    {selected && (
+                      <Ionicons name="checkmark-circle" size={20} color={colors.primary} />
+                    )}
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+        </Modal>
       </View>
     </TouchableWithoutFeedback>
   );
@@ -490,7 +591,6 @@ const styles = StyleSheet.create({
   },
   savedText: { fontSize: 12, fontFamily: "Inter_500Medium" },
   divider: { height: 1, marginLeft: 62 },
-  // Theme toggle
   themeToggleRow: {
     flexDirection: "row",
     gap: 8,
@@ -506,4 +606,49 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   themeOptionText: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
+});
+
+const cpStyles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    justifyContent: "flex-end",
+  },
+  sheet: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    borderWidth: 1,
+    paddingTop: 12,
+    paddingBottom: 32,
+  },
+  handle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    alignSelf: "center",
+    marginBottom: 16,
+  },
+  sheetTitle: {
+    fontSize: 18,
+    fontFamily: "Inter_700Bold",
+    paddingHorizontal: 20,
+    marginBottom: 4,
+  },
+  sheetSub: {
+    fontSize: 13,
+    fontFamily: "Inter_400Regular",
+    paddingHorizontal: 20,
+    marginBottom: 12,
+    lineHeight: 19,
+  },
+  countryRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    gap: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  flag: { fontSize: 24 },
+  countryLabel: { flex: 1, fontSize: 16, fontFamily: "Inter_500Medium" },
 });

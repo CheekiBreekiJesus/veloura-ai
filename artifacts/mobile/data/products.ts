@@ -3,6 +3,8 @@ import React from "react";
 
 export type PriceTier = "budget" | "mid" | "luxury";
 
+export type LocaleEntry = { url: string; retailer: string };
+
 export type Product = {
   id: string;
   name: string;
@@ -17,12 +19,219 @@ export type Product = {
   isNew?: boolean;
   description: string;
   highlights: string[];
-  shopUrl: string;
-  retailer: string;
+  affiliateUrls: Record<string, LocaleEntry>;
+  defaultLocale: string;
+  imageUrl?: string;
 };
 
+export function getProductUrl(product: Product, country: string): LocaleEntry {
+  return (
+    product.affiliateUrls[country] ??
+    product.affiliateUrls[product.defaultLocale]
+  );
+}
+
+// ── URL helper functions ───────────────────────────────────────────────────
+function kw(s: string): string {
+  return s.replace(/\s+/g, "+");
+}
+
+function sephora(keyword: string): Record<string, LocaleEntry> {
+  const k = kw(keyword);
+  return {
+    US: { url: `https://www.sephora.com/search?keyword=${k}`, retailer: "Sephora" },
+    GB: { url: `https://www.sephora.co.uk/search?q=${k}`, retailer: "Sephora" },
+    AU: { url: `https://www.mecca.com.au/search?q=${k}`, retailer: "Mecca" },
+    CA: { url: `https://www.sephora.ca/en/search?keyword=${k}`, retailer: "Sephora" },
+    FR: { url: `https://www.sephora.fr/search?keyword=${k}`, retailer: "Sephora" },
+    DE: { url: `https://www.douglas.de/search?searchTerm=${k}`, retailer: "Douglas" },
+    INT: { url: `https://www.lookfantastic.com/search?q=${k}`, retailer: "LookFantastic" },
+  };
+}
+
+function ulta(keyword: string): Record<string, LocaleEntry> {
+  const k = kw(keyword);
+  return {
+    US: { url: `https://www.ulta.com/search?search=${k}`, retailer: "Ulta" },
+    GB: { url: `https://www.lookfantastic.com/search?q=${k}`, retailer: "LookFantastic" },
+    AU: { url: `https://www.mecca.com.au/search?q=${k}`, retailer: "Mecca" },
+    CA: { url: `https://www.sephora.ca/en/search?keyword=${k}`, retailer: "Sephora" },
+    FR: { url: `https://www.nocibe.fr/recherche?q=${k}`, retailer: "Nocibé" },
+    DE: { url: `https://www.douglas.de/search?searchTerm=${k}`, retailer: "Douglas" },
+    INT: { url: `https://www.lookfantastic.com/search?q=${k}`, retailer: "LookFantastic" },
+  };
+}
+
+function paulasChoice(path: string): Record<string, LocaleEntry> {
+  return {
+    US: { url: `https://www.paulaschoice.com/${path}`, retailer: "Paula's Choice" },
+    GB: { url: `https://www.paulaschoice.co.uk/${path}`, retailer: "Paula's Choice" },
+    AU: { url: `https://www.paulaschoice.com.au/${path}`, retailer: "Paula's Choice" },
+    CA: { url: `https://www.paulaschoice.ca/${path}`, retailer: "Paula's Choice" },
+    FR: { url: `https://www.paulaschoice.fr/${path}`, retailer: "Paula's Choice" },
+    DE: { url: `https://www.paulaschoice.de/${path}`, retailer: "Paula's Choice" },
+    INT: { url: `https://www.paulaschoice.com/${path}`, retailer: "Paula's Choice" },
+  };
+}
+
+function amazon(keyword: string): Record<string, LocaleEntry> {
+  const k = kw(keyword);
+  return {
+    US: { url: `https://www.amazon.com/s?k=${k}`, retailer: "Amazon" },
+    GB: { url: `https://www.amazon.co.uk/s?k=${k}`, retailer: "Amazon" },
+    AU: { url: `https://www.amazon.com.au/s?k=${k}`, retailer: "Amazon" },
+    CA: { url: `https://www.amazon.ca/s?k=${k}`, retailer: "Amazon" },
+    FR: { url: `https://www.amazon.fr/s?k=${k}`, retailer: "Amazon" },
+    DE: { url: `https://www.amazon.de/s?k=${k}`, retailer: "Amazon" },
+    INT: { url: `https://www.lookfantastic.com/search?q=${k}`, retailer: "LookFantastic" },
+  };
+}
+
+function amazonJewelry(keyword: string): Record<string, LocaleEntry> {
+  const k = kw(keyword);
+  return {
+    US: { url: `https://www.amazon.com/s?k=${k}`, retailer: "Amazon" },
+    GB: { url: `https://www.wolfandbadger.com/uk/search/?q=${k}`, retailer: "Wolf & Badger" },
+    AU: { url: `https://www.amazon.com.au/s?k=${k}`, retailer: "Amazon" },
+    CA: { url: `https://www.amazon.ca/s?k=${k}`, retailer: "Amazon" },
+    FR: { url: `https://www.amazon.fr/s?k=${k}`, retailer: "Amazon" },
+    DE: { url: `https://www.amazon.de/s?k=${k}`, retailer: "Amazon" },
+    INT: { url: `https://www.wolfandbadger.com/global/search/?q=${k}`, retailer: "Wolf & Badger" },
+  };
+}
+
+function amazonWatch(keyword: string): Record<string, LocaleEntry> {
+  const k = kw(keyword);
+  return {
+    US: { url: `https://www.amazon.com/s?k=${k}`, retailer: "Amazon" },
+    GB: { url: `https://www.amazon.co.uk/s?k=${k}`, retailer: "Amazon" },
+    AU: { url: `https://www.amazon.com.au/s?k=${k}`, retailer: "Amazon" },
+    CA: { url: `https://www.amazon.ca/s?k=${k}`, retailer: "Amazon" },
+    FR: { url: `https://www.amazon.fr/s?k=${k}`, retailer: "Amazon" },
+    DE: { url: `https://www.amazon.de/s?k=${k}`, retailer: "Amazon" },
+    INT: { url: `https://www.farfetch.com/shopping/women/search/?q=${k}`, retailer: "Farfetch" },
+  };
+}
+
+function zara(term: string): Record<string, LocaleEntry> {
+  const t = kw(term);
+  return {
+    US: { url: `https://www.zara.com/us/en/search?searchTerm=${t}`, retailer: "Zara" },
+    GB: { url: `https://www.zara.com/gb/en/search?searchTerm=${t}`, retailer: "Zara" },
+    AU: { url: `https://www.zara.com/au/en/search?searchTerm=${t}`, retailer: "Zara" },
+    CA: { url: `https://www.zara.com/ca/en/search?searchTerm=${t}`, retailer: "Zara" },
+    FR: { url: `https://www.zara.com/fr/fr/search?searchTerm=${t}`, retailer: "Zara" },
+    DE: { url: `https://www.zara.com/de/de/search?searchTerm=${t}`, retailer: "Zara" },
+    INT: { url: `https://www.zara.com/gb/en/search?searchTerm=${t}`, retailer: "Zara" },
+  };
+}
+
+function hm(keyword: string): Record<string, LocaleEntry> {
+  const k = kw(keyword);
+  return {
+    US: { url: `https://www2.hm.com/en_us/search-results.html?q=${k}`, retailer: "H&M" },
+    GB: { url: `https://www2.hm.com/en_gb/search-results.html?q=${k}`, retailer: "H&M" },
+    AU: { url: `https://www2.hm.com/en_au/search-results.html?q=${k}`, retailer: "H&M" },
+    CA: { url: `https://www2.hm.com/en_ca/search-results.html?q=${k}`, retailer: "H&M" },
+    FR: { url: `https://www2.hm.com/fr_fr/search-results.html?q=${k}`, retailer: "H&M" },
+    DE: { url: `https://www2.hm.com/de_de/search-results.html?q=${k}`, retailer: "H&M" },
+    INT: { url: `https://www2.hm.com/en_gb/search-results.html?q=${k}`, retailer: "H&M" },
+  };
+}
+
+function asos(keyword: string): Record<string, LocaleEntry> {
+  const k = kw(keyword);
+  return {
+    US: { url: `https://www.asos.com/search/?q=${k}`, retailer: "ASOS" },
+    GB: { url: `https://www.asos.com/search/?q=${k}`, retailer: "ASOS" },
+    AU: { url: `https://www.asos.com/search/?q=${k}`, retailer: "ASOS" },
+    CA: { url: `https://www.asos.com/search/?q=${k}`, retailer: "ASOS" },
+    FR: { url: `https://www.asos.com/fr/search/?q=${k}`, retailer: "ASOS" },
+    DE: { url: `https://www.asos.com/de/search/?q=${k}`, retailer: "ASOS" },
+    INT: { url: `https://www.asos.com/search/?q=${k}`, retailer: "ASOS" },
+  };
+}
+
+function revolve(keyword: string): Record<string, LocaleEntry> {
+  const k = kw(keyword);
+  return {
+    US: { url: `https://www.revolve.com/search/?q=${k}`, retailer: "Revolve" },
+    GB: { url: `https://www.revolve.com/search/?q=${k}`, retailer: "Revolve" },
+    AU: { url: `https://www.revolve.com/search/?q=${k}`, retailer: "Revolve" },
+    CA: { url: `https://www.revolve.com/search/?q=${k}`, retailer: "Revolve" },
+    FR: { url: `https://www.farfetch.com/shopping/women/search/?q=${k}`, retailer: "Farfetch" },
+    DE: { url: `https://www.farfetch.com/shopping/women/search/?q=${k}`, retailer: "Farfetch" },
+    INT: { url: `https://www.farfetch.com/shopping/women/search/?q=${k}`, retailer: "Farfetch" },
+  };
+}
+
+function anthropologie(keyword: string): Record<string, LocaleEntry> {
+  const k = kw(keyword);
+  return {
+    US: { url: `https://www.anthropologie.com/search?q=${k}`, retailer: "Anthropologie" },
+    GB: { url: `https://www.anthropologie.com/en-gb/search?q=${k}`, retailer: "Anthropologie" },
+    AU: { url: `https://www.net-a-porter.com/en-au/search?q=${k}`, retailer: "Net-a-Porter" },
+    CA: { url: `https://www.anthropologie.com/en-ca/search?q=${k}`, retailer: "Anthropologie" },
+    FR: { url: `https://www.farfetch.com/shopping/women/search/?q=${k}`, retailer: "Farfetch" },
+    DE: { url: `https://www.farfetch.com/shopping/women/search/?q=${k}`, retailer: "Farfetch" },
+    INT: { url: `https://www.farfetch.com/shopping/women/search/?q=${k}`, retailer: "Farfetch" },
+  };
+}
+
+function anthropologieJewelry(keyword: string): Record<string, LocaleEntry> {
+  const k = kw(keyword);
+  return {
+    US: { url: `https://www.anthropologie.com/search?q=${k}`, retailer: "Anthropologie" },
+    GB: { url: `https://www.wolfandbadger.com/uk/search/?q=${k}`, retailer: "Wolf & Badger" },
+    AU: { url: `https://www.wolfandbadger.com/global/search/?q=${k}`, retailer: "Wolf & Badger" },
+    CA: { url: `https://www.anthropologie.com/en-ca/search?q=${k}`, retailer: "Anthropologie" },
+    FR: { url: `https://www.wolfandbadger.com/global/search/?q=${k}`, retailer: "Wolf & Badger" },
+    DE: { url: `https://www.wolfandbadger.com/global/search/?q=${k}`, retailer: "Wolf & Badger" },
+    INT: { url: `https://www.wolfandbadger.com/global/search/?q=${k}`, retailer: "Wolf & Badger" },
+  };
+}
+
+function warbyParker(path: string): Record<string, LocaleEntry> {
+  return {
+    US: { url: `https://www.warbyparker.com/${path}`, retailer: "Warby Parker" },
+    GB: { url: `https://www.specsavers.co.uk/glasses/womens-glasses`, retailer: "Specsavers" },
+    AU: { url: `https://www.specsavers.com.au/glasses/womens-glasses`, retailer: "Specsavers" },
+    CA: { url: `https://www.warbyparker.com/${path}`, retailer: "Warby Parker" },
+    FR: { url: `https://www.grandoptical.fr/lunettes-de-vue/femme`, retailer: "GrandOptical" },
+    DE: { url: `https://www.apollo.de/brillen/damenbrillen`, retailer: "Apollo Optik" },
+    INT: { url: `https://www.clearly.ca/glasses/women`, retailer: "Clearly" },
+  };
+}
+
+function nordstrom(keyword: string): Record<string, LocaleEntry> {
+  const k = kw(keyword);
+  return {
+    US: { url: `https://www.nordstrom.com/sr?keyword=${k}`, retailer: "Nordstrom" },
+    GB: { url: `https://www.net-a-porter.com/en-gb/search?q=${k}`, retailer: "Net-a-Porter" },
+    AU: { url: `https://www.net-a-porter.com/en-au/search?q=${k}`, retailer: "Net-a-Porter" },
+    CA: { url: `https://www.nordstrom.com/sr?keyword=${k}`, retailer: "Nordstrom" },
+    FR: { url: `https://www.net-a-porter.com/en-fr/search?q=${k}`, retailer: "Net-a-Porter" },
+    DE: { url: `https://www.net-a-porter.com/en-de/search?q=${k}`, retailer: "Net-a-Porter" },
+    INT: { url: `https://www.net-a-porter.com/search?q=${k}`, retailer: "Net-a-Porter" },
+  };
+}
+
+function mejuri(path: string): Record<string, LocaleEntry> {
+  const url = `https://mejuri.com/${path}`;
+  return {
+    US: { url, retailer: "Mejuri" },
+    GB: { url, retailer: "Mejuri" },
+    AU: { url, retailer: "Mejuri" },
+    CA: { url, retailer: "Mejuri" },
+    FR: { url, retailer: "Mejuri" },
+    DE: { url, retailer: "Mejuri" },
+    INT: { url, retailer: "Mejuri" },
+  };
+}
+
+// ── Products ──────────────────────────────────────────────────────────────
 export const PRODUCTS: Product[] = [
-  // ─── Skincare ─────────────────────────────────────────────────────────────
+  // ─── Skincare ──────────────────────────────────────────────────────────
   {
     id: "sk-1",
     name: "Hydrating Vitamin C Serum",
@@ -37,8 +246,8 @@ export const PRODUCTS: Product[] = [
     icon: "water-outline",
     gradient: ["#FDECD3", "#F5D5B0"],
     featured: true,
-    shopUrl: "https://www.sephora.com/search?keyword=vitamin+c+hydrating+serum",
-    retailer: "Sephora",
+    affiliateUrls: sephora("vitamin c hydrating serum"),
+    defaultLocale: "US",
   },
   {
     id: "sk-2",
@@ -53,8 +262,8 @@ export const PRODUCTS: Product[] = [
     priceTier: "budget",
     icon: "flask-outline",
     gradient: ["#E8F5E9", "#C8E6C9"],
-    shopUrl: "https://www.sephora.com/search?keyword=niacinamide+pore+serum",
-    retailer: "Sephora",
+    affiliateUrls: sephora("niacinamide pore serum"),
+    defaultLocale: "US",
   },
   {
     id: "sk-3",
@@ -71,8 +280,8 @@ export const PRODUCTS: Product[] = [
     gradient: ["#FFF9C4", "#FFF176"],
     featured: true,
     isNew: true,
-    shopUrl: "https://www.ulta.com/search?search=tinted+spf+moisturizer",
-    retailer: "Ulta",
+    affiliateUrls: ulta("tinted spf moisturizer"),
+    defaultLocale: "US",
   },
   {
     id: "sk-4",
@@ -87,8 +296,8 @@ export const PRODUCTS: Product[] = [
     priceTier: "mid",
     icon: "moon-outline",
     gradient: ["#EDE7F6", "#D1C4E9"],
-    shopUrl: "https://www.paulas-choice.com",
-    retailer: "Paula's Choice",
+    affiliateUrls: paulasChoice(""),
+    defaultLocale: "US",
   },
   {
     id: "sk-5",
@@ -103,8 +312,8 @@ export const PRODUCTS: Product[] = [
     priceTier: "budget",
     icon: "leaf-outline",
     gradient: ["#FCE4EC", "#F8BBD0"],
-    shopUrl: "https://www.amazon.com/s?k=rosehip+face+oil",
-    retailer: "Amazon",
+    affiliateUrls: amazon("rosehip face oil"),
+    defaultLocale: "US",
   },
   {
     id: "sk-6",
@@ -119,11 +328,11 @@ export const PRODUCTS: Product[] = [
     priceTier: "budget",
     icon: "sparkles-outline",
     gradient: ["#E3F2FD", "#BBDEFB"],
-    shopUrl: "https://www.ulta.com/search?search=cerave+foaming+cleanser",
-    retailer: "Ulta",
+    affiliateUrls: ulta("cerave foaming cleanser"),
+    defaultLocale: "US",
   },
 
-  // ─── Makeup ────────────────────────────────────────────────────────────────
+  // ─── Makeup ────────────────────────────────────────────────────────────
   {
     id: "mk-1",
     name: "Soft Glow Foundation",
@@ -137,8 +346,8 @@ export const PRODUCTS: Product[] = [
     priceTier: "mid",
     icon: "color-fill-outline",
     gradient: ["#F5EDE3", "#EDE3D9"],
-    shopUrl: "https://www.sephora.com/search?keyword=soft+glow+foundation+warm+undertone",
-    retailer: "Sephora",
+    affiliateUrls: sephora("soft glow foundation warm undertone"),
+    defaultLocale: "US",
   },
   {
     id: "mk-2",
@@ -154,8 +363,8 @@ export const PRODUCTS: Product[] = [
     icon: "layers-outline",
     gradient: ["#F0E4F5", "#DFC8EF"],
     featured: true,
-    shopUrl: "https://www.sephora.com/search?keyword=terracotta+eyeshadow+palette",
-    retailer: "Sephora",
+    affiliateUrls: sephora("terracotta eyeshadow palette"),
+    defaultLocale: "US",
   },
   {
     id: "mk-3",
@@ -170,8 +379,8 @@ export const PRODUCTS: Product[] = [
     priceTier: "budget",
     icon: "heart-outline",
     gradient: ["#FDECD3", "#F5D5B0"],
-    shopUrl: "https://www.sephora.com/search?keyword=tinted+lip+balm+warm",
-    retailer: "Sephora",
+    affiliateUrls: sephora("tinted lip balm warm"),
+    defaultLocale: "US",
   },
   {
     id: "mk-4",
@@ -188,8 +397,8 @@ export const PRODUCTS: Product[] = [
     gradient: ["#FCE4EC", "#F48FB1"],
     featured: true,
     isNew: true,
-    shopUrl: "https://www.sephora.com/search?keyword=fenty+blush+highlight+duo",
-    retailer: "Sephora",
+    affiliateUrls: sephora("fenty blush highlight duo"),
+    defaultLocale: "US",
   },
   {
     id: "mk-5",
@@ -204,8 +413,8 @@ export const PRODUCTS: Product[] = [
     priceTier: "budget",
     icon: "brush-outline",
     gradient: ["#EFEBE9", "#D7CCC8"],
-    shopUrl: "https://www.sephora.com/search?keyword=charlotte+tilbury+brow+pencil",
-    retailer: "Sephora",
+    affiliateUrls: sephora("charlotte tilbury brow pencil"),
+    defaultLocale: "US",
   },
   {
     id: "mk-6",
@@ -221,11 +430,11 @@ export const PRODUCTS: Product[] = [
     icon: "pencil-outline",
     gradient: ["#F3E5F5", "#CE93D8"],
     isNew: true,
-    shopUrl: "https://www.sephora.com/search?keyword=NARS+cream+contour+stick",
-    retailer: "Sephora",
+    affiliateUrls: sephora("NARS cream contour stick"),
+    defaultLocale: "US",
   },
 
-  // ─── Fashion ───────────────────────────────────────────────────────────────
+  // ─── Fashion ───────────────────────────────────────────────────────────
   {
     id: "fa-1",
     name: "Silk Slip Dress",
@@ -239,8 +448,8 @@ export const PRODUCTS: Product[] = [
     priceTier: "mid",
     icon: "shirt-outline",
     gradient: ["#D9EEF5", "#B8DCEA"],
-    shopUrl: "https://www.asos.com/search/?q=silk+slip+dress",
-    retailer: "ASOS",
+    affiliateUrls: asos("silk slip dress"),
+    defaultLocale: "US",
   },
   {
     id: "fa-2",
@@ -255,8 +464,8 @@ export const PRODUCTS: Product[] = [
     priceTier: "mid",
     icon: "shirt-outline",
     gradient: ["#D9EEF5", "#B8DCEA"],
-    shopUrl: "https://www.asos.com/search/?q=linen+blazer+women",
-    retailer: "ASOS",
+    affiliateUrls: asos("linen blazer women"),
+    defaultLocale: "US",
   },
   {
     id: "fa-3",
@@ -272,8 +481,8 @@ export const PRODUCTS: Product[] = [
     icon: "apps-outline",
     gradient: ["#F5F0D9", "#EADCB8"],
     featured: true,
-    shopUrl: "https://www.zara.com/us/en/search?searchTerm=tailored+high+waist+trousers",
-    retailer: "Zara",
+    affiliateUrls: zara("tailored high waist trousers"),
+    defaultLocale: "US",
   },
   {
     id: "fa-4",
@@ -289,8 +498,8 @@ export const PRODUCTS: Product[] = [
     icon: "shirt-outline",
     gradient: ["#FFF8E1", "#FFECB3"],
     isNew: true,
-    shopUrl: "https://www.hm.com/us/search?q=cashmere+turtleneck",
-    retailer: "H&M",
+    affiliateUrls: hm("cashmere turtleneck women"),
+    defaultLocale: "US",
   },
   {
     id: "fa-5",
@@ -306,8 +515,8 @@ export const PRODUCTS: Product[] = [
     icon: "shirt-outline",
     gradient: ["#E8EAF6", "#C5CAE9"],
     featured: true,
-    shopUrl: "https://www.revolve.com/search/?q=wrap+midi+dress",
-    retailer: "Revolve",
+    affiliateUrls: revolve("wrap midi dress"),
+    defaultLocale: "US",
   },
   {
     id: "fa-6",
@@ -322,11 +531,11 @@ export const PRODUCTS: Product[] = [
     priceTier: "luxury",
     icon: "apps-outline",
     gradient: ["#E3F2FD", "#90CAF9"],
-    shopUrl: "https://www.anthropologie.com/search?q=straight+leg+cropped+jeans",
-    retailer: "Anthropologie",
+    affiliateUrls: anthropologie("straight leg cropped jeans"),
+    defaultLocale: "US",
   },
 
-  // ─── Haircare ─────────────────────────────────────────────────────────────
+  // ─── Haircare ──────────────────────────────────────────────────────────
   {
     id: "hc-1",
     name: "Argan Oil Hair Mask",
@@ -340,8 +549,8 @@ export const PRODUCTS: Product[] = [
     priceTier: "budget",
     icon: "cut-outline",
     gradient: ["#D9F5E4", "#B8EAD0"],
-    shopUrl: "https://www.amazon.com/s?k=argan+oil+hair+mask",
-    retailer: "Amazon",
+    affiliateUrls: amazon("argan oil hair mask"),
+    defaultLocale: "US",
   },
   {
     id: "hc-2",
@@ -357,8 +566,8 @@ export const PRODUCTS: Product[] = [
     icon: "sparkles-outline",
     gradient: ["#F0F4C3", "#E6EE9C"],
     featured: true,
-    shopUrl: "https://www.sephora.com/search?keyword=glossing+hair+serum",
-    retailer: "Sephora",
+    affiliateUrls: sephora("glossing hair serum"),
+    defaultLocale: "US",
   },
   {
     id: "hc-3",
@@ -373,8 +582,8 @@ export const PRODUCTS: Product[] = [
     priceTier: "budget",
     icon: "water-outline",
     gradient: ["#E0F2F1", "#B2DFDB"],
-    shopUrl: "https://www.ulta.com/search?search=scalp+detox+shampoo",
-    retailer: "Ulta",
+    affiliateUrls: ulta("scalp detox shampoo"),
+    defaultLocale: "US",
   },
   {
     id: "hc-4",
@@ -389,11 +598,11 @@ export const PRODUCTS: Product[] = [
     priceTier: "budget",
     icon: "flower-outline",
     gradient: ["#FFF3E0", "#FFE0B2"],
-    shopUrl: "https://www.amazon.com/s?k=curl+defining+cream",
-    retailer: "Amazon",
+    affiliateUrls: amazon("curl defining cream"),
+    defaultLocale: "US",
   },
 
-  // ─── Eyewear ──────────────────────────────────────────────────────────────
+  // ─── Eyewear ───────────────────────────────────────────────────────────
   {
     id: "ey-1",
     name: "Gold Oval Frames",
@@ -408,8 +617,8 @@ export const PRODUCTS: Product[] = [
     icon: "glasses-outline",
     gradient: ["#F5F0D9", "#EADCB8"],
     featured: true,
-    shopUrl: "https://www.warbyparker.com/eyeglasses/women/oval",
-    retailer: "Warby Parker",
+    affiliateUrls: warbyParker("eyeglasses/women/oval"),
+    defaultLocale: "US",
   },
   {
     id: "ey-2",
@@ -425,8 +634,8 @@ export const PRODUCTS: Product[] = [
     icon: "glasses-outline",
     gradient: ["#FBE9E7", "#FFCCBC"],
     isNew: true,
-    shopUrl: "https://www.amazon.com/s?k=tortoise+cat+eye+sunglasses+women",
-    retailer: "Amazon",
+    affiliateUrls: amazon("tortoise cat eye sunglasses women"),
+    defaultLocale: "US",
   },
   {
     id: "ey-3",
@@ -441,11 +650,11 @@ export const PRODUCTS: Product[] = [
     priceTier: "luxury",
     icon: "glasses-outline",
     gradient: ["#F3E5F5", "#E1BEE7"],
-    shopUrl: "https://www.warbyparker.com/eyeglasses/women/round",
-    retailer: "Warby Parker",
+    affiliateUrls: warbyParker("eyeglasses/women/round"),
+    defaultLocale: "US",
   },
 
-  // ─── Jewelry ─────────────────────────────────────────────────────────────
+  // ─── Jewelry ───────────────────────────────────────────────────────────
   {
     id: "jw-1",
     name: "Pearl Drop Earrings",
@@ -460,8 +669,8 @@ export const PRODUCTS: Product[] = [
     icon: "ellipse-outline",
     gradient: ["#FAF8F5", "#EDE3D9"],
     featured: true,
-    shopUrl: "https://www.amazon.com/s?k=freshwater+pearl+drop+earrings+gold",
-    retailer: "Amazon",
+    affiliateUrls: amazonJewelry("freshwater pearl drop earrings gold"),
+    defaultLocale: "US",
   },
   {
     id: "jw-2",
@@ -477,8 +686,8 @@ export const PRODUCTS: Product[] = [
     icon: "ellipse-outline",
     gradient: ["#FFF9C4", "#FFF176"],
     isNew: true,
-    shopUrl: "https://www.amazon.com/s?k=gold+stacking+ring+set+women",
-    retailer: "Amazon",
+    affiliateUrls: amazonJewelry("gold stacking ring set women"),
+    defaultLocale: "US",
   },
   {
     id: "jw-3",
@@ -493,8 +702,8 @@ export const PRODUCTS: Product[] = [
     priceTier: "luxury",
     icon: "ellipse-outline",
     gradient: ["#FFFDE7", "#FFF9C4"],
-    shopUrl: "https://mejuri.com/shop/products/yellow-gold-medium-bold-hoops",
-    retailer: "Mejuri",
+    affiliateUrls: mejuri("shop/products/yellow-gold-medium-bold-hoops"),
+    defaultLocale: "US",
   },
   {
     id: "jw-4",
@@ -510,8 +719,8 @@ export const PRODUCTS: Product[] = [
     icon: "star-outline",
     gradient: ["#F3E5F5", "#CE93D8"],
     featured: true,
-    shopUrl: "https://www.anthropologie.com/search?q=tassel+earrings",
-    retailer: "Anthropologie",
+    affiliateUrls: anthropologieJewelry("tassel earrings"),
+    defaultLocale: "US",
   },
   {
     id: "jw-5",
@@ -527,8 +736,8 @@ export const PRODUCTS: Product[] = [
     icon: "ellipse-outline",
     gradient: ["#E8EAF6", "#C5CAE9"],
     isNew: true,
-    shopUrl: "https://www.amazon.com/s?k=crystal+tennis+bracelet+gold+women",
-    retailer: "Amazon",
+    affiliateUrls: amazonJewelry("crystal tennis bracelet gold women"),
+    defaultLocale: "US",
   },
   {
     id: "jw-6",
@@ -543,8 +752,8 @@ export const PRODUCTS: Product[] = [
     priceTier: "budget",
     icon: "ellipse-outline",
     gradient: ["#FFF8E1", "#FFECB3"],
-    shopUrl: "https://www.asos.com/search/?q=chunky+gold+chain+bracelet",
-    retailer: "ASOS",
+    affiliateUrls: asos("chunky gold chain bracelet"),
+    defaultLocale: "US",
   },
   {
     id: "jw-7",
@@ -559,8 +768,8 @@ export const PRODUCTS: Product[] = [
     priceTier: "mid",
     icon: "ellipse-outline",
     gradient: ["#FCE4EC", "#F8BBD0"],
-    shopUrl: "https://www.revolve.com/search/?q=layered+pendant+necklace+set",
-    retailer: "Revolve",
+    affiliateUrls: revolve("layered pendant necklace set"),
+    defaultLocale: "US",
   },
   {
     id: "jw-8",
@@ -577,94 +786,8 @@ export const PRODUCTS: Product[] = [
     gradient: ["#E8F5E9", "#C8E6C9"],
     featured: true,
     isNew: true,
-    shopUrl: "https://www.nordstrom.com/sr?keyword=crystal+cocktail+ring+gold",
-    retailer: "Nordstrom",
-  },
-
-  // ─── Watches ─────────────────────────────────────────────────────────────
-  {
-    id: "wa-1",
-    name: "Minimalist Leather Strap Watch",
-    category: "Watches",
-    reason: "Clean, refined finishing piece for your wrist",
-    description:
-      "A 36mm brushed gold-tone case on a genuine tan leather strap. The clean, uncluttered dial with minimalist indices reads sophisticated without effort — pairs with everything from blazers to silk blouses.",
-    highlights: ["36mm case", "Genuine leather", "Japanese quartz movement"],
-    price: "$75+",
-    priceNumeric: 75,
-    priceTier: "mid",
-    icon: "time-outline",
-    gradient: ["#EFEBE9", "#D7CCC8"],
-    featured: true,
-    shopUrl: "https://www.amazon.com/s?k=minimalist+leather+strap+watch+women+gold",
-    retailer: "Amazon",
-  },
-  {
-    id: "wa-2",
-    name: "Gold Mesh Bracelet Watch",
-    category: "Watches",
-    reason: "Jewelry-forward timepiece for your warm palette",
-    description:
-      "A 28mm sunray-dial watch on an integrated gold-tone stainless mesh bracelet. The seamless silhouette sits flush on the wrist like fine jewelry — a forever piece that transitions from desk to dinner.",
-    highlights: ["28mm sunray dial", "Mesh bracelet", "Scratch-resistant crystal"],
-    price: "$195+",
-    priceNumeric: 195,
-    priceTier: "luxury",
-    icon: "time-outline",
-    gradient: ["#FFF9C4", "#FFF59D"],
-    featured: true,
-    shopUrl: "https://www.nordstrom.com/sr?keyword=gold+mesh+bracelet+watch+women",
-    retailer: "Nordstrom",
-  },
-  {
-    id: "wa-3",
-    name: "Rose Gold Marble-Dial Watch",
-    category: "Watches",
-    reason: "Feminine detail that flatters soft archetypes",
-    description:
-      "A 32mm rose gold case housing a genuine marble dial — no two are identical. The soft peach-pink tones harmonize with warm and soft seasonal palettes, making this a deeply personal statement piece.",
-    highlights: ["32mm marble dial", "Rose gold plating", "Genuine marble face"],
-    price: "$62+",
-    priceNumeric: 62,
-    priceTier: "mid",
-    icon: "time-outline",
-    gradient: ["#FCE4EC", "#F8BBD0"],
-    isNew: true,
-    shopUrl: "https://www.amazon.com/s?k=rose+gold+marble+dial+watch+women",
-    retailer: "Amazon",
-  },
-  {
-    id: "wa-4",
-    name: "Tortoiseshell Strap Watch",
-    category: "Watches",
-    reason: "Warm tones that echo your undertone perfectly",
-    description:
-      "A 34mm gold case on a rich tortoiseshell acetate strap. The warm caramel tones of the band mirror the depth of warm undertone palettes, making this one of the most flattering watches for your coloring.",
-    highlights: ["34mm case", "Acetate strap", "3ATM water resistant"],
-    price: "$68+",
-    priceNumeric: 68,
-    priceTier: "mid",
-    icon: "time-outline",
-    gradient: ["#FBE9E7", "#FFCCBC"],
-    shopUrl: "https://www.asos.com/search/?q=tortoiseshell+strap+watch+gold",
-    retailer: "ASOS",
-  },
-  {
-    id: "wa-5",
-    name: "Mother-of-Pearl Dress Watch",
-    category: "Watches",
-    reason: "Luminous elegance for evening looks",
-    description:
-      "A 30mm diamond-bezel watch with a genuine mother-of-pearl dial on a satin-finished bracelet. The iridescent face catches light like a pearl necklace — the definitive dressing-up timepiece.",
-    highlights: ["MOP dial", "Diamond bezel", "Satin bracelet"],
-    price: "$220+",
-    priceNumeric: 220,
-    priceTier: "luxury",
-    icon: "time-outline",
-    gradient: ["#E3F2FD", "#BBDEFB"],
-    isNew: true,
-    shopUrl: "https://www.nordstrom.com/sr?keyword=mother+of+pearl+dress+watch+women",
-    retailer: "Nordstrom",
+    affiliateUrls: nordstrom("crystal cocktail ring gold"),
+    defaultLocale: "US",
   },
   {
     id: "jw-9",
@@ -680,8 +803,8 @@ export const PRODUCTS: Product[] = [
     icon: "ellipse-outline",
     gradient: ["#FAF8F5", "#EDE3D9"],
     isNew: true,
-    shopUrl: "https://www.amazon.com/s?k=freshwater+pearl+strand+necklace+gold+clasp",
-    retailer: "Amazon",
+    affiliateUrls: amazonJewelry("freshwater pearl strand necklace gold clasp"),
+    defaultLocale: "US",
   },
   {
     id: "jw-10",
@@ -696,8 +819,8 @@ export const PRODUCTS: Product[] = [
     priceTier: "budget",
     icon: "ellipse-outline",
     gradient: ["#E0F7FA", "#B2EBF2"],
-    shopUrl: "https://www.asos.com/search/?q=layered+charm+bracelet+stack+set",
-    retailer: "ASOS",
+    affiliateUrls: asos("layered charm bracelet stack set"),
+    defaultLocale: "US",
   },
   {
     id: "jw-11",
@@ -713,8 +836,110 @@ export const PRODUCTS: Product[] = [
     icon: "ellipse-outline",
     gradient: ["#FFF8E1", "#FFECB3"],
     featured: true,
-    shopUrl: "https://www.anthropologie.com/search?q=statement+cuff+bracelet+gold",
-    retailer: "Anthropologie",
+    affiliateUrls: anthropologieJewelry("statement cuff bracelet gold"),
+    defaultLocale: "US",
+  },
+
+  // ─── Watches ───────────────────────────────────────────────────────────
+  {
+    id: "wa-1",
+    name: "Minimalist Leather Strap Watch",
+    category: "Watches",
+    reason: "Clean, refined finishing piece for your wrist",
+    description:
+      "A 36mm brushed gold-tone case on a genuine tan leather strap. The clean, uncluttered dial with minimalist indices reads sophisticated without effort — pairs with everything from blazers to silk blouses.",
+    highlights: ["36mm case", "Genuine leather", "Japanese quartz movement"],
+    price: "$75+",
+    priceNumeric: 75,
+    priceTier: "mid",
+    icon: "time-outline",
+    gradient: ["#EFEBE9", "#D7CCC8"],
+    featured: true,
+    affiliateUrls: amazonWatch("minimalist leather strap watch women gold"),
+    defaultLocale: "US",
+  },
+  {
+    id: "wa-2",
+    name: "Gold Mesh Bracelet Watch",
+    category: "Watches",
+    reason: "Jewelry-forward timepiece for your warm palette",
+    description:
+      "A 28mm sunray-dial watch on an integrated gold-tone stainless mesh bracelet. The seamless silhouette sits flush on the wrist like fine jewelry — a forever piece that transitions from desk to dinner.",
+    highlights: ["28mm sunray dial", "Mesh bracelet", "Scratch-resistant crystal"],
+    price: "$195+",
+    priceNumeric: 195,
+    priceTier: "luxury",
+    icon: "time-outline",
+    gradient: ["#FFF9C4", "#FFF59D"],
+    featured: true,
+    affiliateUrls: nordstrom("gold mesh bracelet watch women"),
+    defaultLocale: "US",
+  },
+  {
+    id: "wa-3",
+    name: "Rose Gold Marble-Dial Watch",
+    category: "Watches",
+    reason: "Feminine detail that flatters soft archetypes",
+    description:
+      "A 32mm rose gold case housing a genuine marble dial — no two are identical. The soft peach-pink tones harmonize with warm and soft seasonal palettes, making this a deeply personal statement piece.",
+    highlights: ["32mm marble dial", "Rose gold plating", "Genuine marble face"],
+    price: "$62+",
+    priceNumeric: 62,
+    priceTier: "mid",
+    icon: "time-outline",
+    gradient: ["#FCE4EC", "#F8BBD0"],
+    isNew: true,
+    affiliateUrls: amazonWatch("rose gold marble dial watch women"),
+    defaultLocale: "US",
+  },
+  {
+    id: "wa-4",
+    name: "Tortoiseshell Strap Watch",
+    category: "Watches",
+    reason: "Warm tones that echo your undertone perfectly",
+    description:
+      "A 34mm gold case on a rich tortoiseshell acetate strap. The warm caramel tones of the band mirror the depth of warm undertone palettes, making this one of the most flattering watches for your coloring.",
+    highlights: ["34mm case", "Acetate strap", "3ATM water resistant"],
+    price: "$68+",
+    priceNumeric: 68,
+    priceTier: "mid",
+    icon: "time-outline",
+    gradient: ["#FBE9E7", "#FFCCBC"],
+    affiliateUrls: asos("tortoiseshell strap watch gold"),
+    defaultLocale: "US",
+  },
+  {
+    id: "wa-5",
+    name: "Mother-of-Pearl Dress Watch",
+    category: "Watches",
+    reason: "Luminous elegance for evening looks",
+    description:
+      "A 30mm diamond-bezel watch with a genuine mother-of-pearl dial on a satin-finished bracelet. The iridescent face catches light like a pearl necklace — the definitive dressing-up timepiece.",
+    highlights: ["MOP dial", "Diamond bezel", "Satin bracelet"],
+    price: "$220+",
+    priceNumeric: 220,
+    priceTier: "luxury",
+    icon: "time-outline",
+    gradient: ["#E3F2FD", "#BBDEFB"],
+    isNew: true,
+    affiliateUrls: nordstrom("mother of pearl dress watch women"),
+    defaultLocale: "US",
+  },
+  {
+    id: "wa-6",
+    name: "Bold Oversized Sport-Chic Watch",
+    category: "Watches",
+    reason: "Strong, structured contrast for bold archetypes",
+    description:
+      "A 40mm oversized case in brushed two-tone steel on a silicone sport strap. The commanding proportion pairs unexpectedly well with feminine silhouettes, creating the high-low tension that defines modern style.",
+    highlights: ["40mm case", "Two-tone steel", "100m water resistant"],
+    price: "$55+",
+    priceNumeric: 55,
+    priceTier: "mid",
+    icon: "time-outline",
+    gradient: ["#E0F7FA", "#B2EBF2"],
+    affiliateUrls: amazonWatch("oversized two tone women watch sport chic"),
+    defaultLocale: "US",
   },
   {
     id: "wa-7",
@@ -729,8 +954,8 @@ export const PRODUCTS: Product[] = [
     priceTier: "mid",
     icon: "time-outline",
     gradient: ["#D9EEF5", "#B8DCEA"],
-    shopUrl: "https://www.amazon.com/s?k=minimalist+field+watch+women+NATO+strap",
-    retailer: "Amazon",
+    affiliateUrls: amazonWatch("minimalist field watch women NATO strap"),
+    defaultLocale: "US",
   },
   {
     id: "wa-8",
@@ -746,27 +971,11 @@ export const PRODUCTS: Product[] = [
     icon: "time-outline",
     gradient: ["#F3E5F5", "#E1BEE7"],
     isNew: true,
-    shopUrl: "https://www.amazon.com/s?k=hybrid+fashion+smartwatch+rose+gold+women",
-    retailer: "Amazon",
-  },
-  {
-    id: "wa-6",
-    name: "Bold Oversized Sport-Chic Watch",
-    category: "Watches",
-    reason: "Strong, structured contrast for bold archetypes",
-    description:
-      "A 40mm oversized case in brushed two-tone steel on a silicone sport strap. The commanding proportion pairs unexpectedly well with feminine silhouettes, creating the high-low tension that defines modern style.",
-    highlights: ["40mm case", "Two-tone steel", "100m water resistant"],
-    price: "$55+",
-    priceNumeric: 55,
-    priceTier: "mid",
-    icon: "time-outline",
-    gradient: ["#E0F7FA", "#B2EBF2"],
-    shopUrl: "https://www.amazon.com/s?k=oversized+two+tone+women+watch+sport+chic",
-    retailer: "Amazon",
+    affiliateUrls: amazonWatch("hybrid fashion smartwatch rose gold women"),
+    defaultLocale: "US",
   },
 
-  // ─── Accessories ─────────────────────────────────────────────────────────
+  // ─── Accessories ───────────────────────────────────────────────────────
   {
     id: "ac-1",
     name: "Minimalist Gold Chain Necklace",
@@ -781,8 +990,8 @@ export const PRODUCTS: Product[] = [
     icon: "ellipse-outline",
     gradient: ["#FFF9C4", "#FFF59D"],
     isNew: true,
-    shopUrl: "https://www.amazon.com/s?k=minimalist+gold+chain+necklace",
-    retailer: "Amazon",
+    affiliateUrls: amazonJewelry("minimalist gold chain necklace"),
+    defaultLocale: "US",
   },
   {
     id: "ac-2",
@@ -797,8 +1006,8 @@ export const PRODUCTS: Product[] = [
     priceTier: "budget",
     icon: "apps-outline",
     gradient: ["#EFEBE9", "#BCAAA4"],
-    shopUrl: "https://www.zara.com/us/en/search?searchTerm=woven+leather+belt",
-    retailer: "Zara",
+    affiliateUrls: zara("woven leather belt"),
+    defaultLocale: "US",
   },
   {
     id: "ac-3",
@@ -814,8 +1023,16 @@ export const PRODUCTS: Product[] = [
     icon: "bag-outline",
     gradient: ["#ECEFF1", "#CFD8DC"],
     featured: true,
-    shopUrl: "https://www.amazon.com/s?k=structured+tote+bag+women+vegan+leather",
-    retailer: "Amazon",
+    affiliateUrls: {
+      US: { url: "https://www.amazon.com/s?k=structured+tote+bag+women+vegan+leather", retailer: "Amazon" },
+      GB: { url: "https://www.wolfandbadger.com/uk/search/?q=structured+tote+bag", retailer: "Wolf & Badger" },
+      AU: { url: "https://www.amazon.com.au/s?k=structured+tote+bag+women+vegan+leather", retailer: "Amazon" },
+      CA: { url: "https://www.amazon.ca/s?k=structured+tote+bag+women+vegan+leather", retailer: "Amazon" },
+      FR: { url: "https://www.farfetch.com/shopping/women/search/?q=structured+tote+bag", retailer: "Farfetch" },
+      DE: { url: "https://www.farfetch.com/shopping/women/search/?q=structured+tote+bag", retailer: "Farfetch" },
+      INT: { url: "https://www.farfetch.com/shopping/women/search/?q=structured+tote+bag", retailer: "Farfetch" },
+    },
+    defaultLocale: "US",
   },
 ];
 
@@ -859,4 +1076,15 @@ export const RETAILER_ICONS: Record<
   "Paula's Choice": "flask-outline",
   Mejuri: "ellipse-outline",
   Nordstrom: "bag-handle-outline",
+  Mecca: "sparkles-outline",
+  LookFantastic: "flask-outline",
+  Douglas: "sparkles-outline",
+  "Nocibé": "flower-outline",
+  "Net-a-Porter": "bag-handle-outline",
+  Farfetch: "globe-outline",
+  "Wolf & Badger": "leaf-outline",
+  Specsavers: "glasses-outline",
+  GrandOptical: "glasses-outline",
+  "Apollo Optik": "glasses-outline",
+  Clearly: "glasses-outline",
 };

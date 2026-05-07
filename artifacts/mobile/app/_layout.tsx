@@ -19,6 +19,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AnalysisProvider } from "@/context/AnalysisContext";
 import { BodyProfileProvider } from "@/context/BodyProfileContext";
 import { PortraitHistoryProvider } from "@/context/PortraitHistoryContext";
+import { CountryProvider } from "@/context/CountryContext";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { TodayOutfitProvider } from "@/context/TodayOutfitContext";
 import { WardrobeProvider } from "@/context/WardrobeContext";
@@ -101,6 +102,7 @@ export default function RootLayout() {
           <GestureHandlerRootView>
             <KeyboardProvider>
               <ThemeProvider>
+                <CountryProvider>
                 <AnalysisProvider>
                   <PortraitHistoryProvider>
                     <BodyProfileProvider>
@@ -114,6 +116,7 @@ export default function RootLayout() {
                     </BodyProfileProvider>
                   </PortraitHistoryProvider>
                 </AnalysisProvider>
+                </CountryProvider>
               </ThemeProvider>
             </KeyboardProvider>
           </GestureHandlerRootView>

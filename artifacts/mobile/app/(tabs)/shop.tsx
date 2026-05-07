@@ -18,6 +18,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAnalysis } from "@/context/AnalysisContext";
+import { useCountry } from "@/context/CountryContext";
 import { useWishlistProducts } from "@/context/WishlistProductContext";
 import { useColors } from "@/hooks/useColors";
 import {
@@ -26,6 +27,7 @@ import {
   PRICE_TIER_LABELS,
   PRODUCTS,
   RETAILER_ICONS,
+  getProductUrl,
   type PriceTier,
   type Product,
 } from "@/data/products";
@@ -41,8 +43,17 @@ async function openShopUrl(url: string) {
   });
 }
 
-function buildKeywordUrl(keyword: string): string {
-  return `https://www.amazon.com/s?k=${encodeURIComponent(keyword)}`;
+function buildKeywordUrl(keyword: string, country: string): string {
+  const k = encodeURIComponent(keyword);
+  switch (country) {
+    case "GB": return `https://www.amazon.co.uk/s?k=${k}`;
+    case "AU": return `https://www.amazon.com.au/s?k=${k}`;
+    case "CA": return `https://www.amazon.ca/s?k=${k}`;
+    case "FR": return `https://www.amazon.fr/s?k=${k}`;
+    case "DE": return `https://www.amazon.de/s?k=${k}`;
+    case "INT": return `https://www.google.com/search?q=buy+${k}&tbm=shop`;
+    default:   return `https://www.amazon.com/s?k=${k}`;
+  }
 }
 
 function buildJewelryWatchKeywords(
@@ -54,7 +65,6 @@ function buildJewelryWatchKeywords(
   const arcLower = archetype.toLowerCase();
   const seasonLower = season?.toLowerCase() ?? "";
 
-  // Season-specific overrides take priority
   const seasonKeywords: string[] =
     seasonLower.includes("soft summer") || seasonLower.includes("soft autumn")
       ? ["delicate pearl necklace women", "silver fine jewelry women"]
@@ -68,14 +78,12 @@ function buildJewelryWatchKeywords(
       ? ["gold earthy jewelry women", "amber citrine necklace"]
       : [];
 
-  // Metal tone by undertone
   const metalKeywords: string[] = lower.includes("warm")
     ? ["gold jewelry women", "rose gold earrings", "gold hoop earrings", "yellow gold necklace"]
     : lower.includes("cool")
     ? ["silver jewelry women", "sterling silver earrings", "white gold necklace", "platinum ring"]
     : ["two-tone jewelry women", "gold silver mixed jewelry", "versatile necklace women"];
 
-  // Archetype-specific jewelry style
   const styleKeywords: string[] = arcLower.includes("romantic") || arcLower.includes("feminine")
     ? ["pearl necklace women", "dainty gold necklace", "floral earrings"]
     : arcLower.includes("minimalist") || arcLower.includes("modern")
@@ -88,7 +96,6 @@ function buildJewelryWatchKeywords(
     ? ["pearl strand necklace", "diamond stud earrings", "tennis bracelet women"]
     : ["stacking ring set women", "layered bracelet set", "pendant necklace women"];
 
-  // Watch keywords by undertone + archetype
   const watchKeywords: string[] = lower.includes("warm")
     ? arcLower.includes("minimalist")
       ? ["minimalist leather watch women gold"]
@@ -111,9 +118,11 @@ function buildJewelryWatchKeywords(
 function JewelryWatchKeywords({
   analysis,
   colors,
+  country,
 }: {
   analysis: NonNullable<ReturnType<typeof useAnalysis>["analysis"]>;
   colors: ReturnType<typeof useColors>;
+  country: string;
 }) {
   const archetypes =
     (analysis as { aesthetic_archetypes?: string[] }).aesthetic_archetypes?.join(", ") ??
@@ -128,13 +137,17 @@ function JewelryWatchKeywords({
         <Text style={[styles.jwTitle, { color: colors.foreground }]}>Jewelry & Watches for You</Text>
       </View>
       <Text style={[styles.jwSub, { color: colors.mutedForeground }]}>
-        {analysis.undertone.toLowerCase().includes("warm") ? "Gold & warm tones" : analysis.undertone.toLowerCase().includes("cool") ? "Silver & cool tones" : "Versatile metals"} · tap to shop
+        {analysis.undertone.toLowerCase().includes("warm")
+          ? "Gold & warm tones"
+          : analysis.undertone.toLowerCase().includes("cool")
+          ? "Silver & cool tones"
+          : "Versatile metals"} · tap to shop
       </Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.jwScroll}>
         {keywords.map((kw) => (
           <Pressable
             key={kw}
-            onPress={() => openShopUrl(buildKeywordUrl(kw))}
+            onPress={() => openShopUrl(buildKeywordUrl(kw, country))}
             style={({ pressed }) => [
               styles.jwChip,
               { backgroundColor: pressed ? colors.primary + "22" : colors.card, borderColor: colors.primary + "35" },
@@ -154,6 +167,7 @@ export default function ShopScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { analysis } = useAnalysis();
+  const { country } = useCountry();
   const { isSaved, toggleSave, savedCount } = useWishlistProducts();
 
   const [activeCategory, setActiveCategory] = useState("All");
@@ -176,11 +190,11 @@ export default function ShopScreen() {
           p.name.toLowerCase().includes(q) ||
           p.category.toLowerCase().includes(q) ||
           p.reason.toLowerCase().includes(q) ||
-          p.retailer.toLowerCase().includes(q)
+          getProductUrl(p, country).retailer.toLowerCase().includes(q)
       );
     }
     return list;
-  }, [activeCategory, searchQuery]);
+  }, [activeCategory, searchQuery, country]);
 
   const featured = useMemo(() => filtered.filter((p) => p.featured), [filtered]);
   const newArrivals = useMemo(
@@ -281,12 +295,12 @@ export default function ShopScreen() {
 
         {/* Shopping keywords */}
         {analysis?.shopping_keywords && analysis.shopping_keywords.length > 0 && !searchQuery && (
-          <KeywordsSection keywords={analysis.shopping_keywords} colors={colors} />
+          <KeywordsSection keywords={analysis.shopping_keywords} colors={colors} country={country} />
         )}
 
         {/* Jewelry & watch keywords based on profile */}
         {analysis && !searchQuery && (
-          <JewelryWatchKeywords analysis={analysis} colors={colors} />
+          <JewelryWatchKeywords analysis={analysis} colors={colors} country={country} />
         )}
 
         {/* Category filter */}
@@ -367,6 +381,7 @@ export default function ShopScreen() {
                   saved={isSaved(product.id)}
                   onPress={() => openProduct(product)}
                   onSave={() => handleSave(product)}
+                  country={country}
                 />
               ))}
             </ScrollView>
@@ -394,6 +409,7 @@ export default function ShopScreen() {
                   saved={isSaved(product.id)}
                   onPress={() => openProduct(product)}
                   onSave={() => handleSave(product)}
+                  country={country}
                 />
               ))}
             </View>
@@ -418,6 +434,7 @@ export default function ShopScreen() {
                   saved={isSaved(product.id)}
                   onPress={() => openProduct(product)}
                   onSave={() => handleSave(product)}
+                  country={country}
                 />
               ))}
             </View>
@@ -447,7 +464,7 @@ export default function ShopScreen() {
         )}
 
         <Text style={[styles.globalDisclosure, { color: colors.mutedForeground }]}>
-          Veloura earns no commission — links open retailer search results directly
+          Veloura may earn a commission from purchases made through links in this app.
         </Text>
       </ScrollView>
 
@@ -458,6 +475,7 @@ export default function ShopScreen() {
         onClose={() => setModalVisible(false)}
         onSave={() => selectedProduct && handleSave(selectedProduct)}
         colors={colors}
+        country={country}
       />
     </View>
   );
@@ -469,13 +487,16 @@ function FeaturedCard({
   saved,
   onPress,
   onSave,
+  country,
 }: {
   product: Product;
   colors: ReturnType<typeof useColors>;
   saved: boolean;
   onPress: () => void;
   onSave: () => void;
+  country: string;
 }) {
+  const { retailer } = getProductUrl(product, country);
   return (
     <Pressable onPress={onPress} style={({ pressed }) => ({ opacity: pressed ? 0.9 : 1 })}>
       <LinearGradient
@@ -519,7 +540,7 @@ function FeaturedCard({
         <View style={styles.featFooter}>
           <View>
             <Text style={[styles.featPrice, { color: "#2D1F14" }]}>{product.price}</Text>
-            <Text style={[styles.featRetailer, { color: "#6B4C35" }]}>{product.retailer}</Text>
+            <Text style={[styles.featRetailer, { color: "#6B4C35" }]}>{retailer}</Text>
           </View>
           <View style={[styles.featBtn, { backgroundColor: "#C4956A" }]}>
             <Text style={styles.featBtnText}>View</Text>
@@ -536,13 +557,16 @@ function ProductRow({
   saved,
   onPress,
   onSave,
+  country,
 }: {
   product: Product;
   colors: ReturnType<typeof useColors>;
   saved: boolean;
   onPress: () => void;
   onSave: () => void;
+  country: string;
 }) {
+  const { retailer } = getProductUrl(product, country);
   return (
     <Pressable
       onPress={onPress}
@@ -570,7 +594,7 @@ function ProductRow({
 
       <View style={styles.productRight}>
         <Text style={[styles.productPrice, { color: colors.foreground }]}>{product.price}</Text>
-        <Text style={[styles.productRetailerText, { color: colors.mutedForeground }]}>{product.retailer}</Text>
+        <Text style={[styles.productRetailerText, { color: colors.mutedForeground }]}>{retailer}</Text>
         <View style={styles.productActions}>
           <Pressable
             onPress={(e) => { e.stopPropagation(); onSave(); }}
@@ -609,7 +633,15 @@ function NewBadge({ small }: { small?: boolean }) {
   );
 }
 
-function KeywordsSection({ keywords, colors }: { keywords: string[]; colors: ReturnType<typeof useColors> }) {
+function KeywordsSection({
+  keywords,
+  colors,
+  country,
+}: {
+  keywords: string[];
+  colors: ReturnType<typeof useColors>;
+  country: string;
+}) {
   if (!keywords || keywords.length === 0) return null;
   return (
     <View style={styles.keywordsSection}>
@@ -624,7 +656,7 @@ function KeywordsSection({ keywords, colors }: { keywords: string[]; colors: Ret
         {keywords.slice(0, 10).map((kw) => (
           <Pressable
             key={kw}
-            onPress={() => openShopUrl(buildKeywordUrl(kw))}
+            onPress={() => openShopUrl(buildKeywordUrl(kw, country))}
             style={({ pressed }) => [
               styles.keywordChip,
               { backgroundColor: pressed ? colors.primary + "22" : colors.card, borderColor: colors.primary + "40" },
@@ -647,6 +679,7 @@ function ProductDetailModal({
   onClose,
   onSave,
   colors,
+  country,
 }: {
   product: Product | null;
   visible: boolean;
@@ -654,12 +687,14 @@ function ProductDetailModal({
   onClose: () => void;
   onSave: () => void;
   colors: ReturnType<typeof useColors>;
+  country: string;
 }) {
   const insets = useSafeAreaInsets();
   if (!product) return null;
 
   const tierColor = PRICE_TIER_COLORS[product.priceTier];
-  const retailerIcon = RETAILER_ICONS[product.retailer] ?? "open-outline";
+  const { url: shopUrl, retailer } = getProductUrl(product, country);
+  const retailerIcon = RETAILER_ICONS[retailer] ?? "open-outline";
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -696,7 +731,7 @@ function ProductDetailModal({
               </View>
               <View style={[styles.retailerBadge, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
                 <Ionicons name={retailerIcon} size={11} color={colors.mutedForeground} />
-                <Text style={[styles.retailerText, { color: colors.mutedForeground }]}>{product.retailer}</Text>
+                <Text style={[styles.retailerText, { color: colors.mutedForeground }]}>{retailer}</Text>
               </View>
             </View>
 
@@ -745,7 +780,7 @@ function ProductDetailModal({
               <Pressable
                 onPress={async () => {
                   onClose();
-                  setTimeout(() => { void openShopUrl(product.shopUrl); }, 300);
+                  setTimeout(() => { void openShopUrl(shopUrl); }, 300);
                 }}
                 style={({ pressed }) => [
                   styles.shopNowBtn,
@@ -753,13 +788,13 @@ function ProductDetailModal({
                 ]}
               >
                 <Ionicons name="bag-outline" size={17} color="#fff" />
-                <Text style={styles.shopNowText}>Shop on {product.retailer}</Text>
+                <Text style={styles.shopNowText}>Shop on {retailer}</Text>
                 <Ionicons name="open-outline" size={14} color="rgba(255,255,255,0.75)" />
               </Pressable>
             </View>
 
             <Text style={[styles.disclosureNote, { color: colors.mutedForeground }]}>
-              Opens {product.retailer} · prices vary by retailer
+              Opens {retailer} · prices vary by retailer
             </Text>
           </ScrollView>
         </View>
