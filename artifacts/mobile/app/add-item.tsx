@@ -23,6 +23,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAnalysis } from "@/context/AnalysisContext";
 import { useWardrobe, type ClothingCategory, type WardrobeItem } from "@/context/WardrobeContext";
 import { useColors } from "@/hooks/useColors";
+import { saveToGallery } from "@/utils/saveToGallery";
 
 const BASE_URL = process.env["EXPO_PUBLIC_DOMAIN"]
   ? `https://${process.env["EXPO_PUBLIC_DOMAIN"]}`
@@ -164,11 +165,20 @@ export default function AddItemScreen() {
     setSaving(true);
 
     const persistableUri = `data:${mimeType};base64,${imageBase64}`;
+
+    // Save original photo to "Veloura Wardrobe" album before building the item
+    let galleryUri: string | undefined;
+    if (imageUri && Platform.OS !== "web") {
+      const saved = await saveToGallery(imageUri, "Veloura Wardrobe");
+      if (saved) galleryUri = saved;
+    }
+
     const item: WardrobeItem = {
       id: `item-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       name: name.trim() || result.name,
       category,
       imageUri: persistableUri,
+      galleryUri,
       dominantColor: result.dominantColor,
       compatibilityScore: result.compatibilityScore,
       compatibilityNotes: result.compatibilityNotes,

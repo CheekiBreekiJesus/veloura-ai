@@ -7,6 +7,7 @@ import { router } from "expo-router";
 import BackButton from "@/components/BackButton";
 import React, { useRef, useState } from "react";
 import {
+  Alert,
   Keyboard,
   Platform,
   Pressable,
@@ -20,12 +21,16 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAnalysis } from "@/context/AnalysisContext";
+import { usePortraitHistory } from "@/context/PortraitHistoryContext";
 import { useColors } from "@/hooks/useColors";
+
+const THUMB_SIZE = 64;
 
 export default function UploadScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { setUserName, setPendingImage, userName } = useAnalysis();
+  const { portraits, removePortrait } = usePortraitHistory();
 
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [imageBase64, setImageBase64] = useState<string | null>(null);
@@ -78,19 +83,53 @@ export default function UploadScreen() {
     }
   };
 
+  const handleSelectPortrait = async (portrait: { id: string; imageUri: string }) => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    // Pre-populate the image preview from the portrait history
+    setImageUri(portrait.imageUri);
+    setImageBase64(null);
+    setMimeType("image/jpeg");
+    setError(null);
+  };
+
+  const handleLongPressPortrait = (portrait: { id: string }) => {
+    Alert.alert(
+      "Remove Portrait",
+      "Remove this photo from your portrait library?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Remove",
+          style: "destructive",
+          onPress: () => void removePortrait(portrait.id),
+        },
+      ]
+    );
+  };
+
   const handleAnalyze = async () => {
-    if (!imageBase64 || !imageUri) return;
+    if (!imageUri) return;
     Keyboard.dismiss();
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-    // Save name
     const trimmed = name.trim();
     if (trimmed) await setUserName(trimmed);
 
-    // Store pending image in context so analyzing.tsx can read it
-    setPendingImage({ base64: imageBase64, mimeType, uri: imageUri });
+    if (imageBase64) {
+      setPendingImage({ base64: imageBase64, mimeType, uri: imageUri });
+    } else {
+      // Re-using a portrait history image (data URI)
+      // Extract the base64 portion from data URI if present
+      const dataUriMatch = imageUri.match(/^data:([^;]+);base64,(.+)$/s);
+      if (dataUriMatch) {
+        const [, extractedMime, extractedBase64] = dataUriMatch;
+        setPendingImage({ base64: extractedBase64!, mimeType: extractedMime!, uri: imageUri });
+      } else {
+        setError("Cannot re-analyse this portrait. Please pick a new photo.");
+        return;
+      }
+    }
 
-    // Navigate to animated analyzing screen
     router.push("/analyzing");
   };
 
@@ -147,6 +186,50 @@ export default function UploadScreen() {
               />
             </View>
           </View>
+
+          {/* Portrait history strip */}
+          {portraits.length > 0 && (
+            <View style={styles.portraitSection}>
+              <Text style={[styles.portraitLabel, { color: colors.mutedForeground }]}>
+                Previous portraits
+              </Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.portraitScroll}
+              >
+                {portraits.map((p) => (
+                  <Pressable
+                    key={p.id}
+                    onPress={() => void handleSelectPortrait(p)}
+                    onLongPress={() => handleLongPressPortrait(p)}
+                    delayLongPress={500}
+                    style={({ pressed }) => [
+                      styles.portraitThumb,
+                      {
+                        borderColor:
+                          imageUri === p.imageUri
+                            ? colors.primary
+                            : colors.border,
+                        opacity: pressed ? 0.75 : 1,
+                      },
+                    ]}
+                  >
+                    <Image
+                      source={{ uri: p.imageUri }}
+                      style={styles.portraitThumbImg}
+                      contentFit="cover"
+                    />
+                    {imageUri === p.imageUri && (
+                      <View style={[styles.portraitSelected, { backgroundColor: colors.primary }]}>
+                        <Ionicons name="checkmark" size={11} color="#fff" />
+                      </View>
+                    )}
+                  </Pressable>
+                ))}
+              </ScrollView>
+            </View>
+          )}
 
           {/* Image picker area */}
           <Pressable onPress={handlePickImage} style={styles.imageArea}>
@@ -341,6 +424,29 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_400Regular",
     padding: 0,
   },
+
+  portraitSection: { gap: 8 },
+  portraitLabel: { fontSize: 12, fontFamily: "Inter_500Medium", letterSpacing: 0.5 },
+  portraitScroll: { gap: 10, paddingVertical: 2 },
+  portraitThumb: {
+    width: THUMB_SIZE,
+    height: THUMB_SIZE,
+    borderRadius: 14,
+    overflow: "hidden",
+    borderWidth: 2,
+  },
+  portraitThumbImg: { width: "100%", height: "100%" },
+  portraitSelected: {
+    position: "absolute",
+    bottom: 4,
+    right: 4,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
   imageArea: { height: 300, borderRadius: 24, overflow: "hidden" },
   preview: { flex: 1 },
   placeholder: {

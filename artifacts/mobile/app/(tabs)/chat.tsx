@@ -21,6 +21,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 const AURA_AVATAR_FALLBACK = require("../../assets/images/aura-avatar.png");
 
 import { ChatMessage, useAnalysis } from "@/context/AnalysisContext";
+import { buildMeasurementsText, useBodyProfile } from "@/context/BodyProfileContext";
 import { useWardrobe } from "@/context/WardrobeContext";
 import { useColors } from "@/hooks/useColors";
 
@@ -234,6 +235,7 @@ export default function StylistChatScreen() {
     ? { uri: analysis.companion_avatar_url }
     : AURA_AVATAR_FALLBACK;
   const { feedback } = useWardrobe();
+  const { bodyProfile } = useBodyProfile();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -352,7 +354,11 @@ export default function StylistChatScreen() {
         // Strip companion_avatar_url (large data URI, ~800 KB) before sending
         // — the chat system prompt only needs companion_name, not the image.
         const { companion_avatar_url: _avatar, ...profileForChat } = analysis;
-        const reply = await sendChat(history, profileForChat, feedback);
+        const measurementsText = buildMeasurementsText(bodyProfile);
+        const profileWithMeasurements = measurementsText
+          ? { ...profileForChat, measurements: measurementsText }
+          : profileForChat;
+        const reply = await sendChat(history, profileWithMeasurements, feedback);
         setMessages((prev) => [
           ...prev,
           { id: `a-${Date.now()}`, role: "assistant", content: reply, ts: Date.now() },
@@ -365,7 +371,7 @@ export default function StylistChatScreen() {
         setLoading(false);
       }
     },
-    [input, loading, analysis, messages]
+    [input, loading, analysis, messages, bodyProfile, feedback]
   );
 
   if (!analysis) {

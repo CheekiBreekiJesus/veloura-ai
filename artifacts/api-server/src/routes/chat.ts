@@ -107,6 +107,14 @@ function buildSystemPrompt(
       ? `\nUser preferences from feedback:${likedItems.length ? `\n- Liked: ${likedItems.join("; ")}` : ""}${dislikedItems.length ? `\n- Disliked: ${dislikedItems.join("; ")}` : ""}`
       : "";
 
+  const measurementsText =
+    typeof profile.measurements === "string" && profile.measurements.trim()
+      ? profile.measurements.trim()
+      : null;
+  const measurementsSection = measurementsText
+    ? `\nUser body measurements: ${measurementsText}. Factor these into any sizing, fit, or shopping advice.`
+    : "";
+
   // Skin health context — map concern levels to actionable framing
   const skinHealthSection =
     skinConcerns !== "none" && skinConcerns !== "unknown"
@@ -141,7 +149,7 @@ Profile:
 - Personal color palette: ${colorPalette}
 - Active skin concerns: ${skinConcerns}
 - Skincare priorities: ${skincareF}
-- Style keywords: ${keywords}${skinHealthSection}${feedbackSection}
+- Style keywords: ${keywords}${measurementsSection}${skinHealthSection}${feedbackSection}
 
 Give direct, helpful advice. Don't recite the whole profile back. End with a short emoji when it fits naturally.`;
 }

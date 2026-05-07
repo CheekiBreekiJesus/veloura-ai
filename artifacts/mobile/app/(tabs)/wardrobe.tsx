@@ -8,17 +8,25 @@ import React, { useMemo, useState } from "react";
 import {
   Alert,
   Dimensions,
+  Keyboard,
   Modal,
   Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
+  TouchableWithoutFeedback,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAnalysis } from "@/context/AnalysisContext";
+import {
+  buildMeasurementsText,
+  useBodyProfile,
+  type BodyProfile,
+} from "@/context/BodyProfileContext";
 import {
   useWardrobe,
   type ClothingCategory,
@@ -92,6 +100,109 @@ function categoryIcon(cat: ClothingCategory): React.ComponentProps<typeof Ionico
     case "Shoes": return "footsteps-outline";
     case "Accessories": return "watch-outline";
   }
+}
+
+const MEASURE_FIELDS: { key: keyof BodyProfile; label: string; placeholder: string; unit?: string }[] = [
+  { key: "height", label: "Height", placeholder: "e.g. 165", unit: "cm" },
+  { key: "weight", label: "Weight", placeholder: "e.g. 60", unit: "kg" },
+  { key: "bust", label: "Bust / Chest", placeholder: "e.g. 34", unit: "in" },
+  { key: "cupSize", label: "Cup Size", placeholder: "e.g. B" },
+  { key: "waist", label: "Waist", placeholder: "e.g. 28", unit: "in" },
+  { key: "hips", label: "Hips", placeholder: "e.g. 38", unit: "in" },
+  { key: "inseam", label: "Inseam", placeholder: "e.g. 30", unit: "in" },
+];
+
+function MeasurementsCard({
+  colors,
+}: {
+  colors: ReturnType<typeof useColors>;
+}) {
+  const { bodyProfile, setBodyProfile } = useBodyProfile();
+  const [expanded, setExpanded] = useState(false);
+  const [draft, setDraft] = useState<BodyProfile>(bodyProfile);
+  const [saved, setSaved] = useState(false);
+
+  const summaryText = buildMeasurementsText(bodyProfile);
+
+  const handleSave = async () => {
+    Keyboard.dismiss();
+    await setBodyProfile(draft);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 1800);
+    setExpanded(false);
+  };
+
+  const handleToggle = async () => {
+    await Haptics.selectionAsync();
+    if (!expanded) setDraft(bodyProfile);
+    setExpanded((v) => !v);
+  };
+
+  return (
+    <View style={[mStyles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      <Pressable onPress={handleToggle} style={mStyles.cardHeader}>
+        <View style={[mStyles.cardIconWrap, { backgroundColor: colors.primary + "18" }]}>
+          <Ionicons name="body-outline" size={18} color={colors.primary} />
+        </View>
+        <View style={mStyles.cardTitleCol}>
+          <Text style={[mStyles.cardTitle, { color: colors.foreground }]}>My Measurements</Text>
+          {summaryText ? (
+            <Text style={[mStyles.cardSummary, { color: colors.mutedForeground }]} numberOfLines={1}>
+              {summaryText}
+            </Text>
+          ) : (
+            <Text style={[mStyles.cardHint, { color: colors.mutedForeground }]}>
+              Add your measurements to improve Aura's sizing advice
+            </Text>
+          )}
+        </View>
+        <Ionicons
+          name={expanded ? "chevron-up" : "chevron-down"}
+          size={18}
+          color={colors.mutedForeground}
+        />
+      </Pressable>
+
+      {expanded && (
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View style={mStyles.expandedContent}>
+            <View style={mStyles.fieldsGrid}>
+              {MEASURE_FIELDS.map((f) => (
+                <View key={f.key} style={mStyles.fieldItem}>
+                  <Text style={[mStyles.fieldLabel, { color: colors.mutedForeground }]}>
+                    {f.label}
+                    {f.unit ? <Text style={{ color: colors.primary + "99" }}> ({f.unit})</Text> : null}
+                  </Text>
+                  <View style={[mStyles.fieldInput, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
+                    <TextInput
+                      value={draft[f.key]}
+                      onChangeText={(v) => setDraft((prev) => ({ ...prev, [f.key]: v }))}
+                      placeholder={f.placeholder}
+                      placeholderTextColor={colors.mutedForeground}
+                      style={[mStyles.fieldInputText, { color: colors.foreground }]}
+                      returnKeyType="done"
+                      keyboardType={f.key === "cupSize" ? "default" : "decimal-pad"}
+                      maxLength={10}
+                    />
+                  </View>
+                </View>
+              ))}
+            </View>
+            <Pressable
+              onPress={handleSave}
+              style={({ pressed }) => [
+                mStyles.saveBtn,
+                { backgroundColor: saved ? "#4CAF50" : colors.primary, opacity: pressed ? 0.88 : 1 },
+              ]}
+            >
+              <Ionicons name={saved ? "checkmark" : "checkmark-circle-outline"} size={18} color="#fff" />
+              <Text style={mStyles.saveBtnText}>{saved ? "Saved!" : "Save Measurements"}</Text>
+            </Pressable>
+          </View>
+        </TouchableWithoutFeedback>
+      )}
+    </View>
+  );
 }
 
 export default function WardrobeScreen() {
@@ -244,6 +355,11 @@ export default function WardrobeScreen() {
           <Text style={[styles.headerSub, { color: colors.mutedForeground }]}>
             {section === "closet" ? "Your uploaded clothing" : "AI style guide for your profile"}
           </Text>
+        </View>
+
+        {/* My Measurements card */}
+        <View style={styles.measurementsWrap}>
+          <MeasurementsCard colors={colors} />
         </View>
 
         {/* Section toggle */}
@@ -1365,4 +1481,58 @@ const styles = StyleSheet.create({
   modalActions: { flexDirection: "row", gap: 12, marginTop: 4 },
   modalActionBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 14, borderRadius: 16, borderWidth: StyleSheet.hairlineWidth },
   modalActionText: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
+
+  measurementsWrap: { paddingHorizontal: 20, marginBottom: 12 },
+});
+
+const mStyles = StyleSheet.create({
+  card: {
+    borderRadius: 18,
+    borderWidth: StyleSheet.hairlineWidth,
+    overflow: "hidden",
+  },
+  cardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    padding: 14,
+  },
+  cardIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+  cardTitleCol: { flex: 1 },
+  cardTitle: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
+  cardSummary: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 2 },
+  cardHint: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 2 },
+
+  expandedContent: { paddingHorizontal: 14, paddingBottom: 14 },
+  fieldsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+    marginBottom: 14,
+  },
+  fieldItem: { width: "47%" },
+  fieldLabel: { fontSize: 11, fontFamily: "Inter_500Medium", marginBottom: 5, letterSpacing: 0.3 },
+  fieldInput: {
+    borderRadius: 10,
+    borderWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+  },
+  fieldInputText: { fontSize: 15, fontFamily: "Inter_400Regular", padding: 0 },
+  saveBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 13,
+    borderRadius: 14,
+  },
+  saveBtnText: { fontSize: 15, fontFamily: "Inter_600SemiBold", color: "#fff" },
 });

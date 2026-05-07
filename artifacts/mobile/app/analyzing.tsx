@@ -16,7 +16,9 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAnalysis, type AnalysisResult } from "@/context/AnalysisContext";
+import { usePortraitHistory } from "@/context/PortraitHistoryContext";
 import { useColors } from "@/hooks/useColors";
+import { saveToGallery } from "@/utils/saveToGallery";
 
 const ND = Platform.OS !== "web";
 
@@ -54,7 +56,8 @@ async function readJsonError(response: Response, fallback: string): Promise<stri
 export default function AnalyzingScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { pendingImage, setAnalysis, setPendingImage } = useAnalysis();
+  const { pendingImage, setAnalysis, setPendingImage, userName } = useAnalysis();
+  const { addPortrait } = usePortraitHistory();
   const [currentStep, setCurrentStep] = useState(0);
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
   const [error, setError] = useState<string | null>(null);
@@ -244,6 +247,20 @@ export default function AnalyzingScreen() {
           ? `data:${pendingImage.mimeType};base64,${pendingImage.base64}`
           : pendingImage.uri;
         await setAnalysis(apiResult, persistableUri);
+
+        // Save selfie to device photo library and push to portrait history.
+        // Always store the data URI in history so re-analysis always works.
+        void (async () => {
+          if (Platform.OS !== "web") {
+            await saveToGallery(pendingImage.uri, "Veloura");
+          }
+          await addPortrait({
+            imageUri: persistableUri,
+            analyzedAt: Date.now(),
+            profileName: userName ?? null,
+          });
+        })();
+
         setPendingImage(null);
         router.replace("/(tabs)");
       };

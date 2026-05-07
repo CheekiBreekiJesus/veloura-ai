@@ -14,6 +14,7 @@ export interface WardrobeItem {
   name: string;
   category: ClothingCategory;
   imageUri: string;
+  galleryUri?: string;
   dominantColor: string;
   compatibilityScore: number;
   compatibilityNotes: string;

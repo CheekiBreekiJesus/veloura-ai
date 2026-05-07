@@ -17,6 +17,8 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AnalysisProvider } from "@/context/AnalysisContext";
+import { BodyProfileProvider } from "@/context/BodyProfileContext";
+import { PortraitHistoryProvider } from "@/context/PortraitHistoryContext";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { WardrobeProvider } from "@/context/WardrobeContext";
 import { WishlistProductProvider } from "@/context/WishlistProductContext";
@@ -99,11 +101,15 @@ export default function RootLayout() {
             <KeyboardProvider>
               <ThemeProvider>
                 <AnalysisProvider>
-                  <WardrobeProvider>
-                    <WishlistProductProvider>
-                      <RootLayoutNav />
-                    </WishlistProductProvider>
-                  </WardrobeProvider>
+                  <PortraitHistoryProvider>
+                    <BodyProfileProvider>
+                      <WardrobeProvider>
+                        <WishlistProductProvider>
+                          <RootLayoutNav />
+                        </WishlistProductProvider>
+                      </WardrobeProvider>
+                    </BodyProfileProvider>
+                  </PortraitHistoryProvider>
                 </AnalysisProvider>
               </ThemeProvider>
             </KeyboardProvider>
