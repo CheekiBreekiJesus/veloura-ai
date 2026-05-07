@@ -103,94 +103,6 @@ makeup_direction: one of natural, soft glam, glam, bold, editorial
 fashion_direction: concise label e.g. "minimalist luxury", "romantic casual", "polished classic"
 shopping_keywords: 6–10 SEO-style search tags for product recommendations`;
 
-const COMPANION_NAME_SYSTEM = `You are naming a personal AI beauty and fashion companion assistant.
-Given a user's style profile, suggest ONE perfect name for their AI companion.
-
-Rules:
-- 4–8 letters, first name only
-- Feminine or gender-neutral
-- Match the aesthetic vibe:
-  romantic / feminine / soft → poetic names (e.g. Celeste, Luna, Elara, Lyra, Seraphine trimmed to ≤8)
-  minimalist / clean / modern → crisp names (e.g. Lena, Cleo, Noa, Mara, Zoe)
-  edgy / bold / structured → sharp names (e.g. Zara, Reva, Nova, Kira, Vera)
-  bohemian / earthy / eclectic → free-spirited names (e.g. Iris, Faye, Sage, Wren, Blythe)
-  classic / timeless / elegant → timeless names (e.g. Ava, Lea, Rose, Nina, Cara)
-- Return ONLY the name. No punctuation, no explanation.`;
-
-function buildAvatarPrompt(profile: Record<string, unknown>): string {
-  const skinTone = typeof profile.skin_tone === "string" ? profile.skin_tone : "medium";
-  const hairType = typeof profile.hair_type === "string" ? profile.hair_type : "wavy";
-  const faceShape = typeof profile.face_shape === "string" ? profile.face_shape : "oval";
-  const archetypes = Array.isArray(profile.aesthetic_archetypes)
-    ? (profile.aesthetic_archetypes as string[]).slice(0, 3).join(", ")
-    : typeof profile.style_archetype === "string"
-    ? profile.style_archetype
-    : "modern elegant";
-  const palette = Array.isArray(profile.color_palette)
-    ? (profile.color_palette as string[]).slice(0, 2).join(" and ")
-    : "#C4956A";
-
-  return `A stylized illustrated portrait of a personal AI beauty and fashion companion. She is a fictional stylized character — not a real person, not photorealistic. Illustrated editorial art style.
-
-Physical reference: skin tone ${skinTone}, ${hairType} hair, ${faceShape} face shape. Dominant accent colors from her palette: ${palette}. Aesthetic identity: ${archetypes}.
-
-Art direction: magazine editorial illustration, clean confident lines, modern luxury fashion aesthetic, centered square composition, close-up portrait with soft illustrated style similar to a premium fashion magazine character illustration. Smooth painterly texture, soft bokeh background with a subtle gradient. Stylish, aspirational, warm and approachable expression. No text, no words, no labels, no watermarks.`;
-}
-
-async function generateCompanionIdentity(
-  profile: Record<string, unknown>,
-  log: { warn: (obj: object, msg: string) => void }
-): Promise<{ companion_name: string | null; companion_avatar_url: string | null }> {
-  const archetypes = Array.isArray(profile.aesthetic_archetypes)
-    ? (profile.aesthetic_archetypes as string[]).join(", ")
-    : typeof profile.style_archetype === "string"
-    ? profile.style_archetype
-    : "";
-  const fashionDir =
-    typeof profile.fashion_direction === "string" ? profile.fashion_direction : "";
-  const undertone = typeof profile.undertone === "string" ? profile.undertone : "";
-
-  const [nameResult, avatarResult] = await Promise.allSettled([
-    openai.chat.completions.create({
-      model: "gpt-4.1-mini",
-      max_completion_tokens: 12,
-      temperature: 0.2,
-      messages: [
-        { role: "system", content: COMPANION_NAME_SYSTEM },
-        {
-          role: "user",
-          content: `Style archetypes: ${archetypes}\nFashion direction: ${fashionDir}\nUndertone: ${undertone}`,
-        },
-      ],
-    }),
-    openai.images.generate({
-      model: "dall-e-3",
-      prompt: buildAvatarPrompt(profile),
-      size: "1024x1024",
-      quality: "standard",
-      response_format: "b64_json",
-      n: 1,
-    }),
-  ]);
-
-  let companion_name: string | null = null;
-  if (nameResult.status === "fulfilled") {
-    const raw = nameResult.value.choices[0]?.message?.content?.trim() ?? "";
-    companion_name = /^[A-Za-z]{4,8}$/.test(raw) ? raw : null;
-  } else {
-    log.warn({ err: nameResult.reason }, "Companion name generation failed");
-  }
-
-  let companion_avatar_url: string | null = null;
-  if (avatarResult.status === "fulfilled") {
-    const b64 = avatarResult.value.data?.[0]?.b64_json ?? null;
-    if (b64) companion_avatar_url = `data:image/png;base64,${b64}`;
-  } else {
-    log.warn({ err: avatarResult.reason }, "Companion avatar generation failed");
-  }
-
-  return { companion_name, companion_avatar_url };
-}
 
 function parseAnalysisJson(content: string): Record<string, unknown> | null {
   const cleaned = content
@@ -285,14 +197,6 @@ router.post("/analyze", analyzeLimiter, requireAnalyzeToken, async (req, res): P
       res.status(500).json({ error: "AI returned malformed analysis JSON" });
       return;
     }
-
-    const { companion_name, companion_avatar_url } = await generateCompanionIdentity(
-      analysisResult,
-      req.log
-    );
-
-    if (companion_name) analysisResult.companion_name = companion_name;
-    if (companion_avatar_url) analysisResult.companion_avatar_url = companion_avatar_url;
 
     res.json(analysisResult);
   } finally {

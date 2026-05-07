@@ -275,9 +275,151 @@ export default function AnalyzingScreen() {
   }
 
   if (!pendingImage) return null;
+
+  const imageUri = pendingImage.base64
+    ? `data:${pendingImage.mimeType};base64,${pendingImage.base64}`
+    : pendingImage.uri;
+
+  const progressWidth = progressAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, width - 80],
+  });
+
+  return (
+    <LinearGradient
+      colors={[colors.background, colors.card ?? colors.background]}
+      style={[styles.root, { paddingTop: topPad + 16 }]}
+    >
+      <Animated.Text style={[styles.title, { color: colors.foreground, opacity: titleOpacity }]}>
+        Reading your features…
+      </Animated.Text>
+      <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
+        This takes about 15 seconds
+      </Text>
+
+      <View style={styles.photoWrapper}>
+        <Animated.View
+          style={[
+            styles.ring,
+            { borderColor: colors.primary + "55" },
+            { transform: [{ scale: ringScale }], opacity: ringOpacity },
+          ]}
+        />
+        <Animated.View
+          style={[
+            styles.pulse,
+            { backgroundColor: colors.primary + "22" },
+            { transform: [{ scale: pulseScale }], opacity: pulseOpacity },
+          ]}
+        />
+        <Image
+          source={{ uri: imageUri }}
+          style={styles.photo}
+          contentFit="cover"
+        />
+      </View>
+
+      <View style={[styles.progressTrack, { backgroundColor: colors.muted ?? "#E8E0D8" }]}>
+        <Animated.View
+          style={[styles.progressFill, { width: progressWidth, backgroundColor: colors.primary }]}
+        />
+      </View>
+
+      <View style={styles.stepList}>
+        {STEPS.map((step, i) => {
+          const isCompleted = completedSteps.has(i);
+          const isActive = currentStep === i && !isCompleted;
+          return (
+            <Animated.View
+              key={step.label}
+              style={[styles.stepRow, { opacity: stepAnims[i] }]}
+            >
+              <View
+                style={[
+                  styles.stepIcon,
+                  {
+                    backgroundColor: isCompleted
+                      ? colors.primary + "22"
+                      : isActive
+                      ? colors.primary + "15"
+                      : colors.muted ?? "#E8E0D8",
+                  },
+                ]}
+              >
+                <Ionicons
+                  name={isCompleted ? "checkmark" : step.icon}
+                  size={16}
+                  color={isCompleted || isActive ? colors.primary : colors.mutedForeground}
+                />
+              </View>
+              <Text
+                style={[
+                  styles.stepLabel,
+                  {
+                    color: isCompleted || isActive ? colors.foreground : colors.mutedForeground,
+                    fontFamily: isActive ? "Inter_600SemiBold" : "Inter_400Regular",
+                  },
+                ]}
+              >
+                {step.label}
+              </Text>
+            </Animated.View>
+          );
+        })}
+      </View>
+    </LinearGradient>
+  );
 }
 
+const PHOTO_SIZE = Math.min(width * 0.48, 220);
+
 const styles = StyleSheet.create({
+  root: { flex: 1, alignItems: "center", paddingHorizontal: 24 },
+  title: { fontSize: 22, fontFamily: "Inter_600SemiBold", marginBottom: 4 },
+  subtitle: { fontSize: 13, fontFamily: "Inter_400Regular", marginBottom: 32 },
+  photoWrapper: {
+    width: PHOTO_SIZE,
+    height: PHOTO_SIZE,
+    marginBottom: 28,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  ring: {
+    position: "absolute",
+    width: PHOTO_SIZE + 48,
+    height: PHOTO_SIZE + 48,
+    borderRadius: (PHOTO_SIZE + 48) / 2,
+    borderWidth: 2,
+  },
+  pulse: {
+    position: "absolute",
+    width: PHOTO_SIZE + 24,
+    height: PHOTO_SIZE + 24,
+    borderRadius: (PHOTO_SIZE + 24) / 2,
+  },
+  photo: {
+    width: PHOTO_SIZE,
+    height: PHOTO_SIZE,
+    borderRadius: PHOTO_SIZE / 2,
+  },
+  progressTrack: {
+    width: width - 80,
+    height: 4,
+    borderRadius: 2,
+    overflow: "hidden",
+    marginBottom: 28,
+  },
+  progressFill: { height: 4, borderRadius: 2 },
+  stepList: { width: "100%", gap: 14 },
+  stepRow: { flexDirection: "row", alignItems: "center", gap: 12 },
+  stepIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  stepLabel: { fontSize: 14, flex: 1 },
   errorRoot: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24, gap: 12 },
   errorIcon: { width: 64, height: 64, borderRadius: 32, alignItems: "center", justifyContent: "center" },
   errorTitle: { fontSize: 20, fontFamily: "Inter_600SemiBold" },
