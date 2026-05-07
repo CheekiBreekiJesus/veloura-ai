@@ -130,6 +130,7 @@ Your scope covers everything in ${name}'s aesthetic world:
 - Makeup & beauty routines
 - Skincare: routines, ingredient guidance, lifestyle tips for skin health (acne, dryness, redness, glow)
 - Hair styling, cuts, and care
+- Jewelry & watches — metal tone, stone type, proportion, and silhouette matched to undertone and archetype
 - Wellness habits that support appearance (sleep, hydration, diet, stress)
 - Shopping guidance tied to their specific palette and keywords
 
@@ -150,6 +151,46 @@ Profile:
 - Active skin concerns: ${skinConcerns}
 - Skincare priorities: ${skincareF}
 - Style keywords: ${keywords}${measurementsSection}${skinHealthSection}${feedbackSection}
+
+Jewelry & watches guidance for ${name}: ${
+  undertone
+    ? undertone.toLowerCase().includes("warm")
+      ? "Warm undertones look best in yellow gold, rose gold, and copper tones. Recommend warm metals, amber stones (citrine, topaz, amber), and earthy pearls. Avoid cool silver or platinum unless requested."
+      : undertone.toLowerCase().includes("cool")
+      ? "Cool undertones shine in silver, white gold, and platinum. Recommend cool metals, blue/purple/pink stones (sapphire, amethyst, moonstone), and white pearls. Avoid yellow gold unless the user requests it."
+      : "Neutral undertones can wear both warm and cool metals — recommend versatile two-tone pieces and universal stones like diamonds or clear quartz."
+    : "Default to gold-tone for warmth; pivot if the user expresses a preference."
+} Proportion guidance: ${
+  faceShape
+    ? faceShape.toLowerCase().includes("round")
+      ? "Long drop earrings and oval or angular pendants elongate round faces. Avoid round studs alone."
+      : faceShape.toLowerCase().includes("square") || faceShape.toLowerCase().includes("angular")
+      ? "Curved and hoop earrings soften angular faces. Round or oval pendants work best."
+      : faceShape.toLowerCase().includes("oval")
+      ? "Most earring shapes flatter an oval face — lean into statement pieces or classics equally."
+      : "Mix proportions based on what the user gravitates toward."
+    : "Suggest earring proportions based on what the user describes."
+} Archetype alignment: ${
+  archetypes.toLowerCase().includes("romantic") || archetypes.toLowerCase().includes("feminine")
+    ? "Delicate chains, pearl strands, floral motifs, and dainty studs align with their romantic archetype."
+    : archetypes.toLowerCase().includes("minimalist") || archetypes.toLowerCase().includes("modern")
+    ? "Simple bands, geometric pendants, and architectural cuffs match their minimalist sensibility."
+    : archetypes.toLowerCase().includes("edgy") || archetypes.toLowerCase().includes("bold")
+    ? "Chunky chains, statement cuffs, asymmetric earrings, and mixed metals fit their bold archetype."
+    : archetypes.toLowerCase().includes("boho") || archetypes.toLowerCase().includes("earthy")
+    ? "Layered necklaces, turquoise beads, charm bracelets, and textured rings suit their bohemian energy."
+    : archetypes.toLowerCase().includes("classic") || archetypes.toLowerCase().includes("timeless")
+    ? "Pearl strands, diamond studs, and simple gold bangles are the classic archetype's forever pieces."
+    : "Recommend versatile pieces that work across casual and formal settings."
+} Watch guidance: lean toward ${
+  archetypes.toLowerCase().includes("minimalist")
+    ? "clean-dial field watches or mesh-bracelet styles"
+    : archetypes.toLowerCase().includes("romantic") || archetypes.toLowerCase().includes("feminine")
+    ? "mother-of-pearl or marble-dial dress watches"
+    : archetypes.toLowerCase().includes("bold") || archetypes.toLowerCase().includes("edgy")
+    ? "oversized cases and sport-chic silhouettes"
+    : "versatile leather-strap or bracelet watches"
+} that complement their undertone's metal tone preference.
 
 Give direct, helpful advice. Don't recite the whole profile back. End with a short emoji when it fits naturally.`;
 }

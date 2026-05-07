@@ -45,6 +45,85 @@ function buildKeywordUrl(keyword: string): string {
   return `https://www.amazon.com/s?k=${encodeURIComponent(keyword)}`;
 }
 
+function buildJewelryWatchKeywords(undertone: string, archetype: string): string[] {
+  const lower = undertone.toLowerCase();
+  const arcLower = archetype.toLowerCase();
+
+  // Metal tone by undertone
+  const metalKeywords: string[] = lower.includes("warm")
+    ? ["gold jewelry women", "rose gold earrings", "gold hoop earrings", "yellow gold necklace"]
+    : lower.includes("cool")
+    ? ["silver jewelry women", "sterling silver earrings", "white gold necklace", "platinum ring"]
+    : ["two-tone jewelry women", "gold silver mixed jewelry", "versatile necklace women"];
+
+  // Archetype-specific jewelry style
+  const styleKeywords: string[] = arcLower.includes("romantic") || arcLower.includes("feminine")
+    ? ["pearl necklace women", "dainty gold necklace", "floral earrings"]
+    : arcLower.includes("minimalist") || arcLower.includes("modern")
+    ? ["minimalist jewelry set", "geometric pendant necklace", "thin gold band ring"]
+    : arcLower.includes("edgy") || arcLower.includes("bold")
+    ? ["statement cuff bracelet", "chunky chain necklace", "bold earrings women"]
+    : arcLower.includes("boho") || arcLower.includes("earthy")
+    ? ["layered necklace set", "turquoise bracelet", "boho earrings women"]
+    : arcLower.includes("classic") || arcLower.includes("timeless")
+    ? ["pearl strand necklace", "diamond stud earrings", "tennis bracelet women"]
+    : ["stacking ring set women", "layered bracelet set", "pendant necklace women"];
+
+  // Watch keywords by undertone + archetype
+  const watchKeywords: string[] = lower.includes("warm")
+    ? arcLower.includes("minimalist")
+      ? ["minimalist leather watch women gold"]
+      : arcLower.includes("romantic")
+      ? ["rose gold watch women dress"]
+      : ["gold watch women leather strap"]
+    : lower.includes("cool")
+    ? ["silver mesh watch women", "stainless steel watch women minimalist"]
+    : ["women watch gold silver two-tone"];
+
+  return [...metalKeywords.slice(0, 2), ...styleKeywords.slice(0, 2), ...watchKeywords.slice(0, 1)];
+}
+
+function JewelryWatchKeywords({
+  analysis,
+  colors,
+}: {
+  analysis: NonNullable<ReturnType<typeof useAnalysis>["analysis"]>;
+  colors: ReturnType<typeof useColors>;
+}) {
+  const archetypes =
+    (analysis as { aesthetic_archetypes?: string[] }).aesthetic_archetypes?.join(", ") ??
+    analysis.style_archetype;
+  const keywords = buildJewelryWatchKeywords(analysis.undertone, archetypes);
+  if (!keywords.length) return null;
+  return (
+    <View style={styles.jwSection}>
+      <View style={styles.jwHeader}>
+        <Ionicons name="diamond-outline" size={15} color={colors.primary} />
+        <Text style={[styles.jwTitle, { color: colors.foreground }]}>Jewelry & Watches for You</Text>
+      </View>
+      <Text style={[styles.jwSub, { color: colors.mutedForeground }]}>
+        {analysis.undertone.toLowerCase().includes("warm") ? "Gold & warm tones" : analysis.undertone.toLowerCase().includes("cool") ? "Silver & cool tones" : "Versatile metals"} · tap to shop
+      </Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.jwScroll}>
+        {keywords.map((kw) => (
+          <Pressable
+            key={kw}
+            onPress={() => openShopUrl(buildKeywordUrl(kw))}
+            style={({ pressed }) => [
+              styles.jwChip,
+              { backgroundColor: pressed ? colors.primary + "22" : colors.card, borderColor: colors.primary + "35" },
+            ]}
+          >
+            <Ionicons name="bag-outline" size={12} color={colors.primary} />
+            <Text style={[styles.jwChipText, { color: colors.foreground }]}>{kw}</Text>
+            <Ionicons name="open-outline" size={10} color={colors.mutedForeground} />
+          </Pressable>
+        ))}
+      </ScrollView>
+    </View>
+  );
+}
+
 export default function ShopScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -177,6 +256,11 @@ export default function ShopScreen() {
         {/* Shopping keywords */}
         {analysis?.shopping_keywords && analysis.shopping_keywords.length > 0 && !searchQuery && (
           <KeywordsSection keywords={analysis.shopping_keywords} colors={colors} />
+        )}
+
+        {/* Jewelry & watch keywords based on profile */}
+        {analysis && !searchQuery && (
+          <JewelryWatchKeywords analysis={analysis} colors={colors} />
         )}
 
         {/* Category filter */}
@@ -756,6 +840,14 @@ const styles = StyleSheet.create({
   promptDesc: { fontSize: 14, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 22 },
   promptBtn: { paddingHorizontal: 28, paddingVertical: 14, borderRadius: 14, marginTop: 4 },
   promptBtnText: { fontSize: 15, fontFamily: "Inter_600SemiBold" },
+
+  jwSection: { paddingHorizontal: 20, marginBottom: 12 },
+  jwHeader: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 3 },
+  jwTitle: { fontSize: 15, fontFamily: "Inter_600SemiBold" },
+  jwSub: { fontSize: 12, fontFamily: "Inter_400Regular", marginBottom: 10 },
+  jwScroll: { gap: 8 },
+  jwChip: { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, borderWidth: 1 },
+  jwChipText: { fontSize: 13, fontFamily: "Inter_400Regular" },
 
   globalDisclosure: { textAlign: "center", fontSize: 11, fontFamily: "Inter_400Regular", paddingHorizontal: 24, paddingTop: 16, paddingBottom: 8 },
 
