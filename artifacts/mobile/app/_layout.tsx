@@ -20,6 +20,7 @@ import { AnalysisProvider } from "@/context/AnalysisContext";
 import { BodyProfileProvider } from "@/context/BodyProfileContext";
 import { PortraitHistoryProvider } from "@/context/PortraitHistoryContext";
 import { CountryProvider } from "@/context/CountryContext";
+import { SeasonProvider } from "@/context/SeasonContext";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { TodayOutfitProvider } from "@/context/TodayOutfitContext";
 import { WardrobeProvider } from "@/context/WardrobeContext";
@@ -102,6 +103,7 @@ export default function RootLayout() {
           <GestureHandlerRootView>
             <KeyboardProvider>
               <ThemeProvider>
+                <SeasonProvider>
                 <CountryProvider>
                 <AnalysisProvider>
                   <PortraitHistoryProvider>
@@ -117,6 +119,7 @@ export default function RootLayout() {
                   </PortraitHistoryProvider>
                 </AnalysisProvider>
                 </CountryProvider>
+                </SeasonProvider>
               </ThemeProvider>
             </KeyboardProvider>
           </GestureHandlerRootView>

@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
+import type { Season } from "./SeasonContext";
 
 export type ClothingCategory =
   | "Tops"
@@ -20,6 +21,8 @@ export interface WardrobeItem {
   compatibilityNotes: string;
   addedAt: number;
   backgroundRemoved?: boolean;
+  seasons?: Season[];
+  stored?: boolean;
 }
 
 export type FeedbackValue = "liked" | "disliked";
@@ -29,6 +32,8 @@ interface WardrobeContextValue {
   feedback: Record<string, FeedbackValue>;
   addItem: (item: WardrobeItem) => Promise<void>;
   removeItem: (id: string) => Promise<void>;
+  updateItemSeasons: (id: string, seasons: Season[]) => Promise<void>;
+  toggleStored: (id: string) => Promise<void>;
   setFeedback: (key: string, value: FeedbackValue | null) => Promise<void>;
   clearAll: () => Promise<void>;
 }
@@ -70,6 +75,22 @@ export function WardrobeProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
+  const updateItemSeasons = useCallback(async (id: string, seasons: Season[]) => {
+    setWardrobeItems((prev) => {
+      const next = prev.map((item) => item.id === id ? { ...item, seasons } : item);
+      void AsyncStorage.setItem(ITEMS_KEY, JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
+  const toggleStored = useCallback(async (id: string) => {
+    setWardrobeItems((prev) => {
+      const next = prev.map((item) => item.id === id ? { ...item, stored: !item.stored } : item);
+      void AsyncStorage.setItem(ITEMS_KEY, JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
   const setFeedback = useCallback(
     async (key: string, value: FeedbackValue | null) => {
       setFeedbackState((prev) => {
@@ -97,7 +118,7 @@ export function WardrobeProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <WardrobeContext.Provider
-      value={{ wardrobeItems, feedback, addItem, removeItem, setFeedback, clearAll }}
+      value={{ wardrobeItems, feedback, addItem, removeItem, updateItemSeasons, toggleStored, setFeedback, clearAll }}
     >
       {children}
     </WardrobeContext.Provider>

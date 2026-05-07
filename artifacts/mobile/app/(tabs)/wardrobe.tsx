@@ -6,6 +6,7 @@ import { router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import React, { useMemo, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   Dimensions,
   Keyboard,
@@ -28,6 +29,13 @@ import {
   type BodyProfile,
 } from "@/context/BodyProfileContext";
 import {
+  SEASON_COLORS,
+  SEASON_ICONS,
+  getNextSeasons,
+  useSeason,
+  type Season,
+} from "@/context/SeasonContext";
+import {
   useWardrobe,
   type ClothingCategory,
   type FeedbackValue,
@@ -35,6 +43,10 @@ import {
 } from "@/context/WardrobeContext";
 import colorTokens from "@/constants/colors";
 import { useColors } from "@/hooks/useColors";
+
+const BASE_URL = process.env["EXPO_PUBLIC_DOMAIN"]
+  ? `https://${process.env["EXPO_PUBLIC_DOMAIN"]}`
+  : "";
 
 const { width } = Dimensions.get("window");
 
@@ -55,6 +67,16 @@ const OUTFIT_TEXT_DIM = "#6B4C35";
 
 type StyleCategory = "Casual" | "Formal" | "Evening" | "Weekend";
 type SortOption = "recent" | "score";
+type WardrobeSection = "closet" | "picks" | "seasons";
+
+const ALL_SEASONS: Season[] = ["spring", "summer", "autumn", "winter"];
+
+const SEASON_LABELS: Record<Season, string> = {
+  spring: "Spring",
+  summer: "Summer",
+  autumn: "Autumn",
+  winter: "Winter",
+};
 
 const FILTER_KEYWORDS: Record<StyleCategory, string[]> = {
   Casual: ["casual", "everyday", "relaxed", "street", "jeans", "denim", "comfortable", "comfy", "basics", "simple", "effortless"],
@@ -101,6 +123,224 @@ function categoryIcon(cat: ClothingCategory): React.ComponentProps<typeof Ionico
     case "Shoes": return "footsteps-outline";
     case "Accessories": return "watch-outline";
   }
+}
+
+function SeasonPill({
+  season,
+  active,
+  onPress,
+  colors,
+}: {
+  season: Season;
+  active: boolean;
+  onPress?: () => void;
+  colors: ReturnType<typeof useColors>;
+}) {
+  const bg = SEASON_COLORS[season];
+  return (
+    <Pressable
+      onPress={onPress}
+      style={[
+        seStyles.pill,
+        {
+          backgroundColor: active ? bg : colors.secondary,
+          borderColor: active ? bg : colors.border,
+          opacity: onPress ? 1 : 0.95,
+        },
+      ]}
+    >
+      <Text style={seStyles.pillEmoji}>{SEASON_ICONS[season]}</Text>
+      <Text style={[seStyles.pillText, { color: active ? "#2D1F14" : colors.mutedForeground }]}>
+        {SEASON_LABELS[season]}
+      </Text>
+    </Pressable>
+  );
+}
+
+function SeasonReadinessCard({
+  wardrobeItems,
+  currentSeason,
+  colors,
+}: {
+  wardrobeItems: WardrobeItem[];
+  currentSeason: Season;
+  colors: ReturnType<typeof useColors>;
+}) {
+  const tagged = wardrobeItems.filter((i) => i.seasons && i.seasons.length > 0);
+  const inSeason = wardrobeItems.filter((i) => i.seasons?.includes(currentSeason));
+  const readinessPct = tagged.length > 0 ? Math.round((inSeason.length / tagged.length) * 100) : 0;
+  const bgColor = SEASON_COLORS[currentSeason];
+
+  return (
+    <View style={[seStyles.readinessCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      <View style={[seStyles.readinessHeader, { backgroundColor: bgColor + "30" }]}>
+        <Text style={seStyles.readinessSeason}>{SEASON_ICONS[currentSeason]}</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={[seStyles.readinessLabel, { color: colors.mutedForeground }]}>Current season</Text>
+          <Text style={[seStyles.readinessTitle, { color: colors.foreground }]}>{SEASON_LABELS[currentSeason]}</Text>
+        </View>
+        <View style={[seStyles.readinessBadge, { backgroundColor: bgColor }]}>
+          <Text style={seStyles.readinessBadgeText}>{inSeason.length} items</Text>
+        </View>
+      </View>
+      {tagged.length > 0 ? (
+        <View style={{ paddingHorizontal: 16, paddingBottom: 14, paddingTop: 10, gap: 8 }}>
+          <View style={[seStyles.readinessTrackBg, { backgroundColor: colors.secondary }]}>
+            <View style={[seStyles.readinessTrackFill, { width: `${readinessPct}%` as `${number}%`, backgroundColor: bgColor }]} />
+          </View>
+          <Text style={[seStyles.readinessHint, { color: colors.mutedForeground }]}>
+            {readinessPct}% of tagged items are in-season — {inSeason.length} of {tagged.length} tagged
+          </Text>
+        </View>
+      ) : (
+        <View style={{ padding: 14 }}>
+          <Text style={[seStyles.readinessHint, { color: colors.mutedForeground }]}>
+            Tag your items with seasons to see your readiness score.
+          </Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
+function AutoTagBanner({
+  untaggedCount,
+  tagging,
+  onAutoTag,
+  colors,
+}: {
+  untaggedCount: number;
+  tagging: boolean;
+  onAutoTag: () => void;
+  colors: ReturnType<typeof useColors>;
+}) {
+  return (
+    <View style={[seStyles.autoTagBanner, { backgroundColor: colors.primary + "12", borderColor: colors.primary + "40" }]}>
+      <Ionicons name="sparkles-outline" size={18} color={colors.primary} />
+      <View style={{ flex: 1 }}>
+        <Text style={[seStyles.autoTagTitle, { color: colors.foreground }]}>
+          {untaggedCount} item{untaggedCount !== 1 ? "s" : ""} not yet tagged
+        </Text>
+        <Text style={[seStyles.autoTagHint, { color: colors.mutedForeground }]}>
+          Auto-tag them with seasons using AI
+        </Text>
+      </View>
+      <Pressable
+        onPress={onAutoTag}
+        disabled={tagging}
+        style={({ pressed }) => [
+          seStyles.autoTagBtn,
+          { backgroundColor: colors.primary, opacity: tagging ? 0.6 : pressed ? 0.85 : 1 },
+        ]}
+      >
+        {tagging ? (
+          <ActivityIndicator size="small" color="#fff" />
+        ) : (
+          <Text style={seStyles.autoTagBtnText}>Auto-tag</Text>
+        )}
+      </Pressable>
+    </View>
+  );
+}
+
+function SeasonPlannerCard({
+  season,
+  count,
+  colors,
+}: {
+  season: Season;
+  count: number;
+  colors: ReturnType<typeof useColors>;
+}) {
+  const bg = SEASON_COLORS[season];
+  return (
+    <View style={[seStyles.plannerCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      <View style={[seStyles.plannerColorBar, { backgroundColor: bg + "60" }]}>
+        <Text style={seStyles.plannerEmoji}>{SEASON_ICONS[season]}</Text>
+      </View>
+      <View style={seStyles.plannerBody}>
+        <Text style={[seStyles.plannerSeason, { color: colors.foreground }]}>{SEASON_LABELS[season]}</Text>
+        <Text style={[seStyles.plannerCount, { color: count > 0 ? bg.replace("A8", "70") : colors.mutedForeground }]}>
+          {count > 0 ? `${count} item${count !== 1 ? "s" : ""}` : "No items yet"}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+function OffSeasonItemRow({
+  item,
+  colors,
+  onStore,
+  onSell,
+}: {
+  item: WardrobeItem;
+  colors: ReturnType<typeof useColors>;
+  onStore: () => void;
+  onSell: () => void;
+}) {
+  const sc = item.compatibilityScore;
+  const sColor = scoreColor(sc);
+  return (
+    <View style={[seStyles.offSeasonRow, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      {item.imageUri ? (
+        item.backgroundRemoved ? (
+          <View style={[seStyles.offSeasonThumb, { backgroundColor: colorTokens.wardrobeNeutralBg }]}>
+            <Image source={{ uri: item.imageUri }} style={seStyles.offSeasonThumbImg} contentFit="contain" />
+          </View>
+        ) : (
+          <Image source={{ uri: item.imageUri }} style={seStyles.offSeasonThumb} contentFit="cover" />
+        )
+      ) : (
+        <View style={[seStyles.offSeasonThumb, { backgroundColor: colors.secondary, alignItems: "center", justifyContent: "center" }]}>
+          <Ionicons name="shirt-outline" size={22} color={colors.mutedForeground} />
+        </View>
+      )}
+      <View style={{ flex: 1, gap: 2 }}>
+        <Text style={[seStyles.offSeasonName, { color: colors.foreground }]} numberOfLines={1}>{item.name}</Text>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+          <Text style={[seStyles.offSeasonCat, { color: colors.mutedForeground }]}>{item.category}</Text>
+          <View style={[seStyles.offSeasonScorePip, { backgroundColor: sColor + "22" }]}>
+            <Text style={[seStyles.offSeasonScore, { color: sColor }]}>{sc}</Text>
+          </View>
+        </View>
+        {item.stored && (
+          <View style={[seStyles.storedBadge, { backgroundColor: "#4CAF5018" }]}>
+            <Ionicons name="cube-outline" size={11} color="#4CAF50" />
+            <Text style={[seStyles.storedBadgeText, { color: "#4CAF50" }]}>Stored away</Text>
+          </View>
+        )}
+      </View>
+      <View style={seStyles.offSeasonActions}>
+        <Pressable
+          onPress={onStore}
+          style={({ pressed }) => [
+            seStyles.offSeasonBtn,
+            {
+              backgroundColor: item.stored ? "#4CAF5020" : colors.secondary,
+              borderColor: item.stored ? "#4CAF5060" : colors.border,
+              opacity: pressed ? 0.75 : 1,
+            },
+          ]}
+        >
+          <Ionicons name={item.stored ? "cube" : "cube-outline"} size={14} color={item.stored ? "#4CAF50" : colors.primary} />
+          <Text style={[seStyles.offSeasonBtnText, { color: item.stored ? "#4CAF50" : colors.primary }]}>
+            {item.stored ? "Stored" : "Store"}
+          </Text>
+        </Pressable>
+        <Pressable
+          onPress={onSell}
+          style={({ pressed }) => [
+            seStyles.offSeasonBtn,
+            { backgroundColor: colors.secondary, borderColor: colors.border, opacity: pressed ? 0.75 : 1 },
+          ]}
+        >
+          <Ionicons name="pricetag-outline" size={14} color={colors.primary} />
+          <Text style={[seStyles.offSeasonBtnText, { color: colors.primary }]}>Sell</Text>
+        </Pressable>
+      </View>
+    </View>
+  );
 }
 
 const MEASURE_FIELDS: { key: keyof BodyProfile; label: string; placeholder: string; unit?: string }[] = [
@@ -210,9 +450,11 @@ export default function WardrobeScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { analysis, setPendingChatInput } = useAnalysis();
-  const { wardrobeItems, feedback, setFeedback, removeItem } = useWardrobe();
+  const { wardrobeItems, feedback, setFeedback, removeItem, updateItemSeasons, toggleStored } = useWardrobe();
+  const { currentSeason } = useSeason();
 
-  const [section, setSection] = useState<"closet" | "picks">("closet");
+  const [section, setSection] = useState<WardrobeSection>("closet");
+  const [autoTagging, setAutoTagging] = useState(false);
   const [activeFilter, setActiveFilter] = useState("All");
   const [closetFilter, setClosetFilter] = useState<ClothingCategory | "All">("All");
   const [sortBy, setSortBy] = useState<SortOption>("recent");
@@ -342,6 +584,64 @@ export default function WardrobeScreen() {
     setOutfitSelected([]);
   };
 
+  const untaggedItems = useMemo(
+    () => wardrobeItems.filter((i) => !i.seasons || i.seasons.length === 0),
+    [wardrobeItems]
+  );
+
+  const offSeasonItems = useMemo(
+    () => wardrobeItems.filter(
+      (i) => i.seasons && i.seasons.length > 0 && !i.seasons.includes(currentSeason)
+    ),
+    [wardrobeItems, currentSeason]
+  );
+
+  const handleAutoTagAll = async () => {
+    if (autoTagging || untaggedItems.length === 0) return;
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setAutoTagging(true);
+    const validSeasons = new Set<Season>(["spring", "summer", "autumn", "winter"]);
+    for (const item of untaggedItems) {
+      try {
+        const res = await fetch(`${BASE_URL}/api/chat`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            messages: [{
+              role: "user" as const,
+              content: `For a "${item.name}" (${item.category} clothing), which calendar seasons is it appropriate to wear? Reply with ONLY a JSON array using these exact values: ["spring","summer","autumn","winter"]. Include only seasons that truly apply. Example: ["spring","autumn"]`,
+            }],
+          }),
+        });
+        if (res.ok) {
+          const data = (await res.json()) as { message: string };
+          const match = data.message.match(/\[[\s\S]*?\]/);
+          if (match) {
+            const parsed = JSON.parse(match[0]) as unknown[];
+            const seasons = parsed.filter(
+              (s): s is Season => typeof s === "string" && validSeasons.has(s as Season)
+            );
+            if (seasons.length > 0) {
+              await updateItemSeasons(item.id, seasons);
+            }
+          }
+        }
+      } catch {
+      }
+    }
+    setAutoTagging(false);
+    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  };
+
+  const handleSellItem = async (item: WardrobeItem) => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const q = encodeURIComponent(item.name);
+    await WebBrowser.openBrowserAsync(`https://www.vinted.com/catalog?search_text=${q}`, {
+      presentationStyle: WebBrowser.WebBrowserPresentationStyle.PAGE_SHEET,
+      toolbarColor: "#FAF8F5",
+    });
+  };
+
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
       <ScrollView
@@ -354,7 +654,7 @@ export default function WardrobeScreen() {
             Wardrobe
           </Text>
           <Text style={[styles.headerSub, { color: colors.mutedForeground }]}>
-            {section === "closet" ? "Your uploaded clothing" : "AI style guide for your profile"}
+            {section === "closet" ? "Your uploaded clothing" : section === "seasons" ? "Plan your seasonal wardrobe" : "AI style guide for your profile"}
           </Text>
         </View>
 
@@ -365,36 +665,40 @@ export default function WardrobeScreen() {
 
         {/* Section toggle */}
         <View style={styles.sectionToggle}>
-          {(["closet", "picks"] as const).map((s) => (
+          {([
+            { key: "closet" as const, label: "My Closet", icon: "shirt-outline" as const },
+            { key: "picks" as const, label: "AI Picks", icon: "sparkles-outline" as const },
+            { key: "seasons" as const, label: "Seasons", icon: "leaf-outline" as const },
+          ]).map((s) => (
             <Pressable
-              key={s}
+              key={s.key}
               onPress={async () => {
                 await Haptics.selectionAsync();
-                setSection(s);
+                setSection(s.key);
                 if (outfitMode) { setOutfitMode(false); setOutfitSelected([]); }
               }}
               style={[
                 styles.sectionBtn,
                 {
-                  backgroundColor: section === s ? colors.primary : colors.secondary,
-                  borderColor: section === s ? colors.primary : colors.border,
+                  backgroundColor: section === s.key ? colors.primary : colors.secondary,
+                  borderColor: section === s.key ? colors.primary : colors.border,
                 },
               ]}
             >
               <Ionicons
-                name={s === "closet" ? "shirt-outline" : "sparkles-outline"}
+                name={s.icon}
                 size={15}
-                color={section === s ? colors.primaryForeground : colors.mutedForeground}
+                color={section === s.key ? colors.primaryForeground : colors.mutedForeground}
               />
               <Text
                 style={[
                   styles.sectionBtnText,
-                  { color: section === s ? colors.primaryForeground : colors.foreground },
+                  { color: section === s.key ? colors.primaryForeground : colors.foreground },
                 ]}
               >
-                {s === "closet" ? "My Closet" : "AI Picks"}
+                {s.label}
               </Text>
-              {s === "closet" && wardrobeItems.length > 0 && (
+              {s.key === "closet" && wardrobeItems.length > 0 && (
                 <View style={[styles.countBadge, { backgroundColor: section === "closet" ? "rgba(255,255,255,0.25)" : colors.primary + "22" }]}>
                   <Text style={[styles.countText, { color: section === "closet" ? colors.primaryForeground : colors.primary }]}>
                     {wardrobeItems.length}
@@ -617,6 +921,87 @@ export default function WardrobeScreen() {
           </View>
         )}
 
+        {/* ── SEASONS ── */}
+        {section === "seasons" && (
+          <View style={styles.sectionPad}>
+            <SeasonReadinessCard wardrobeItems={wardrobeItems} currentSeason={currentSeason} colors={colors} />
+
+            {/* Auto-tag banner */}
+            {untaggedItems.length > 0 && wardrobeItems.length > 0 && (
+              <AutoTagBanner
+                untaggedCount={untaggedItems.length}
+                tagging={autoTagging}
+                onAutoTag={() => { void handleAutoTagAll(); }}
+                colors={colors}
+              />
+            )}
+
+            {/* Season Planner */}
+            {wardrobeItems.length > 0 && (
+              <>
+                <Text style={[styles.sectionTitle, { color: colors.foreground, marginTop: 8, marginBottom: 10 }]}>
+                  Season Planner
+                </Text>
+                <View style={seStyles.plannerRow}>
+                  {getNextSeasons(currentSeason, 3).map((s) => {
+                    const count = wardrobeItems.filter((i) => i.seasons?.includes(s)).length;
+                    return (
+                      <SeasonPlannerCard key={s} season={s} count={count} colors={colors} />
+                    );
+                  })}
+                </View>
+              </>
+            )}
+
+            {/* Off-season items */}
+            {offSeasonItems.length > 0 && (
+              <>
+                <Text style={[styles.sectionTitle, { color: colors.foreground, marginTop: 16, marginBottom: 4 }]}>
+                  Off-Season Items
+                </Text>
+                <Text style={[seStyles.offSeasonSubtitle, { color: colors.mutedForeground }]}>
+                  Store or sell pieces you won't need this {SEASON_LABELS[currentSeason].toLowerCase()}
+                </Text>
+                <View style={{ gap: 10, marginTop: 10 }}>
+                  {offSeasonItems.map((item) => (
+                    <OffSeasonItemRow
+                      key={item.id}
+                      item={item}
+                      colors={colors}
+                      onStore={async () => {
+                        await Haptics.selectionAsync();
+                        await toggleStored(item.id);
+                      }}
+                      onSell={() => { void handleSellItem(item); }}
+                    />
+                  ))}
+                </View>
+              </>
+            )}
+
+            {/* Empty state when no items at all */}
+            {wardrobeItems.length === 0 && (
+              <View style={[seStyles.emptySeasons, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                <Text style={{ fontSize: 40 }}>🌸☀️🍂❄️</Text>
+                <Text style={[seStyles.emptySeasonsTitle, { color: colors.foreground }]}>Season Wardrobe Helper</Text>
+                <Text style={[seStyles.emptySeasonsDesc, { color: colors.mutedForeground }]}>
+                  Add items to My Closet first, then tag them with seasons to plan your wardrobe year-round.
+                </Text>
+                <Pressable
+                  onPress={async () => {
+                    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                    router.push("/add-item");
+                  }}
+                  style={({ pressed }) => [seStyles.emptySeasonsBtn, { backgroundColor: colors.primary, opacity: pressed ? 0.85 : 1 }]}
+                >
+                  <Ionicons name="add" size={18} color="#fff" />
+                  <Text style={seStyles.emptySeasonsBtnText}>Add Your First Item</Text>
+                </Pressable>
+              </View>
+            )}
+          </View>
+        )}
+
         {/* ── AI PICKS ── */}
         {section === "picks" && (
           <>
@@ -821,6 +1206,7 @@ export default function WardrobeScreen() {
         }}
         onFindSimilar={(item) => { void handleFindSimilar(item); }}
         onAskAura={(item) => handleAskAura(item)}
+        onUpdateSeasons={updateItemSeasons}
       />
     </View>
   );
@@ -975,6 +1361,7 @@ function ItemDetailModal({
   onRemove,
   onFindSimilar,
   onAskAura,
+  onUpdateSeasons,
 }: {
   item: WardrobeItem | null;
   colors: ReturnType<typeof useColors>;
@@ -982,6 +1369,7 @@ function ItemDetailModal({
   onRemove: (item: WardrobeItem) => void;
   onFindSimilar: (item: WardrobeItem) => void;
   onAskAura: (item: WardrobeItem) => void;
+  onUpdateSeasons: (id: string, seasons: Season[]) => Promise<void>;
 }) {
   const insets = useSafeAreaInsets();
   const { analysis: modalAnalysis } = useAnalysis();
@@ -1078,6 +1466,40 @@ function ItemDetailModal({
                 with your style profile
               </Text>
             </View>
+          </View>
+
+          {/* Season tags */}
+          <View style={[styles.modalSection, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={styles.modalNotesHeader}>
+              <Ionicons name="leaf-outline" size={16} color={colors.primary} />
+              <Text style={[styles.modalSectionTitle, { color: colors.foreground }]}>Seasons</Text>
+            </View>
+            <View style={seStyles.modalSeasonPills}>
+              {ALL_SEASONS.map((s) => {
+                const active = item.seasons?.includes(s) ?? false;
+                return (
+                  <SeasonPill
+                    key={s}
+                    season={s}
+                    active={active}
+                    colors={colors}
+                    onPress={async () => {
+                      await Haptics.selectionAsync();
+                      const current = item.seasons ?? [];
+                      const next = active
+                        ? current.filter((x) => x !== s)
+                        : [...current, s];
+                      await onUpdateSeasons(item.id, next);
+                    }}
+                  />
+                );
+              })}
+            </View>
+            {(!item.seasons || item.seasons.length === 0) && (
+              <Text style={[seStyles.noSeasonHint, { color: colors.mutedForeground }]}>
+                Tap seasons to tag when you wear this item
+              </Text>
+            )}
           </View>
 
           {/* AI notes */}
@@ -1195,6 +1617,14 @@ function ClosetItemCard({
       ) : (
         <View style={[styles.scoreBadge, { backgroundColor: sColor + "ee" }]}>
           <Text style={styles.scoreBadgeText}>{score}</Text>
+        </View>
+      )}
+      {/* Trans-seasonal badge */}
+      {!outfitMode && item.seasons && item.seasons.length >= 3 && (
+        <View style={seStyles.transSeasonalBadge}>
+          <Text style={seStyles.transSeasonalBadgeText}>
+            {item.seasons.length === 4 ? "Year-round" : "Multi-season"}
+          </Text>
         </View>
       )}
 
@@ -1552,4 +1982,86 @@ const mStyles = StyleSheet.create({
     borderRadius: 14,
   },
   saveBtnText: { fontSize: 15, fontFamily: "Inter_600SemiBold", color: "#fff" },
+});
+
+const seStyles = StyleSheet.create({
+  pill: {
+    flexDirection: "row", alignItems: "center", gap: 5,
+    paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, borderWidth: 1,
+  },
+  pillEmoji: { fontSize: 14 },
+  pillText: { fontSize: 12, fontFamily: "Inter_600SemiBold" },
+
+  readinessCard: {
+    borderRadius: 18, borderWidth: StyleSheet.hairlineWidth, marginBottom: 12, overflow: "hidden",
+  },
+  readinessHeader: {
+    flexDirection: "row", alignItems: "center", gap: 12, padding: 16,
+  },
+  readinessSeason: { fontSize: 36 },
+  readinessLabel: { fontSize: 11, fontFamily: "Inter_400Regular", marginBottom: 2 },
+  readinessTitle: { fontSize: 20, fontFamily: "Inter_700Bold" },
+  readinessBadge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
+  readinessBadgeText: { fontSize: 13, fontFamily: "Inter_700Bold", color: "#2D1F14" },
+  readinessTrackBg: { height: 8, borderRadius: 6, overflow: "hidden" },
+  readinessTrackFill: { height: "100%", borderRadius: 6 },
+  readinessHint: { fontSize: 12, fontFamily: "Inter_400Regular", lineHeight: 18 },
+
+  autoTagBanner: {
+    flexDirection: "row", alignItems: "center", gap: 12,
+    padding: 14, borderRadius: 16, borderWidth: 1, marginBottom: 14,
+  },
+  autoTagTitle: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
+  autoTagHint: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 2 },
+  autoTagBtn: {
+    paddingHorizontal: 14, paddingVertical: 9, borderRadius: 12, minWidth: 72, alignItems: "center",
+  },
+  autoTagBtnText: { fontSize: 13, fontFamily: "Inter_700Bold", color: "#fff" },
+
+  plannerRow: { flexDirection: "row", gap: 8, marginBottom: 4 },
+  plannerCard: {
+    flex: 1, borderRadius: 14, borderWidth: StyleSheet.hairlineWidth, overflow: "hidden",
+  },
+  plannerColorBar: { height: 44, alignItems: "center", justifyContent: "center" },
+  plannerEmoji: { fontSize: 24 },
+  plannerBody: { padding: 10, gap: 3 },
+  plannerSeason: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
+  plannerCount: { fontSize: 11, fontFamily: "Inter_400Regular" },
+
+  offSeasonSubtitle: { fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 20, marginBottom: 2 },
+  offSeasonRow: {
+    flexDirection: "row", alignItems: "center", gap: 12,
+    padding: 12, borderRadius: 16, borderWidth: StyleSheet.hairlineWidth,
+  },
+  offSeasonThumb: { width: 60, height: 60, borderRadius: 12, overflow: "hidden", flexShrink: 0 },
+  offSeasonThumbImg: { width: "100%", height: "100%", position: "absolute" },
+  offSeasonName: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
+  offSeasonCat: { fontSize: 12, fontFamily: "Inter_400Regular" },
+  offSeasonScorePip: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 8 },
+  offSeasonScore: { fontSize: 11, fontFamily: "Inter_700Bold" },
+  storedBadge: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, alignSelf: "flex-start" },
+  storedBadgeText: { fontSize: 10, fontFamily: "Inter_600SemiBold" },
+  offSeasonActions: { gap: 6, flexShrink: 0 },
+  offSeasonBtn: {
+    flexDirection: "row", alignItems: "center", gap: 5,
+    paddingHorizontal: 10, paddingVertical: 7, borderRadius: 10, borderWidth: 1,
+  },
+  offSeasonBtnText: { fontSize: 12, fontFamily: "Inter_600SemiBold" },
+
+  transSeasonalBadge: {
+    position: "absolute", bottom: 46, left: 8,
+    backgroundColor: "rgba(0,0,0,0.5)", paddingHorizontal: 7, paddingVertical: 3, borderRadius: 8,
+  },
+  transSeasonalBadgeText: { fontSize: 9, fontFamily: "Inter_700Bold", color: "#fff" },
+
+  modalSeasonPills: { flexDirection: "row", flexWrap: "wrap", gap: 8, paddingTop: 4 },
+  noSeasonHint: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 8 },
+
+  emptySeasons: {
+    alignItems: "center", padding: 28, borderRadius: 20, borderWidth: StyleSheet.hairlineWidth, gap: 12, marginBottom: 16,
+  },
+  emptySeasonsTitle: { fontSize: 18, fontFamily: "Inter_600SemiBold", textAlign: "center" },
+  emptySeasonsDesc: { fontSize: 14, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 22 },
+  emptySeasonsBtn: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 22, paddingVertical: 12, borderRadius: 14, marginTop: 4 },
+  emptySeasonsBtnText: { fontSize: 15, fontFamily: "Inter_600SemiBold", color: "#fff" },
 });

@@ -20,6 +20,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAnalysis } from "@/context/AnalysisContext";
 import { COUNTRIES, useCountry } from "@/context/CountryContext";
+import { useSeason, type Hemisphere } from "@/context/SeasonContext";
 import { useTheme, type ThemePreference } from "@/context/ThemeContext";
 import { useColors } from "@/hooks/useColors";
 
@@ -43,11 +44,17 @@ const THEME_OPTIONS: { label: string; value: ThemePreference; icon: React.Compon
   { label: "Dark", value: "dark", icon: "moon-outline" },
 ];
 
+const HEMISPHERE_OPTIONS: { label: string; value: Hemisphere; icon: React.ComponentProps<typeof Ionicons>["name"]; hint: string }[] = [
+  { label: "Northern", value: "northern", icon: "arrow-up-outline", hint: "Spring: Mar–May" },
+  { label: "Southern", value: "southern", icon: "arrow-down-outline", hint: "Spring: Sep–Nov" },
+];
+
 export default function SettingsScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { preference, setTheme } = useTheme();
   const { country, countryFlag, countryLabel, setCountry } = useCountry();
+  const { hemisphere, setHemisphere } = useSeason();
   const { userName, setUserName, clearAnalysis, clearChatHistory, chatHistory, analysis, healthConcerns, setHealthConcerns } = useAnalysis();
   const companionName = analysis?.companion_name ?? "Aura";
   const [editingName, setEditingName] = useState(false);
@@ -401,6 +408,63 @@ export default function SettingsScreen() {
                     Veloura may earn a commission from purchases made through links in this app.
                   </Text>
                 </View>
+              </View>
+            </View>
+          </View>
+
+          {/* Wardrobe — hemisphere */}
+          <View style={styles.group}>
+            <Text style={[styles.groupLabel, { color: colors.mutedForeground }]}>
+              WARDROBE
+            </Text>
+            <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <View style={[styles.row, { paddingBottom: 8 }]}>
+                <View style={[styles.rowIcon, { backgroundColor: colors.secondary }]}>
+                  <Ionicons name="earth-outline" size={18} color={colors.primary} />
+                </View>
+                <View style={styles.rowContent}>
+                  <Text style={[styles.rowLabel, { color: colors.foreground }]}>
+                    Hemisphere
+                  </Text>
+                  <Text style={[styles.rowValue, { color: colors.mutedForeground }]}>
+                    Sets your seasonal calendar for wardrobe planning
+                  </Text>
+                </View>
+              </View>
+              <View style={[styles.themeToggleRow, { paddingHorizontal: 14, paddingBottom: 14 }]}>
+                {HEMISPHERE_OPTIONS.map((opt) => {
+                  const active = hemisphere === opt.value;
+                  return (
+                    <Pressable
+                      key={opt.value}
+                      onPress={async () => {
+                        await Haptics.selectionAsync();
+                        await setHemisphere(opt.value);
+                      }}
+                      style={[
+                        styles.themeOption,
+                        {
+                          backgroundColor: active ? colors.primary : colors.secondary,
+                          borderColor: active ? colors.primary : colors.border,
+                        },
+                      ]}
+                    >
+                      <Ionicons
+                        name={opt.icon}
+                        size={16}
+                        color={active ? "#fff" : colors.foreground}
+                      />
+                      <View>
+                        <Text style={[styles.themeOptionText, { color: active ? "#fff" : colors.foreground }]}>
+                          {opt.label}
+                        </Text>
+                        <Text style={{ fontSize: 10, fontFamily: "Inter_400Regular", color: active ? "rgba(255,255,255,0.75)" : colors.mutedForeground }}>
+                          {opt.hint}
+                        </Text>
+                      </View>
+                    </Pressable>
+                  );
+                })}
               </View>
             </View>
           </View>

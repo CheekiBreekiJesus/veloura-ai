@@ -352,6 +352,54 @@ components:
       required:
         - imageBase64
         - mimeType
+    ClothingAnalysisRequest:
+      type: object
+      properties:
+        imageBase64:
+          type: string
+          description: Base64-encoded clothing image. Maximum ~6 MB.
+        mimeType:
+          type: string
+          description: MIME type of the image (e.g., image/jpeg)
+        profile:
+          $ref: "#/components/schemas/AnalysisResult"
+          description: User's style profile for compatibility scoring
+      required:
+        - imageBase64
+        - mimeType
+    ClothingAnalysisResult:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Short descriptive name (e.g. 'Cream Linen Blazer')
+        category:
+          type: string
+          enum: [Tops, Bottoms, Dresses, Outerwear, Shoes, Accessories]
+        dominantColor:
+          type: string
+          description: Hex code of the primary color
+        compatibilityScore:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: How well the item matches the user's style profile
+        compatibilityNotes:
+          type: string
+          description: 1-2 sentences explaining the score
+        seasons:
+          type: array
+          items:
+            type: string
+            enum: [spring, summer, autumn, winter]
+          description: Calendar seasons when this item is appropriate to wear
+      required:
+        - name
+        - category
+        - dominantColor
+        - compatibilityScore
+        - compatibilityNotes
+        - seasons
     ErrorResponse:
       type: object
       properties:
@@ -545,6 +593,57 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
         "500":
           description: Background removal failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /analyze-clothing:
+    post:
+      operationId: analyzeClothing
+      tags: [analysis]
+      summary: Analyze a clothing item for style compatibility and season suitability
+      description: >
+        Accepts a clothing photo (base64) and the user's style profile.
+        Returns a compatibility score (0-100), descriptive notes, dominant color,
+        detected category, and the calendar seasons when this item is appropriate.
+        Requires a valid Bearer token from GET /api/auth/token.
+        Rate-limited to 20 requests per IP per 15-minute window.
+      security:
+        - analyzeToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClothingAnalysisRequest"
+      responses:
+        "200":
+          description: Clothing analysis result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClothingAnalysisResult"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Missing or invalid analyze token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Rate limit exceeded or server busy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Analysis failed
           content:
             application/json:
               schema:

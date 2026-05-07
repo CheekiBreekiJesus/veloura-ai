@@ -53,7 +53,8 @@ Analyze the clothing item in the image and return ONLY valid JSON with this exac
   "category": "Tops|Bottoms|Dresses|Outerwear|Shoes|Accessories",
   "dominantColor": "#hexcode of the primary color",
   "compatibilityScore": 0,
-  "compatibilityNotes": "1-2 sentences: what specifically works or doesn't work with this profile"
+  "compatibilityNotes": "1-2 sentences: what specifically works or doesn't work with this profile",
+  "seasons": ["spring","summer","autumn","winter"]
 }
 
 User's style profile to match against:
@@ -70,6 +71,14 @@ compatibilityScore rules (integer 0-100):
 - 55-69: moderate — one significant mismatch (e.g. wrong season color, wrong silhouette for face)
 - 40-54: weak — multiple mismatches but could work styled carefully
 - 0-39: poor — clashes with undertone, season palette, or opposes the archetype
+
+seasons rules — include ALL calendar seasons where this item is appropriate to wear:
+- "spring": mild weather, layering pieces, light fabrics, floral/pastel items
+- "summer": warm weather, lightweight, breathable, swimwear, sandals, linen, shorts
+- "autumn": transitional, layering, knitwear, boots, earth tones, medium weight
+- "winter": cold weather, coats, heavy knits, thermal, dark tones, boots
+- Trans-seasonal items (e.g. classic blazer, black jeans) should include multiple seasons
+- Return only seasons that genuinely apply — do not include all 4 unless truly year-round
 
 Be precise and honest. Consider undertone-color harmony deeply. Return ONLY the JSON object, no markdown.`;
 }
@@ -145,13 +154,21 @@ router.post(
         return;
       }
 
-      const result = JSON.parse(jsonMatch[0]) as {
+      const raw_result = JSON.parse(jsonMatch[0]) as {
         name: string;
         category: string;
         dominantColor: string;
         compatibilityScore: number;
         compatibilityNotes: string;
+        seasons?: unknown;
       };
+      const validSeasons = new Set(["spring", "summer", "autumn", "winter"]);
+      const seasons: string[] = Array.isArray(raw_result.seasons)
+        ? (raw_result.seasons as unknown[]).filter(
+            (s): s is string => typeof s === "string" && validSeasons.has(s)
+          )
+        : [];
+      const result = { ...raw_result, seasons };
 
       res.json(result);
     } catch (err) {

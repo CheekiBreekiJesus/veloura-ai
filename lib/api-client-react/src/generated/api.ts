@@ -22,6 +22,8 @@ import type {
   AuthTokenResponse,
   ChatRequest,
   ChatResponse,
+  ClothingAnalysisRequest,
+  ClothingAnalysisResult,
   ErrorResponse,
   HealthStatus,
   MakeupPreviewResult,
@@ -453,6 +455,94 @@ export const useRemoveBackground = <
   TContext
 > => {
   return useMutation(getRemoveBackgroundMutationOptions(options));
+};
+
+/**
+ * Accepts a clothing photo (base64) and the user's style profile. Returns a compatibility score (0-100), descriptive notes, dominant color, detected category, and the calendar seasons when this item is appropriate. Requires a valid Bearer token from GET /api/auth/token. Rate-limited to 20 requests per IP per 15-minute window.
+
+ * @summary Analyze a clothing item for style compatibility and season suitability
+ */
+export const getAnalyzeClothingUrl = () => {
+  return `/api/analyze-clothing`;
+};
+
+export const analyzeClothing = async (
+  clothingAnalysisRequest: ClothingAnalysisRequest,
+  options?: RequestInit,
+): Promise<ClothingAnalysisResult> => {
+  return customFetch<ClothingAnalysisResult>(getAnalyzeClothingUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(clothingAnalysisRequest),
+  });
+};
+
+export const getAnalyzeClothingMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof analyzeClothing>>,
+    TError,
+    { data: BodyType<ClothingAnalysisRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof analyzeClothing>>,
+  TError,
+  { data: BodyType<ClothingAnalysisRequest> },
+  TContext
+> => {
+  const mutationKey = ["analyzeClothing"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof analyzeClothing>>,
+    { data: BodyType<ClothingAnalysisRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return analyzeClothing(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AnalyzeClothingMutationResult = NonNullable<
+  Awaited<ReturnType<typeof analyzeClothing>>
+>;
+export type AnalyzeClothingMutationBody = BodyType<ClothingAnalysisRequest>;
+export type AnalyzeClothingMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Analyze a clothing item for style compatibility and season suitability
+ */
+export const useAnalyzeClothing = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof analyzeClothing>>,
+    TError,
+    { data: BodyType<ClothingAnalysisRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof analyzeClothing>>,
+  TError,
+  { data: BodyType<ClothingAnalysisRequest> },
+  TContext
+> => {
+  return useMutation(getAnalyzeClothingMutationOptions(options));
 };
 
 /**

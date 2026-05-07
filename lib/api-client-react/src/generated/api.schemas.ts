@@ -260,6 +260,55 @@ export interface RemoveBackgroundResult {
   mimeType: string;
 }
 
+export interface ClothingAnalysisRequest {
+  /** Base64-encoded clothing image. Maximum ~6 MB. */
+  imageBase64: string;
+  /** MIME type of the image (e.g., image/jpeg) */
+  mimeType: string;
+  /** User's style profile for compatibility scoring */
+  profile?: AnalysisResult;
+}
+
+export type ClothingAnalysisResultCategory =
+  (typeof ClothingAnalysisResultCategory)[keyof typeof ClothingAnalysisResultCategory];
+
+export const ClothingAnalysisResultCategory = {
+  Tops: "Tops",
+  Bottoms: "Bottoms",
+  Dresses: "Dresses",
+  Outerwear: "Outerwear",
+  Shoes: "Shoes",
+  Accessories: "Accessories",
+} as const;
+
+export type ClothingAnalysisResultSeasonsItem =
+  (typeof ClothingAnalysisResultSeasonsItem)[keyof typeof ClothingAnalysisResultSeasonsItem];
+
+export const ClothingAnalysisResultSeasonsItem = {
+  spring: "spring",
+  summer: "summer",
+  autumn: "autumn",
+  winter: "winter",
+} as const;
+
+export interface ClothingAnalysisResult {
+  /** Short descriptive name (e.g. 'Cream Linen Blazer') */
+  name: string;
+  category: ClothingAnalysisResultCategory;
+  /** Hex code of the primary color */
+  dominantColor: string;
+  /**
+   * How well the item matches the user's style profile
+   * @minimum 0
+   * @maximum 100
+   */
+  compatibilityScore: number;
+  /** 1-2 sentences explaining the score */
+  compatibilityNotes: string;
+  /** Calendar seasons when this item is appropriate to wear */
+  seasons: ClothingAnalysisResultSeasonsItem[];
+}
+
 export interface ErrorResponse {
   error: string;
 }

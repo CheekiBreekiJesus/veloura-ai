@@ -21,6 +21,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAnalysis } from "@/context/AnalysisContext";
+import type { Season } from "@/context/SeasonContext";
 import { useWardrobe, type ClothingCategory, type WardrobeItem } from "@/context/WardrobeContext";
 import { useColors } from "@/hooks/useColors";
 import { saveToGallery } from "@/utils/saveToGallery";
@@ -44,6 +45,7 @@ type AnalysisResult = {
   dominantColor: string;
   compatibilityScore: number;
   compatibilityNotes: string;
+  seasons?: Season[];
 };
 
 function scoreColor(score: number): string {
@@ -231,6 +233,7 @@ export default function AddItemScreen() {
       compatibilityNotes: result.compatibilityNotes,
       addedAt: Date.now(),
       backgroundRemoved,
+      seasons: result.seasons ?? [],
     };
 
     await addItem(item);
