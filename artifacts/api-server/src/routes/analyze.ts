@@ -160,7 +160,7 @@ async function generateCompanionIdentity(
     openai.chat.completions.create({
       model: "gpt-4.1-mini",
       max_completion_tokens: 12,
-      temperature: 0.85,
+      temperature: 0.2,
       messages: [
         { role: "system", content: COMPANION_NAME_SYSTEM },
         {
@@ -182,8 +182,8 @@ async function generateCompanionIdentity(
   let companion_name: string | null = null;
   if (nameResult.status === "fulfilled") {
     const raw = nameResult.value.choices[0]?.message?.content?.trim() ?? "";
-    // Accept only a single word of 2–12 letters as a safety guard
-    companion_name = /^[A-Za-z]{2,12}$/.test(raw) ? raw : null;
+    // Spec: 4–8 letters, first name only
+    companion_name = /^[A-Za-z]{4,8}$/.test(raw) ? raw : null;
   } else {
     log.warn({ err: nameResult.reason }, "Companion name generation failed");
   }
