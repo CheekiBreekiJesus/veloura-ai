@@ -19,9 +19,12 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAnalysis } from "@/context/AnalysisContext";
+import { useBodyProfile } from "@/context/BodyProfileContext";
 import { COUNTRIES, useCountry } from "@/context/CountryContext";
+import { usePortraitHistory } from "@/context/PortraitHistoryContext";
 import { useSeason, type Hemisphere } from "@/context/SeasonContext";
 import { useTheme, type ThemePreference } from "@/context/ThemeContext";
+import { useWardrobe } from "@/context/WardrobeContext";
 import { useColors } from "@/hooks/useColors";
 
 const QUICK_HEALTH_CONCERNS = [
@@ -56,6 +59,9 @@ export default function SettingsScreen() {
   const { country, countryFlag, countryLabel, setCountry } = useCountry();
   const { hemisphere, setHemisphere } = useSeason();
   const { userName, setUserName, clearAnalysis, clearChatHistory, chatHistory, analysis, healthConcerns, setHealthConcerns } = useAnalysis();
+  const { clearPortraits } = usePortraitHistory();
+  const { clearBodyProfile } = useBodyProfile();
+  const { clearAll: clearWardrobe } = useWardrobe();
   const companionName = analysis?.companion_name ?? "Aura";
   const [editingName, setEditingName] = useState(false);
   const [nameValue, setNameValue] = useState(userName ?? "");
@@ -134,7 +140,7 @@ export default function SettingsScreen() {
         "Clear all profile data? This cannot be undone."
       );
       if (confirmed) {
-        clearAnalysis().then(() => {
+        Promise.all([clearAnalysis(), clearPortraits(), clearBodyProfile(), clearWardrobe()]).then(() => {
           router.replace("/(tabs)");
         });
       }
@@ -151,7 +157,7 @@ export default function SettingsScreen() {
           style: "destructive",
           onPress: async () => {
             await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-            await clearAnalysis();
+            await Promise.all([clearAnalysis(), clearPortraits(), clearBodyProfile(), clearWardrobe()]);
             router.replace("/(tabs)");
           },
         },
