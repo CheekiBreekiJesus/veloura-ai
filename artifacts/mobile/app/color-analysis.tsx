@@ -19,19 +19,25 @@ import {
   deriveColorSwatches,
   deriveSeasonLabel,
 } from "@/utils/colorAnalysis";
+import { getSeasonProfile } from "@/constants/seasons";
+import { useEffect, useRef } from "react";
+import { Animated, Easing } from "react-native";
 
 function ToneRow({
   tones,
   colors,
+  imageUri,
 }: {
   tones: ReturnType<typeof deriveClothingTones>;
   colors: ReturnType<typeof useColors>;
+  imageUri: string | null;
 }) {
   return (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.toneScroll}>
       {tones.map((tone) => (
         <View key={tone.label} style={[styles.toneCard, { borderColor: colors.border, opacity: tone.compatibility === "avoid" ? 0.68 : 1 }]}>
           <View style={[styles.tonePreview, { backgroundColor: tone.hex }]}>
+            {imageUri ? <Image source={{ uri: imageUri }} style={styles.tonePortrait} contentFit="cover" /> : <View style={[styles.tonePortrait, { backgroundColor: colors.secondary }]} />}
             <View
               style={[
                 styles.toneOverlay,
@@ -64,9 +70,19 @@ export default function ColorAnalysisScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { analysis, imageUri } = useAnalysis();
+  const seasonProfile = getSeasonProfile((analysis ? deriveSeasonLabel(analysis.undertone, analysis.contrast_level) : "Neutral Summer") as never);
+  const fade = useRef(new Animated.Value(0)).current;
+  const lift = useRef(new Animated.Value(18)).current;
 
   const topPad = Math.max(insets.top, 16);
   const bottomPad = Math.max(insets.bottom, 20);
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fade, { toValue: 1, duration: 450, easing: Easing.out(Easing.quad), useNativeDriver: true }),
+      Animated.timing(lift, { toValue: 0, duration: 450, easing: Easing.out(Easing.quad), useNativeDriver: true }),
+    ]).start();
+  }, [fade, lift]);
 
   if (!analysis) {
     return (
@@ -97,7 +113,7 @@ export default function ColorAnalysisScreen() {
         <View style={styles.iconBtn} />
       </View>
 
-      <View style={[styles.heroCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      <Animated.View style={[styles.heroCard, { backgroundColor: colors.card, borderColor: colors.border, opacity: fade, transform: [{ translateY: lift }] }]}>
         <View style={styles.heroImageWrap}>
           {imageUri ? <Image source={{ uri: imageUri }} style={styles.heroImage} contentFit="cover" /> : <View style={[styles.heroImage, { backgroundColor: colors.secondary }]} />}
           <LinearGradient colors={["transparent", "rgba(250,248,245,0.96)"]} style={styles.heroFade} />
@@ -115,9 +131,9 @@ export default function ColorAnalysisScreen() {
             </View>
           </View>
         </View>
-      </View>
+      </Animated.View>
 
-      <View style={styles.section}>
+      <Animated.View style={[styles.section, { opacity: fade, transform: [{ translateY: lift }] }]}>
         <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Best Color Palette</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.swatchScroll}>
           {swatches.map((group) => (
@@ -134,14 +150,14 @@ export default function ColorAnalysisScreen() {
             </View>
           ))}
         </ScrollView>
-      </View>
+      </Animated.View>
 
-      <View style={styles.section}>
+      <Animated.View style={[styles.section, { opacity: fade, transform: [{ translateY: lift }] }]}>
         <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Clothing Color Comparison</Text>
-        <ToneRow tones={tones} colors={colors} />
-      </View>
+        <ToneRow tones={tones} colors={colors} imageUri={imageUri} />
+      </Animated.View>
 
-      <View style={styles.section}>
+      <Animated.View style={[styles.section, { opacity: fade, transform: [{ translateY: lift }] }]}>
         <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Color Harmony Insights</Text>
         <View style={styles.insightGrid}>
           {[
@@ -157,9 +173,9 @@ export default function ColorAnalysisScreen() {
             </View>
           ))}
         </View>
-      </View>
+      </Animated.View>
 
-      <View style={styles.section}>
+      <Animated.View style={[styles.section, { opacity: fade, transform: [{ translateY: lift }] }]}>
         <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Style Direction</Text>
         <View style={styles.tagWrap}>
           {[
@@ -176,7 +192,7 @@ export default function ColorAnalysisScreen() {
               </View>
             ))}
         </View>
-      </View>
+      </Animated.View>
     </ScrollView>
   );
 }
@@ -208,6 +224,7 @@ const styles = StyleSheet.create({
   toneScroll: { paddingHorizontal: 18, gap: 12 },
   toneCard: { width: 132, borderRadius: 22, borderWidth: 1, padding: 12, backgroundColor: "#fff" },
   tonePreview: { height: 150, borderRadius: 18, overflow: "hidden", justifyContent: "flex-start", padding: 10 },
+  tonePortrait: { ...StyleSheet.absoluteFillObject },
   toneOverlay: { ...StyleSheet.absoluteFillObject },
   bestBadge: { flexDirection: "row", alignItems: "center", gap: 4, alignSelf: "flex-start", backgroundColor: "rgba(196,149,106,0.95)", paddingHorizontal: 8, paddingVertical: 5, borderRadius: 999 },
   bestBadgeText: { color: "#fff", fontSize: 10, fontFamily: "Inter_700Bold" },
