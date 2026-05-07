@@ -5,13 +5,9 @@ import { requireAnalyzeToken } from "../middlewares/requireAnalyzeToken";
 
 const router = Router();
 
-// ── Concurrency cap ────────────────────────────────────────────────────────
-// Limits simultaneous in-flight OpenAI vision calls to prevent runaway costs
-// when many requests arrive at the same time (e.g. a botnet burst).
 const MAX_CONCURRENT = 3;
 let activeRequests = 0;
 
-// ── MIME type allowlist ────────────────────────────────────────────────────
 const ALLOWED_MIME_TYPES = new Set([
   "image/jpeg",
   "image/png",
@@ -21,9 +17,6 @@ const ALLOWED_MIME_TYPES = new Set([
   "image/heif",
 ]);
 
-// ── Base64 payload cap ─────────────────────────────────────────────────────
-// A 6 MB base64 string encodes ~4.5 MB of binary data — sufficient for any
-// reasonable selfie. Payloads above this are rejected before touching OpenAI.
 const MAX_BASE64_CHARS = 6 * 1024 * 1024;
 
 const SYSTEM_PROMPT = `You are a professional aesthetic analysis engine for a premium AI styling app.
@@ -106,7 +99,6 @@ makeup_direction: one of natural, soft glam, glam, bold, editorial
 fashion_direction: concise label e.g. "minimalist luxury", "romantic casual", "polished classic"
 shopping_keywords: 6–10 SEO-style search tags for product recommendations`;
 
-// ── Companion name generation ─────────────────────────────────────────────
 const COMPANION_NAME_SYSTEM = `You are naming a personal AI beauty and fashion companion assistant.
 Given a user's style profile, suggest ONE perfect name for their AI companion.
 
@@ -121,7 +113,6 @@ Rules:
   classic / timeless / elegant → timeless names (e.g. Ava, Lea, Rose, Nina, Cara)
 - Return ONLY the name. No punctuation, no explanation.`;
 
-// ── Companion avatar prompt builder ──────────────────────────────────────
 function buildAvatarPrompt(profile: Record<string, unknown>): string {
   const skinTone = typeof profile.skin_tone === "string" ? profile.skin_tone : "medium";
   const hairType = typeof profile.hair_type === "string" ? profile.hair_type : "wavy";
@@ -142,7 +133,6 @@ Physical reference: skin tone ${skinTone}, ${hairType} hair, ${faceShape} face s
 Art direction: magazine editorial illustration, clean confident lines, modern luxury fashion aesthetic, centered square composition, close-up portrait with soft illustrated style similar to a premium fashion magazine character illustration. Smooth painterly texture, soft bokeh background with a subtle gradient. Stylish, aspirational, warm and approachable expression. No text, no words, no labels, no watermarks.`;
 }
 
-// ── Generate companion identity (name + avatar) in parallel ──────────────
 async function generateCompanionIdentity(
   profile: Record<string, unknown>,
   log: { warn: (obj: object, msg: string) => void }
@@ -182,7 +172,6 @@ async function generateCompanionIdentity(
   let companion_name: string | null = null;
   if (nameResult.status === "fulfilled") {
     const raw = nameResult.value.choices[0]?.message?.content?.trim() ?? "";
-    // Spec: 4–8 letters, first name only
     companion_name = /^[A-Za-z]{4,8}$/.test(raw) ? raw : null;
   } else {
     log.warn({ err: nameResult.reason }, "Companion name generation failed");
@@ -199,8 +188,23 @@ async function generateCompanionIdentity(
   return { companion_name, companion_avatar_url };
 }
 
+function parseAnalysisJson(content: string): Record<string, unknown> | null {
+  const cleaned = content
+    .replace(/^```json\s*/i, "")
+    .replace(/^```\s*/i, "")
+    .replace(/\s*```$/i, "")
+    .trim();
+
+  try {
+    const parsed = JSON.parse(cleaned) as unknown;
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
+    return parsed as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}
+
 router.post("/analyze", analyzeLimiter, requireAnalyzeToken, async (req, res): Promise<void> => {
-  // ── Input validation ─────────────────────────────────────────────────────
   const { imageBase64, mimeType } = req.body as {
     imageBase64: unknown;
     mimeType: unknown;
@@ -223,13 +227,11 @@ router.post("/analyze", analyzeLimiter, requireAnalyzeToken, async (req, res): P
     return;
   }
 
-  // Basic base64 format check — reject obviously non-image payloads.
   if (!/^[A-Za-z0-9+/]+=*$/.test(imageBase64.slice(0, 100))) {
     res.status(400).json({ error: "imageBase64 must be a valid base64-encoded image." });
     return;
   }
 
-  // ── Concurrency cap ──────────────────────────────────────────────────────
   if (activeRequests >= MAX_CONCURRENT) {
     req.log.warn({ activeRequests }, "Analyze concurrency cap reached");
     res.status(503).json({ error: "Server is busy — please try again in a moment." });
@@ -240,7 +242,6 @@ router.post("/analyze", analyzeLimiter, requireAnalyzeToken, async (req, res): P
   req.log.info({ activeRequests, ip: req.ip }, "Analyze request started");
 
   try {
-    // ── Main vision analysis ───────────────────────────────────────────────
     const response = await openai.chat.completions.create({
       model: "gpt-5.4",
       max_completion_tokens: 3000,
@@ -274,15 +275,13 @@ router.post("/analyze", analyzeLimiter, requireAnalyzeToken, async (req, res): P
       return;
     }
 
-    const cleaned = content
-      .replace(/^```json\s*/i, "")
-      .replace(/^```\s*/i, "")
-      .replace(/\s*```$/i, "")
-      .trim();
+    const analysisResult = parseAnalysisJson(content);
+    if (!analysisResult) {
+      req.log.error({ contentPreview: content.slice(0, 200) }, "Analyze model returned invalid JSON");
+      res.status(500).json({ error: "AI returned malformed analysis JSON" });
+      return;
+    }
 
-    const analysisResult = JSON.parse(cleaned) as Record<string, unknown>;
-
-    // ── Companion identity generation (name + avatar, parallel) ───────────
     const { companion_name, companion_avatar_url } = await generateCompanionIdentity(
       analysisResult,
       req.log

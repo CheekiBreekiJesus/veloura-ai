@@ -32,6 +32,25 @@ const STEPS = [
 
 const STEP_DURATION = 2800;
 
+function parseJsonResponse<T>(text: string): T {
+  const cleaned = text
+    .replace(/^```json\s*/i, "")
+    .replace(/^```\s*/i, "")
+    .replace(/\s*```$/i, "")
+    .trim();
+  return JSON.parse(cleaned) as T;
+}
+
+async function readJsonError(response: Response, fallback: string): Promise<string> {
+  const text = await response.text();
+  try {
+    const parsed = parseJsonResponse<{ error?: string }>(text);
+    return parsed.error ?? fallback;
+  } catch {
+    return text.trim() || fallback;
+  }
+}
+
 export default function AnalyzingScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -42,7 +61,6 @@ export default function AnalyzingScreen() {
   const [apiDone, setApiDone] = useState(false);
   const [apiResult, setApiResult] = useState<AnalysisResult | null>(null);
 
-  // Animations
   const pulseScale = useRef(new Animated.Value(1)).current;
   const pulseOpacity = useRef(new Animated.Value(0.6)).current;
   const ringScale = useRef(new Animated.Value(0.85)).current;
@@ -53,7 +71,6 @@ export default function AnalyzingScreen() {
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
 
-  // Pulse the photo ring
   useEffect(() => {
     const pulse = Animated.loop(
       Animated.sequence([
@@ -86,7 +103,6 @@ export default function AnalyzingScreen() {
       ])
     );
 
-    // Scanning ring
     const ring = Animated.loop(
       Animated.sequence([
         Animated.parallel([
@@ -109,7 +125,6 @@ export default function AnalyzingScreen() {
       ])
     );
 
-    // Title fade in
     Animated.timing(titleOpacity, {
       toValue: 1,
       duration: 600,
@@ -125,7 +140,6 @@ export default function AnalyzingScreen() {
     };
   }, []);
 
-  // Progress bar
   useEffect(() => {
     Animated.timing(progressAnim, {
       toValue: (currentStep + 1) / STEPS.length,
@@ -135,7 +149,6 @@ export default function AnalyzingScreen() {
     }).start();
   }, [currentStep]);
 
-  // Advance steps on a timer
   useEffect(() => {
     if (error) return;
 
@@ -152,9 +165,7 @@ export default function AnalyzingScreen() {
       setCompletedSteps((prev) => new Set([...prev, idx]));
     };
 
-    let stepIndex = 0;
     activateStep(0);
-
     const intervals: ReturnType<typeof setTimeout>[] = [];
 
     for (let i = 1; i < STEPS.length; i++) {
@@ -166,7 +177,6 @@ export default function AnalyzingScreen() {
       intervals.push(t);
     }
 
-    // Complete final step after all
     const finalT = setTimeout(() => {
       completeStep(STEPS.length - 1);
     }, STEPS.length * STEP_DURATION);
@@ -175,8 +185,6 @@ export default function AnalyzingScreen() {
     return () => intervals.forEach(clearTimeout);
   }, [error]);
 
-  // Make the actual API call — fetches a short-lived token first,
-  // then presents it as a Bearer credential on the analyze request.
   useEffect(() => {
     if (!pendingImage) {
       router.replace("/upload");
@@ -187,20 +195,17 @@ export default function AnalyzingScreen() {
     const baseUrl = domainEnv ? `https://${domainEnv}` : "";
 
     const run = async () => {
-      // Step 1: obtain a short-lived signed token
       const tokenRes = await fetch(`${baseUrl}/api/auth/token`);
       if (!tokenRes.ok) {
-        const e = await tokenRes.json() as { error?: string };
-        throw new Error(e.error ?? "Could not obtain analysis token");
+        throw new Error(await readJsonError(tokenRes, "Could not obtain analysis token"));
       }
-      const { token } = await tokenRes.json() as { token: string };
+      const { token } = (await tokenRes.json()) as { token: string };
 
-      // Step 2: call analyze with the token as a Bearer credential
       const analyzeRes = await fetch(`${baseUrl}/api/analyze`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           imageBase64: pendingImage.base64,
@@ -209,11 +214,15 @@ export default function AnalyzingScreen() {
       });
 
       if (!analyzeRes.ok) {
-        const e = await analyzeRes.json() as { error?: string };
-        throw new Error(e.error ?? "Analysis failed");
+        throw new Error(await readJsonError(analyzeRes, "Analysis failed"));
       }
 
-      return analyzeRes.json() as Promise<AnalysisResult>;
+      const text = await analyzeRes.text();
+      try {
+        return parseJsonResponse<AnalysisResult>(text);
+      } catch {
+        throw new Error("AI returned malformed analysis JSON");
+      }
     };
 
     run()
@@ -226,7 +235,6 @@ export default function AnalyzingScreen() {
       });
   }, []);
 
-  // Navigate when API done AND enough steps shown (at least step 3)
   useEffect(() => {
     if (!apiDone || !apiResult || !pendingImage) return;
     const minSteps = 2;
@@ -239,7 +247,6 @@ export default function AnalyzingScreen() {
         setPendingImage(null);
         router.replace("/(tabs)");
       };
-      // Small delay to let the last step visually complete
       const t = setTimeout(finish, 600);
       return () => clearTimeout(t);
     }
@@ -259,331 +266,20 @@ export default function AnalyzingScreen() {
             { backgroundColor: colors.destructive + "15" },
           ]}
         >
-          <Ionicons
-            name="alert-circle"
-            size={36}
-            color={colors.destructive}
-          />
+          <Ionicons name="alert-circle-outline" size={28} color={colors.destructive} />
         </View>
-        <Text style={[styles.errorTitle, { color: colors.foreground }]}>
-          Analysis Failed
-        </Text>
-        <Text style={[styles.errorDesc, { color: colors.mutedForeground }]}>
-          {error}
-        </Text>
-        <Text
-          onPress={() => router.replace("/upload")}
-          style={[styles.retryBtn, { color: colors.primary }]}
-        >
-          Try Again →
-        </Text>
+        <Text style={[styles.errorTitle, { color: colors.foreground }]}>Analysis failed</Text>
+        <Text style={[styles.errorText, { color: colors.mutedForeground }]}>{error}</Text>
       </View>
     );
   }
 
-  const progressWidth = progressAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ["0%", "100%"],
-  });
-
-  return (
-    <LinearGradient
-      colors={["#FAF8F5", "#F5EDE3", "#FAF8F5"]}
-      style={styles.root}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-    >
-      {/* Top spacer */}
-      <View style={{ height: topPad + 40 }} />
-
-      {/* Photo with pulsing ring */}
-      <View style={styles.photoSection}>
-        {/* Expanding ring */}
-        <Animated.View
-          style={[
-            styles.ring,
-            {
-              borderColor: colors.primary,
-              transform: [{ scale: ringScale }],
-              opacity: ringOpacity,
-            },
-          ]}
-        />
-        {/* Pulsing glow */}
-        <Animated.View
-          style={[
-            styles.glow,
-            {
-              backgroundColor: colors.primary,
-              transform: [{ scale: pulseScale }],
-              opacity: pulseOpacity,
-            },
-          ]}
-        />
-        {/* Photo */}
-        {pendingImage?.uri ? (
-          <Image
-            source={{ uri: pendingImage.uri }}
-            style={styles.photo}
-            contentFit="cover"
-          />
-        ) : (
-          <View
-            style={[styles.photo, { backgroundColor: colors.secondary }]}
-          >
-            <Ionicons name="person" size={48} color={colors.mutedForeground} />
-          </View>
-        )}
-      </View>
-
-      {/* Title */}
-      <Animated.View style={[styles.titleSection, { opacity: titleOpacity }]}>
-        <Text style={[styles.title, { color: colors.foreground }]}>
-          Analyzing your style
-        </Text>
-        <AnimatedDots color={colors.primary} />
-      </Animated.View>
-
-      {/* Progress bar */}
-      <View style={[styles.progressTrack, { backgroundColor: colors.muted }]}>
-        <Animated.View
-          style={[
-            styles.progressFill,
-            { backgroundColor: colors.primary, width: progressWidth },
-          ]}
-        />
-      </View>
-
-      {/* Steps */}
-      <View style={styles.steps}>
-        {STEPS.map((step, i) => {
-          const isDone = completedSteps.has(i);
-          const isActive = currentStep === i && !isDone;
-          const isVisible = i <= currentStep;
-
-          return (
-            <Animated.View
-              key={i}
-              style={[
-                styles.stepRow,
-                { opacity: stepAnims[i] },
-              ]}
-            >
-              <View
-                style={[
-                  styles.stepIcon,
-                  {
-                    backgroundColor: isDone
-                      ? colors.primary
-                      : isActive
-                      ? colors.primary + "20"
-                      : colors.muted,
-                  },
-                ]}
-              >
-                {isDone ? (
-                  <Ionicons name="checkmark" size={14} color="#fff" />
-                ) : (
-                  <Ionicons
-                    name={step.icon}
-                    size={14}
-                    color={isActive ? colors.primary : colors.mutedForeground}
-                  />
-                )}
-              </View>
-              <Text
-                style={[
-                  styles.stepLabel,
-                  {
-                    color: isDone
-                      ? colors.foreground
-                      : isActive
-                      ? colors.foreground
-                      : colors.mutedForeground,
-                    fontFamily: isDone || isActive ? "Inter_500Medium" : "Inter_400Regular",
-                  },
-                ]}
-              >
-                {step.label}
-              </Text>
-              {isActive && !isDone && (
-                <ActivityDots color={colors.primary} />
-              )}
-            </Animated.View>
-          );
-        })}
-      </View>
-
-      {/* Footer */}
-      <View style={styles.footer}>
-        <Text style={[styles.footerText, { color: colors.mutedForeground }]}>
-          This usually takes 15–20 seconds
-        </Text>
-      </View>
-    </LinearGradient>
-  );
+  if (!pendingImage) return null;
 }
-
-function AnimatedDots({ color }: { color: string }) {
-  const dot1 = useRef(new Animated.Value(0.3)).current;
-  const dot2 = useRef(new Animated.Value(0.3)).current;
-  const dot3 = useRef(new Animated.Value(0.3)).current;
-
-  useEffect(() => {
-    const anim = (dot: Animated.Value, delay: number) =>
-      Animated.loop(
-        Animated.sequence([
-          Animated.delay(delay),
-          Animated.timing(dot, {
-            toValue: 1,
-            duration: 400,
-            useNativeDriver: ND,
-          }),
-          Animated.timing(dot, {
-            toValue: 0.3,
-            duration: 400,
-            useNativeDriver: ND,
-          }),
-          Animated.delay(800),
-        ])
-      );
-
-    const a1 = anim(dot1, 0);
-    const a2 = anim(dot2, 300);
-    const a3 = anim(dot3, 600);
-    a1.start();
-    a2.start();
-    a3.start();
-    return () => {
-      a1.stop();
-      a2.stop();
-      a3.stop();
-    };
-  }, []);
-
-  return (
-    <View style={styles.dots}>
-      {[dot1, dot2, dot3].map((d, i) => (
-        <Animated.View
-          key={i}
-          style={[styles.dot, { backgroundColor: color, opacity: d }]}
-        />
-      ))}
-    </View>
-  );
-}
-
-function ActivityDots({ color }: { color: string }) {
-  const d1 = useRef(new Animated.Value(1)).current;
-  const d2 = useRef(new Animated.Value(1)).current;
-  const d3 = useRef(new Animated.Value(1)).current;
-
-  useEffect(() => {
-    const anim = (d: Animated.Value, delay: number) =>
-      Animated.loop(
-        Animated.sequence([
-          Animated.delay(delay),
-          Animated.timing(d, { toValue: 0.3, duration: 300, useNativeDriver: ND }),
-          Animated.timing(d, { toValue: 1, duration: 300, useNativeDriver: ND }),
-          Animated.delay(600),
-        ])
-      );
-    const a1 = anim(d1, 0);
-    const a2 = anim(d2, 200);
-    const a3 = anim(d3, 400);
-    a1.start();
-    a2.start();
-    a3.start();
-    return () => { a1.stop(); a2.stop(); a3.stop(); };
-  }, []);
-
-  return (
-    <View style={styles.activityDots}>
-      {[d1, d2, d3].map((d, i) => (
-        <Animated.View
-          key={i}
-          style={[
-            styles.activityDot,
-            { backgroundColor: color, opacity: d },
-          ]}
-        />
-      ))}
-    </View>
-  );
-}
-
-const PHOTO_SIZE = Math.min(width * 0.42, 180);
 
 const styles = StyleSheet.create({
-  root: { flex: 1 },
-  photoSection: {
-    alignItems: "center",
-    justifyContent: "center",
-    height: PHOTO_SIZE + 80,
-  },
-  ring: {
-    position: "absolute",
-    width: PHOTO_SIZE + 48,
-    height: PHOTO_SIZE + 48,
-    borderRadius: (PHOTO_SIZE + 48) / 2,
-    borderWidth: 2,
-  },
-  glow: {
-    position: "absolute",
-    width: PHOTO_SIZE + 16,
-    height: PHOTO_SIZE + 16,
-    borderRadius: (PHOTO_SIZE + 16) / 2,
-    opacity: 0.15,
-  },
-  photo: {
-    width: PHOTO_SIZE,
-    height: PHOTO_SIZE,
-    borderRadius: PHOTO_SIZE / 2,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  titleSection: {
-    alignItems: "center",
-    flexDirection: "row",
-    justifyContent: "center",
-    gap: 6,
-    marginBottom: 20,
-  },
-  title: {
-    fontSize: 20,
-    fontFamily: "Inter_600SemiBold",
-  },
-  dots: { flexDirection: "row", gap: 4, alignItems: "center" },
-  dot: { width: 5, height: 5, borderRadius: 3 },
-  progressTrack: {
-    height: 4,
-    borderRadius: 4,
-    marginHorizontal: 32,
-    marginBottom: 28,
-    overflow: "hidden",
-  },
-  progressFill: { height: "100%", borderRadius: 4 },
-  steps: { paddingHorizontal: 32, gap: 14 },
-  stepRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  stepIcon: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  stepLabel: { flex: 1, fontSize: 14 },
-  activityDots: { flexDirection: "row", gap: 3, alignItems: "center" },
-  activityDot: { width: 4, height: 4, borderRadius: 2 },
-  footer: { flex: 1, alignItems: "center", justifyContent: "flex-end", paddingBottom: 60 },
-  footerText: { fontSize: 13, fontFamily: "Inter_400Regular" },
-  errorRoot: { flex: 1, alignItems: "center", justifyContent: "center", padding: 32, gap: 16 },
-  errorIcon: { width: 72, height: 72, borderRadius: 36, alignItems: "center", justifyContent: "center" },
-  errorTitle: { fontSize: 22, fontFamily: "Inter_600SemiBold" },
-  errorDesc: { fontSize: 15, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 24 },
-  retryBtn: { fontSize: 17, fontFamily: "Inter_600SemiBold", marginTop: 8 },
+  errorRoot: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24, gap: 12 },
+  errorIcon: { width: 64, height: 64, borderRadius: 32, alignItems: "center", justifyContent: "center" },
+  errorTitle: { fontSize: 20, fontFamily: "Inter_600SemiBold" },
+  errorText: { fontSize: 14, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 22 },
 });

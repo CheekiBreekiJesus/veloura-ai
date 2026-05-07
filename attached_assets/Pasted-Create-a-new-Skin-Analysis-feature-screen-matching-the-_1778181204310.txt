@@ -1,0 +1,86 @@
+Create a new “Skin Analysis” feature screen matching the existing luxury/minimal aesthetic of the app. Style must feel soft, editorial, modern, feminine, clean, and futuristic with neutral beige/ivory backgrounds, rounded cards, subtle shadows, thin dividers, elegant typography, and premium skincare UI design.
+
+Use the uploaded selfie as the primary visual anchor.
+
+FEATURE GOAL:
+Generate a visual-first skin analysis dashboard that compares multiple skin types and highlights the best matching skin profile for the user.
+
+LAYOUT:
+
+SECTION 1 — HERO ANALYSIS PANEL
+
+* Large portrait card
+* Overlay subtle skin zone mapping:
+
+  * T-zone
+  * cheeks
+  * chin
+* Use elegant thin outlines and soft labels
+* Add “Skin Analysis” heading
+* Add small skin type indicator badges
+
+SECTION 2 — SKIN CONCERNS
+Create circular visual analysis cards for:
+
+* redness
+* pores
+* uneven tone
+* texture
+* blemishes
+* dryness
+
+Use soft realistic skin textures and pastel tones.
+
+SECTION 3 — UNDERTONE ANALYSIS
+Create horizontal undertone scale:
+cool → neutral → warm
+
+Highlight detected undertone with elegant slider marker.
+
+SECTION 4 — SKIN TYPE COMPARISON
+Generate 5 comparison cards:
+
+* oily
+* combination
+* normal
+* dry
+* sensitive
+
+Each card must include:
+
+* cropped portrait variation
+* 2 short labels only
+* minimalist icons
+* match indicator
+
+Highlight best match with:
+
+* soft green outline
+* “Best Match” badge/button
+
+SECTION 5 — RECOMMENDED ROUTINE
+Minimal horizontal recommendation bar with icons only:
+
+* cleanser
+* serum
+* moisturizer
+* SPF
+
+Use elegant monochrome line icons.
+
+DESIGN RULES:
+
+* No long paragraphs
+* Visual-first layout
+* Premium skincare app aesthetic
+* Apple + Sephora + Vogue inspired UI
+* Keep spacing breathable
+* Use soft pastel neutrals
+* Maintain app visual identity consistency
+* Mobile-first responsive layout
+* Smooth card hover animations
+* Glassmorphism allowed subtly
+* Avoid clutter
+
+OUTPUT:
+Build this as a reusable dynamic component connected to the existing face analysis pipeline so detected values populate automatically from AI analysis results.
