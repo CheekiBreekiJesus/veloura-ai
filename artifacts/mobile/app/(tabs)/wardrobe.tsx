@@ -69,7 +69,7 @@ const OUTFIT_GRADIENTS: [string, string][] = [
 const OUTFIT_TEXT = "#2D1F14";
 const OUTFIT_TEXT_DIM = "#6B4C35";
 
-type StyleCategory = "Casual" | "Formal" | "Evening" | "Weekend" | "Beach" | "Nightlife" | "Sportswear" | "Sleepwear" | "Workwear";
+type StyleCategory = "Casual" | "Formal" | "Weekend" | "Beach" | "Nightlife" | "Sportswear" | "Sleepwear" | "Workwear";
 type SortOption = "recent" | "score";
 type WardrobeSection = "closet" | "picks" | "seasons";
 
@@ -85,10 +85,9 @@ const SEASON_LABELS: Record<Season, string> = {
 const FILTER_KEYWORDS: Record<StyleCategory, string[]> = {
   Casual: ["casual", "everyday", "relaxed", "street", "jeans", "denim", "comfortable", "comfy", "basics", "simple", "effortless"],
   Formal: ["formal", "black tie", "suit", "structured", "tailored", "polished", "gala", "ceremony"],
-  Evening: ["evening", "night", "cocktail", "party", "gown", "dinner", "elegant", "soirée", "occasion", "date", "glamour", "glam"],
   Weekend: ["weekend", "leisure", "outdoor", "brunch", "holiday", "travel", "adventure", "picnic"],
   Beach: ["beach", "swimwear", "bikini", "swimsuit", "resort", "tropical", "sarong", "cover-up", "coverup", "poolside", "surf", "boardshort", "swim"],
-  Nightlife: ["nightlife", "club", "bar", "going out", "sequin", "bodycon", "glitter", "metallic", "mini dress", "night out"],
+  Nightlife: ["nightlife", "club", "bar", "going out", "sequin", "bodycon", "glitter", "metallic", "mini dress", "night out", "evening", "night", "cocktail", "party", "gown", "dinner", "elegant", "soirée", "occasion", "date", "glamour", "glam"],
   Sportswear: ["gym", "workout", "yoga", "running", "leggings", "training", "cycling", "performance", "moisture", "compression", "athletic", "activewear", "sport", "fitness"],
   Sleepwear: ["pajama", "pyjama", "lounge", "sleep", "nightwear", "robe", "cozy", "satin slip", "nightgown", "pj"],
   Workwear: ["workwear", "office", "work outfit", "business casual", "desk", "smart casual", "trousers", "pencil skirt", "corporate", "professional"],
