@@ -192,6 +192,27 @@ export interface AnalysisResult {
   companion_avatar_url?: string;
 }
 
+export interface MakeupTryOnRequest {
+  /** Base64-encoded selfie image. Maximum ~6 MB of base64 chars. Accepted MIME types: image/jpeg, image/png, image/webp, image/gif, image/heic, image/heif.
+   */
+  imageBase64: string;
+  /** MIME type of the image (e.g. image/jpeg) */
+  mimeType: string;
+  /** Short name of the makeup look (e.g. "Glam Smoky Eye") */
+  lookName: string;
+  /** Detailed description fragment used to prompt DALL-E (e.g. "a dramatic smoky eye with charcoal shadow…") */
+  lookPromptFragment: string;
+  /** User's Aesthetic Identity Profile for personalisation context */
+  profile?: AnalysisResult;
+}
+
+export interface MakeupPreviewResult {
+  /** Base64-encoded PNG of the AI-generated makeup preview */
+  imageBase64: string;
+  /** Always "image/png" */
+  mimeType: string;
+}
+
 export type ChatMessageRole =
   (typeof ChatMessageRole)[keyof typeof ChatMessageRole];
 

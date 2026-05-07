@@ -21,6 +21,8 @@ export * from "./chatRequest";
 export * from "./chatResponse";
 export * from "./errorResponse";
 export * from "./healthStatus";
+export * from "./makeupPreviewResult";
+export * from "./makeupTryOnRequest";
 export * from "./skinConcerns";
 export * from "./skinConcernsAcne";
 export * from "./skinConcernsDryness";

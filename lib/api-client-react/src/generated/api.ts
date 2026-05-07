@@ -24,6 +24,8 @@ import type {
   ChatResponse,
   ErrorResponse,
   HealthStatus,
+  MakeupPreviewResult,
+  MakeupTryOnRequest,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
@@ -273,6 +275,94 @@ export const useChatWithStylist = <
   TContext
 > => {
   return useMutation(getChatWithStylistMutationOptions(options));
+};
+
+/**
+ * Accepts a selfie (base64) and a makeup look descriptor. Uses GPT-4o to extract face features, then DALL-E 3 to generate an editorial portrait with the requested makeup applied. Returns a base64-encoded PNG. Requires a valid Bearer token from GET /api/auth/token. Rate-limited to 15 requests per IP per 15-minute window. Maximum 2 concurrent requests.
+
+ * @summary Generate an AI makeup try-on preview
+ */
+export const getMakeupTryOnUrl = () => {
+  return `/api/makeup-try-on`;
+};
+
+export const makeupTryOn = async (
+  makeupTryOnRequest: MakeupTryOnRequest,
+  options?: RequestInit,
+): Promise<MakeupPreviewResult> => {
+  return customFetch<MakeupPreviewResult>(getMakeupTryOnUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(makeupTryOnRequest),
+  });
+};
+
+export const getMakeupTryOnMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof makeupTryOn>>,
+    TError,
+    { data: BodyType<MakeupTryOnRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof makeupTryOn>>,
+  TError,
+  { data: BodyType<MakeupTryOnRequest> },
+  TContext
+> => {
+  const mutationKey = ["makeupTryOn"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof makeupTryOn>>,
+    { data: BodyType<MakeupTryOnRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return makeupTryOn(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type MakeupTryOnMutationResult = NonNullable<
+  Awaited<ReturnType<typeof makeupTryOn>>
+>;
+export type MakeupTryOnMutationBody = BodyType<MakeupTryOnRequest>;
+export type MakeupTryOnMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Generate an AI makeup try-on preview
+ */
+export const useMakeupTryOn = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof makeupTryOn>>,
+    TError,
+    { data: BodyType<MakeupTryOnRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof makeupTryOn>>,
+  TError,
+  { data: BodyType<MakeupTryOnRequest> },
+  TContext
+> => {
+  return useMutation(getMakeupTryOnMutationOptions(options));
 };
 
 /**

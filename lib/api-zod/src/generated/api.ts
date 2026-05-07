@@ -128,6 +128,112 @@ export const ChatWithStylistResponse = zod.object({
 });
 
 /**
+ * Accepts a selfie (base64) and a makeup look descriptor. Uses GPT-4o to extract face features, then DALL-E 3 to generate an editorial portrait with the requested makeup applied. Returns a base64-encoded PNG. Requires a valid Bearer token from GET /api/auth/token. Rate-limited to 15 requests per IP per 15-minute window. Maximum 2 concurrent requests.
+
+ * @summary Generate an AI makeup try-on preview
+ */
+export const makeupTryOnBodyProfileFacialSymmetryScoreMin = 0;
+export const makeupTryOnBodyProfileFacialSymmetryScoreMax = 1;
+
+export const MakeupTryOnBody = zod.object({
+  imageBase64: zod
+    .string()
+    .describe(
+      "Base64-encoded selfie image. Maximum ~6 MB of base64 chars. Accepted MIME types: image\/jpeg, image\/png, image\/webp, image\/gif, image\/heic, image\/heif.\n",
+    ),
+  mimeType: zod.string().describe("MIME type of the image (e.g. image\/jpeg)"),
+  lookName: zod
+    .string()
+    .describe('Short name of the makeup look (e.g. \"Glam Smoky Eye\")'),
+  lookPromptFragment: zod
+    .string()
+    .describe(
+      'Detailed description fragment used to prompt DALL-E (e.g. \"a dramatic smoky eye with charcoal shadow…\")',
+    ),
+  profile: zod
+    .object({
+      face_shape: zod
+        .string()
+        .describe("oval, round, square, heart, diamond, oblong"),
+      skin_tone: zod.string(),
+      undertone: zod.string().describe("warm, cool, neutral"),
+      eye_shape: zod.string(),
+      lip_shape: zod.string(),
+      hair_type: zod.string(),
+      style_archetype: zod.string(),
+      color_palette: zod.array(zod.string()).describe("5-8 hex color codes"),
+      beauty_recommendations: zod.array(zod.string()),
+      fashion_recommendations: zod.array(zod.string()),
+      hairstyle_suggestions: zod.array(zod.string()),
+      glasses_suggestions: zod.array(zod.string()),
+      jawline_definition: zod.enum(["soft", "medium", "sharp"]),
+      cheekbone_prominence: zod.enum(["low", "medium", "high"]),
+      facial_symmetry_score: zod
+        .number()
+        .min(makeupTryOnBodyProfileFacialSymmetryScoreMin)
+        .max(makeupTryOnBodyProfileFacialSymmetryScoreMax),
+      eyebrow_shape: zod
+        .string()
+        .describe("e.g. Straight, Arched, Feathered, Rounded, Angled"),
+      nose_shape: zod
+        .string()
+        .describe(
+          "e.g. Soft Button, Refined Straight, Gently Rounded, Aquiline",
+        ),
+      skin_type: zod
+        .enum(["oily", "combination", "normal", "dry", "sensitive"])
+        .describe("Detected skin type category"),
+      skin_tone_category: zod.enum([
+        "very_light",
+        "light",
+        "medium",
+        "tan",
+        "deep",
+      ]),
+      skin_evenness: zod.enum(["low", "medium", "high"]),
+      skin_concerns: zod.object({
+        acne: zod.enum(["none", "mild", "moderate", "severe"]),
+        redness: zod.enum(["none", "mild", "moderate", "severe"]),
+        dryness: zod.enum(["none", "mild", "moderate", "severe"]),
+        pores: zod.enum(["none", "mild", "moderate", "severe"]),
+        texture: zod.enum(["none", "mild", "moderate", "severe"]),
+      }),
+      contrast_level: zod.enum(["low", "medium", "high"]),
+      color_families: zod.array(zod.string()),
+      hair_lengths: zod.array(zod.string()),
+      recommended_style_direction: zod.string(),
+      earring_styles: zod.array(zod.string()),
+      necklace_lengths: zod.array(zod.string()),
+      aesthetic_archetypes: zod.array(zod.string()),
+      skincare_focus: zod.array(zod.string()),
+      makeup_direction: zod.string(),
+      fashion_direction: zod.string(),
+      shopping_keywords: zod.array(zod.string()),
+      companion_name: zod
+        .string()
+        .optional()
+        .describe(
+          "AI-generated companion name (4–8 letters, aesthetic-matched)",
+        ),
+      companion_avatar_url: zod
+        .string()
+        .optional()
+        .describe(
+          "DALL-E illustrated avatar as a data URI (persists across restarts)",
+        ),
+    })
+    .optional()
+    .describe("User's Aesthetic Identity Profile for personalisation context"),
+});
+
+export const MakeupTryOnResponse = zod.object({
+  imageBase64: zod
+    .string()
+    .describe("Base64-encoded PNG of the AI-generated makeup preview"),
+  mimeType: zod.string().describe('Always \"image\/png\"'),
+});
+
+/**
  * Analyzes a selfie using AI vision and returns a full Aesthetic Identity Profile. Requires a valid Bearer token from GET /api/auth/token. Rate-limited to 10 requests per IP per 15-minute window. Rejected if the server has 3 or more concurrent analysis requests in flight.
 
  * @summary Analyze face from image

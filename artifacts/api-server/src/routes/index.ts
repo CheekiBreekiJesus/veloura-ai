@@ -4,6 +4,7 @@ import authRouter from "./auth";
 import analyzeRouter from "./analyze";
 import analyzeClothingRouter from "./analyze-clothing";
 import chatRouter from "./chat";
+import makeupTryOnRouter from "./makeup-try-on";
 
 const router: IRouter = Router();
 
@@ -12,5 +13,6 @@ router.use(authRouter);
 router.use(analyzeRouter);
 router.use(analyzeClothingRouter);
 router.use(chatRouter);
+router.use(makeupTryOnRouter);
 
 export default router;
