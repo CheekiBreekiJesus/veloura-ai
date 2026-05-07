@@ -27,6 +27,82 @@ export const GetAnalyzeTokenResponse = zod.object({
 });
 
 /**
+ * Send a conversational message to Aura, the personal AI stylist. The full conversation history and the user's Aesthetic Identity Profile are included so the AI can give deeply personalized advice. Requires a valid Bearer token from GET /api/auth/token.
+
+ * @summary Chat with the AI stylist
+ */
+export const chatWithStylistBodyProfileFacialSymmetryScoreMin = 0;
+export const chatWithStylistBodyProfileFacialSymmetryScoreMax = 1;
+
+export const ChatWithStylistBody = zod.object({
+  messages: zod
+    .array(
+      zod.object({
+        role: zod.enum(["user", "assistant"]),
+        content: zod.string(),
+      }),
+    )
+    .describe("Conversation history (max 40 messages, each max 2000 chars)"),
+  profile: zod
+    .object({
+      face_shape: zod
+        .string()
+        .describe("oval, round, square, heart, diamond, oblong"),
+      skin_tone: zod.string(),
+      undertone: zod.string().describe("warm, cool, neutral"),
+      eye_shape: zod.string(),
+      lip_shape: zod.string(),
+      hair_type: zod.string(),
+      style_archetype: zod.string(),
+      color_palette: zod.array(zod.string()).describe("5-8 hex color codes"),
+      beauty_recommendations: zod.array(zod.string()),
+      fashion_recommendations: zod.array(zod.string()),
+      hairstyle_suggestions: zod.array(zod.string()),
+      glasses_suggestions: zod.array(zod.string()),
+      jawline_definition: zod.enum(["soft", "medium", "sharp"]),
+      cheekbone_prominence: zod.enum(["low", "medium", "high"]),
+      facial_symmetry_score: zod
+        .number()
+        .min(chatWithStylistBodyProfileFacialSymmetryScoreMin)
+        .max(chatWithStylistBodyProfileFacialSymmetryScoreMax),
+      skin_tone_category: zod.enum([
+        "very_light",
+        "light",
+        "medium",
+        "tan",
+        "deep",
+      ]),
+      skin_evenness: zod.enum(["low", "medium", "high"]),
+      skin_concerns: zod.object({
+        acne: zod.enum(["none", "mild", "moderate", "severe"]),
+        redness: zod.enum(["none", "mild", "moderate", "severe"]),
+        dryness: zod.enum(["none", "mild", "moderate", "severe"]),
+      }),
+      contrast_level: zod.enum(["low", "medium", "high"]),
+      color_families: zod.array(zod.string()),
+      hair_lengths: zod.array(zod.string()),
+      recommended_style_direction: zod.string(),
+      earring_styles: zod.array(zod.string()),
+      necklace_lengths: zod.array(zod.string()),
+      aesthetic_archetypes: zod.array(zod.string()),
+      skincare_focus: zod.array(zod.string()),
+      makeup_direction: zod.string(),
+      fashion_direction: zod.string(),
+      shopping_keywords: zod.array(zod.string()),
+    })
+    .optional()
+    .describe("The user's Aesthetic Identity Profile for context"),
+  userName: zod
+    .string()
+    .optional()
+    .describe("User's first name for personalization"),
+});
+
+export const ChatWithStylistResponse = zod.object({
+  message: zod.string().describe("The AI stylist's reply"),
+});
+
+/**
  * Analyzes a selfie using AI vision and returns a full Aesthetic Identity Profile. Requires a valid Bearer token from GET /api/auth/token. Rate-limited to 10 requests per IP per 15-minute window. Rejected if the server has 3 or more concurrent analysis requests in flight.
 
  * @summary Analyze face from image

@@ -1,0 +1,599 @@
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import { router } from "expo-router";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import {
+  ActivityIndicator,
+  Animated,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+import { useAnalysis } from "@/context/AnalysisContext";
+import { useColors } from "@/hooks/useColors";
+
+// ── Types ────────────────────────────────────────────────────────────────────
+
+interface Message {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  ts: number;
+}
+
+// ── Starter suggestions ──────────────────────────────────────────────────────
+
+const SUGGESTIONS = [
+  "What makeup look suits me best?",
+  "How should I style my hair?",
+  "Which colors should I wear this season?",
+  "What glasses frames flatter my face?",
+  "Build me a skincare routine",
+  "What outfits work for my archetype?",
+];
+
+// ── API helpers ───────────────────────────────────────────────────────────────
+
+async function fetchToken(baseUrl: string): Promise<string> {
+  const res = await fetch(`${baseUrl}/api/auth/token`);
+  if (!res.ok) throw new Error("Could not authenticate — please try again");
+  const data = (await res.json()) as { token: string };
+  return data.token;
+}
+
+async function sendChat(
+  baseUrl: string,
+  token: string,
+  messages: Array<{ role: string; content: string }>,
+  profile: object | null,
+  userName: string | null
+): Promise<string> {
+  const res = await fetch(`${baseUrl}/api/chat`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ messages, profile, userName }),
+  });
+  if (!res.ok) {
+    const err = (await res.json()) as { error?: string };
+    throw new Error(err.error ?? "AI stylist unavailable");
+  }
+  const data = (await res.json()) as { message: string };
+  return data.message;
+}
+
+// ── Message bubble ────────────────────────────────────────────────────────────
+
+function Bubble({
+  message,
+  colors,
+}: {
+  message: Message;
+  colors: ReturnType<typeof useColors>;
+}) {
+  const isUser = message.role === "user";
+  return (
+    <View style={[styles.bubbleRow, isUser ? styles.bubbleRowUser : styles.bubbleRowAI]}>
+      {!isUser && (
+        <LinearGradient
+          colors={[colors.primary, "#B07850"]}
+          style={styles.avatar}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        >
+          <Text style={styles.avatarText}>A</Text>
+        </LinearGradient>
+      )}
+      <View
+        style={[
+          styles.bubble,
+          isUser
+            ? [styles.bubbleUser, { backgroundColor: colors.primary }]
+            : [styles.bubbleAI, { backgroundColor: colors.card, borderColor: colors.border }],
+          { maxWidth: "80%" },
+        ]}
+      >
+        <Text
+          style={[
+            styles.bubbleText,
+            { color: isUser ? "#fff" : colors.foreground },
+          ]}
+        >
+          {message.content}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+// ── Typing indicator ──────────────────────────────────────────────────────────
+
+function TypingIndicator({ colors }: { colors: ReturnType<typeof useColors> }) {
+  const d1 = useRef(new Animated.Value(0.3)).current;
+  const d2 = useRef(new Animated.Value(0.3)).current;
+  const d3 = useRef(new Animated.Value(0.3)).current;
+
+  useEffect(() => {
+    const pulse = (dot: Animated.Value, delay: number) =>
+      Animated.loop(
+        Animated.sequence([
+          Animated.delay(delay),
+          Animated.timing(dot, { toValue: 1, duration: 350, useNativeDriver: true }),
+          Animated.timing(dot, { toValue: 0.3, duration: 350, useNativeDriver: true }),
+          Animated.delay(700),
+        ])
+      );
+    const a1 = pulse(d1, 0);
+    const a2 = pulse(d2, 200);
+    const a3 = pulse(d3, 400);
+    a1.start(); a2.start(); a3.start();
+    return () => { a1.stop(); a2.stop(); a3.stop(); };
+  }, []);
+
+  return (
+    <View style={styles.bubbleRow}>
+      <LinearGradient
+        colors={[colors.primary, "#B07850"]}
+        style={styles.avatar}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
+        <Text style={styles.avatarText}>A</Text>
+      </LinearGradient>
+      <View style={[styles.bubble, styles.bubbleAI, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <View style={styles.typingDots}>
+          {[d1, d2, d3].map((d, i) => (
+            <Animated.View
+              key={i}
+              style={[styles.typingDot, { backgroundColor: colors.primary, opacity: d }]}
+            />
+          ))}
+        </View>
+      </View>
+    </View>
+  );
+}
+
+// ── Suggestion chips ──────────────────────────────────────────────────────────
+
+function SuggestionChips({
+  colors,
+  onSelect,
+}: {
+  colors: ReturnType<typeof useColors>;
+  onSelect: (s: string) => void;
+}) {
+  return (
+    <View style={styles.suggestions}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.suggestionRow}>
+        {SUGGESTIONS.map((s) => (
+          <Pressable
+            key={s}
+            onPress={() => onSelect(s)}
+            style={({ pressed }) => [
+              styles.chip,
+              {
+                backgroundColor: pressed ? colors.primary + "18" : colors.card,
+                borderColor: colors.border,
+              },
+            ]}
+          >
+            <Text style={[styles.chipText, { color: colors.foreground }]}>{s}</Text>
+          </Pressable>
+        ))}
+      </ScrollView>
+    </View>
+  );
+}
+
+// ── Empty / No-analysis state ─────────────────────────────────────────────────
+
+function NoAnalysis({ colors }: { colors: ReturnType<typeof useColors> }) {
+  return (
+    <View style={[styles.noAnalysisRoot, { backgroundColor: colors.background }]}>
+      <LinearGradient
+        colors={[colors.primary + "22", colors.primary + "08"]}
+        style={styles.noAnalysisIcon}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
+        <Ionicons name="chatbubbles-outline" size={36} color={colors.primary} />
+      </LinearGradient>
+      <Text style={[styles.noAnalysisTitle, { color: colors.foreground }]}>
+        Meet Aura, Your AI Stylist
+      </Text>
+      <Text style={[styles.noAnalysisBody, { color: colors.mutedForeground }]}>
+        Complete a style analysis first. Aura will read your full Aesthetic Identity Profile and be ready to advise you on everything — makeup, outfits, skincare, and more.
+      </Text>
+      <Pressable
+        onPress={() => router.push("/upload")}
+        style={({ pressed }) => [
+          styles.noAnalysisBtn,
+          { backgroundColor: pressed ? colors.primary + "dd" : colors.primary },
+        ]}
+      >
+        <Text style={styles.noAnalysisBtnText}>Start Style Analysis</Text>
+      </Pressable>
+    </View>
+  );
+}
+
+// ── Main screen ───────────────────────────────────────────────────────────────
+
+export default function ChatScreen() {
+  const colors = useColors();
+  const insets = useSafeAreaInsets();
+  const { analysis, userName } = useAnalysis();
+
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [tokenCache, setTokenCache] = useState<{ token: string; exp: number } | null>(null);
+
+  const scrollRef = useRef<ScrollView>(null);
+  const inputRef = useRef<TextInput>(null);
+
+  const baseUrl = (() => {
+    const d = process.env["EXPO_PUBLIC_DOMAIN"];
+    return d ? `https://${d}` : "";
+  })();
+
+  // Initial greeting from Aura when screen loads (only once)
+  useEffect(() => {
+    if (!analysis) return;
+    const firstName = userName?.split(" ")[0] ?? null;
+    const archetypes = analysis.aesthetic_archetypes?.slice(0, 2).join(" and ") ?? analysis.style_archetype;
+    const season = (analysis as Record<string, unknown>).color_season as string | undefined;
+    const greeting = [
+      firstName ? `Hi ${firstName}! ` : "Hi there! ",
+      `I'm Aura, your personal AI stylist. I've read your full Aesthetic Identity Profile — `,
+      `you're a beautiful ${archetypes}`,
+      season ? ` with a ${season} color palette. ` : ". ",
+      `I'm here whenever you want advice on style, beauty, skincare, hair, or shopping. What would you like to explore today?`,
+    ].join("");
+
+    setMessages([
+      {
+        id: "greeting",
+        role: "assistant",
+        content: greeting,
+        ts: Date.now(),
+      },
+    ]);
+  }, [analysis]);
+
+  // Scroll to bottom whenever messages change
+  useEffect(() => {
+    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 80);
+  }, [messages, loading]);
+
+  const getToken = useCallback(async (): Promise<string> => {
+    if (tokenCache && Date.now() < tokenCache.exp) return tokenCache.token;
+    const t = await fetchToken(baseUrl);
+    setTokenCache({ token: t, exp: Date.now() + 8 * 60 * 1000 }); // cache 8 min (token valid 10)
+    return t;
+  }, [baseUrl, tokenCache]);
+
+  const send = useCallback(
+    async (text?: string) => {
+      const content = (text ?? input).trim();
+      if (!content || loading || !analysis) return;
+
+      setInput("");
+      setError(null);
+
+      const userMsg: Message = {
+        id: `u-${Date.now()}`,
+        role: "user",
+        content,
+        ts: Date.now(),
+      };
+      const nextMessages = [...messages, userMsg];
+      setMessages(nextMessages);
+      setLoading(true);
+
+      try {
+        const token = await getToken();
+        const history = nextMessages.map((m) => ({ role: m.role, content: m.content }));
+        const reply = await sendChat(baseUrl, token, history, analysis, userName ?? null);
+        setMessages((prev) => [
+          ...prev,
+          { id: `a-${Date.now()}`, role: "assistant", content: reply, ts: Date.now() },
+        ]);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "Something went wrong";
+        setError(msg);
+        // Remove the optimistic user message on error
+        setMessages(nextMessages.slice(0, -1));
+      } finally {
+        setLoading(false);
+      }
+    },
+    [input, loading, analysis, messages, getToken, baseUrl, userName]
+  );
+
+  if (!analysis) {
+    return <NoAnalysis colors={colors} />;
+  }
+
+  const topPad = Platform.OS === "web" ? 67 : insets.top;
+  const showSuggestions = messages.length <= 1 && !loading;
+
+  return (
+    <KeyboardAvoidingView
+      style={[styles.root, { backgroundColor: colors.background }]}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={0}
+    >
+      {/* Header */}
+      <View
+        style={[
+          styles.header,
+          {
+            paddingTop: topPad + 12,
+            borderBottomColor: colors.border,
+            backgroundColor: colors.background,
+          },
+        ]}
+      >
+        <LinearGradient
+          colors={[colors.primary, "#B07850"]}
+          style={styles.headerAvatar}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        >
+          <Text style={styles.headerAvatarText}>A</Text>
+        </LinearGradient>
+        <View style={styles.headerText}>
+          <Text style={[styles.headerName, { color: colors.foreground }]}>Aura</Text>
+          <Text style={[styles.headerSub, { color: colors.mutedForeground }]}>
+            Your personal AI stylist
+          </Text>
+        </View>
+        <View style={[styles.onlineDot, { backgroundColor: "#4CAF50" }]} />
+      </View>
+
+      {/* Messages */}
+      <ScrollView
+        ref={scrollRef}
+        style={styles.messages}
+        contentContainerStyle={styles.messagesContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        {messages.map((m) => (
+          <Bubble key={m.id} message={m} colors={colors} />
+        ))}
+        {loading && <TypingIndicator colors={colors} />}
+
+        {/* Suggestion chips shown after greeting */}
+        {showSuggestions && (
+          <SuggestionChips colors={colors} onSelect={(s) => { send(s); }} />
+        )}
+
+        {/* Error notice */}
+        {error && (
+          <View style={[styles.errorBanner, { backgroundColor: "#FF5252" + "18", borderColor: "#FF5252" + "40" }]}>
+            <Ionicons name="alert-circle-outline" size={16} color="#FF5252" />
+            <Text style={[styles.errorText, { color: "#FF5252" }]}>{error}</Text>
+          </View>
+        )}
+      </ScrollView>
+
+      {/* Input bar */}
+      <View
+        style={[
+          styles.inputBar,
+          {
+            borderTopColor: colors.border,
+            backgroundColor: colors.background,
+            paddingBottom: insets.bottom + 8,
+          },
+        ]}
+      >
+        <TextInput
+          ref={inputRef}
+          value={input}
+          onChangeText={setInput}
+          placeholder="Ask Aura anything…"
+          placeholderTextColor={colors.mutedForeground}
+          style={[
+            styles.input,
+            {
+              backgroundColor: colors.muted,
+              color: colors.foreground,
+              borderColor: colors.border,
+            },
+          ]}
+          multiline
+          maxLength={2000}
+          returnKeyType="send"
+          onSubmitEditing={() => send()}
+          blurOnSubmit={false}
+        />
+        <Pressable
+          onPress={() => send()}
+          disabled={loading || !input.trim()}
+          style={({ pressed }) => [
+            styles.sendBtn,
+            {
+              backgroundColor:
+                loading || !input.trim()
+                  ? colors.muted
+                  : pressed
+                  ? colors.primary + "cc"
+                  : colors.primary,
+            },
+          ]}
+        >
+          {loading ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <Ionicons name="arrow-up" size={18} color="#fff" />
+          )}
+        </Pressable>
+      </View>
+    </KeyboardAvoidingView>
+  );
+}
+
+const styles = StyleSheet.create({
+  root: { flex: 1 },
+
+  // Header
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingBottom: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    gap: 12,
+  },
+  headerAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerAvatarText: {
+    color: "#fff",
+    fontSize: 18,
+    fontFamily: "Inter_600SemiBold",
+  },
+  headerText: { flex: 1 },
+  headerName: { fontSize: 16, fontFamily: "Inter_600SemiBold" },
+  headerSub: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 1 },
+  onlineDot: { width: 9, height: 9, borderRadius: 5 },
+
+  // Messages
+  messages: { flex: 1 },
+  messagesContent: { padding: 16, gap: 12, paddingBottom: 8 },
+
+  bubbleRow: { flexDirection: "row", alignItems: "flex-end", gap: 8, marginBottom: 4 },
+  bubbleRowUser: { justifyContent: "flex-end" },
+  bubbleRowAI: { justifyContent: "flex-start" },
+  avatar: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+  avatarText: { color: "#fff", fontSize: 13, fontFamily: "Inter_600SemiBold" },
+  bubble: {
+    borderRadius: 18,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    flexShrink: 1,
+  },
+  bubbleUser: { borderBottomRightRadius: 4 },
+  bubbleAI: { borderBottomLeftRadius: 4, borderWidth: StyleSheet.hairlineWidth },
+  bubbleText: { fontSize: 15, fontFamily: "Inter_400Regular", lineHeight: 22 },
+
+  // Typing indicator
+  typingDots: { flexDirection: "row", gap: 5, alignItems: "center", paddingVertical: 2 },
+  typingDot: { width: 7, height: 7, borderRadius: 4 },
+
+  // Suggestion chips
+  suggestions: { marginTop: 8, marginBottom: 4 },
+  suggestionRow: { gap: 8, paddingHorizontal: 4 },
+  chip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  chipText: { fontSize: 13, fontFamily: "Inter_400Regular" },
+
+  // Error
+  errorBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    padding: 12,
+    marginTop: 4,
+  },
+  errorText: { flex: 1, fontSize: 13, fontFamily: "Inter_400Regular" },
+
+  // Input bar
+  inputBar: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    gap: 10,
+  },
+  input: {
+    flex: 1,
+    borderRadius: 22,
+    borderWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: 16,
+    paddingVertical: Platform.OS === "ios" ? 10 : 8,
+    fontSize: 15,
+    fontFamily: "Inter_400Regular",
+    maxHeight: 120,
+    lineHeight: 20,
+  },
+  sendBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+
+  // No analysis
+  noAnalysisRoot: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 36,
+    gap: 16,
+  },
+  noAnalysisIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 8,
+  },
+  noAnalysisTitle: {
+    fontSize: 22,
+    fontFamily: "Inter_600SemiBold",
+    textAlign: "center",
+  },
+  noAnalysisBody: {
+    fontSize: 15,
+    fontFamily: "Inter_400Regular",
+    textAlign: "center",
+    lineHeight: 24,
+  },
+  noAnalysisBtn: {
+    paddingHorizontal: 28,
+    paddingVertical: 14,
+    borderRadius: 14,
+    marginTop: 8,
+  },
+  noAnalysisBtnText: {
+    color: "#fff",
+    fontSize: 16,
+    fontFamily: "Inter_600SemiBold",
+  },
+});

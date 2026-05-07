@@ -20,6 +20,8 @@ import type {
   AnalysisResult,
   AnalyzeFaceRequest,
   AuthTokenResponse,
+  ChatRequest,
+  ChatResponse,
   ErrorResponse,
   HealthStatus,
 } from "./api.schemas";
@@ -184,6 +186,94 @@ export function useGetAnalyzeToken<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * Send a conversational message to Aura, the personal AI stylist. The full conversation history and the user's Aesthetic Identity Profile are included so the AI can give deeply personalized advice. Requires a valid Bearer token from GET /api/auth/token.
+
+ * @summary Chat with the AI stylist
+ */
+export const getChatWithStylistUrl = () => {
+  return `/api/chat`;
+};
+
+export const chatWithStylist = async (
+  chatRequest: ChatRequest,
+  options?: RequestInit,
+): Promise<ChatResponse> => {
+  return customFetch<ChatResponse>(getChatWithStylistUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(chatRequest),
+  });
+};
+
+export const getChatWithStylistMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof chatWithStylist>>,
+    TError,
+    { data: BodyType<ChatRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof chatWithStylist>>,
+  TError,
+  { data: BodyType<ChatRequest> },
+  TContext
+> => {
+  const mutationKey = ["chatWithStylist"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof chatWithStylist>>,
+    { data: BodyType<ChatRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return chatWithStylist(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ChatWithStylistMutationResult = NonNullable<
+  Awaited<ReturnType<typeof chatWithStylist>>
+>;
+export type ChatWithStylistMutationBody = BodyType<ChatRequest>;
+export type ChatWithStylistMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Chat with the AI stylist
+ */
+export const useChatWithStylist = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof chatWithStylist>>,
+    TError,
+    { data: BodyType<ChatRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof chatWithStylist>>,
+  TError,
+  { data: BodyType<ChatRequest> },
+  TContext
+> => {
+  return useMutation(getChatWithStylistMutationOptions(options));
+};
 
 /**
  * Analyzes a selfie using AI vision and returns a full Aesthetic Identity Profile. Requires a valid Bearer token from GET /api/auth/token. Rate-limited to 10 requests per IP per 15-minute window. Rejected if the server has 3 or more concurrent analysis requests in flight.

@@ -20,6 +20,10 @@ function NativeTabLayout() {
         <Icon sf={{ default: "hanger", selected: "hanger" }} />
         <Label>Wardrobe</Label>
       </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="chat">
+        <Icon sf={{ default: "sparkles", selected: "sparkles" }} />
+        <Label>Stylist</Label>
+      </NativeTabs.Trigger>
       <NativeTabs.Trigger name="wishlist">
         <Icon sf={{ default: "star", selected: "star.fill" }} />
         <Label>Wishlist</Label>
@@ -93,6 +97,18 @@ function ClassicTabLayout() {
               <SymbolView name="tshirt" tintColor={color} size={24} />
             ) : (
               <Ionicons name="shirt-outline" size={22} color={color} />
+            ),
+        }}
+      />
+      <Tabs.Screen
+        name="chat"
+        options={{
+          title: "Stylist",
+          tabBarIcon: ({ color }) =>
+            isIOS ? (
+              <SymbolView name="sparkles" tintColor={color} size={24} />
+            ) : (
+              <Ionicons name="sparkles-outline" size={22} color={color} />
             ),
         }}
       />

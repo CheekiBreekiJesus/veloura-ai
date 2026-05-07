@@ -146,6 +146,33 @@ export interface AnalysisResult {
   shopping_keywords: string[];
 }
 
+export type ChatMessageRole =
+  (typeof ChatMessageRole)[keyof typeof ChatMessageRole];
+
+export const ChatMessageRole = {
+  user: "user",
+  assistant: "assistant",
+} as const;
+
+export interface ChatMessage {
+  role: ChatMessageRole;
+  content: string;
+}
+
+export interface ChatRequest {
+  /** Conversation history (max 40 messages, each max 2000 chars) */
+  messages: ChatMessage[];
+  /** The user's Aesthetic Identity Profile for context */
+  profile?: AnalysisResult;
+  /** User's first name for personalization */
+  userName?: string;
+}
+
+export interface ChatResponse {
+  /** The AI stylist's reply */
+  message: string;
+}
+
 export interface ErrorResponse {
   error: string;
 }

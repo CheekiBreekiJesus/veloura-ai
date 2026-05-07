@@ -1,6 +1,6 @@
 # AI Identity Stylist
 
-A mobile app that analyzes a selfie using AI vision and generates a personalized beauty and fashion profile with color palette, style archetype, and curated recommendations.
+A mobile app that analyzes a selfie using AI vision and generates a personalized beauty and fashion profile with color palette, style archetype, and curated recommendations — plus a live AI stylist chat.
 
 ## Run & Operate
 
@@ -9,7 +9,7 @@ A mobile app that analyzes a selfie using AI vision and generates a personalized
 - `pnpm run typecheck` — full typecheck across all packages
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
-- Required env: `AI_INTEGRATIONS_OPENAI_BASE_URL`, `AI_INTEGRATIONS_OPENAI_API_KEY` (auto-provisioned by Replit AI Integrations)
+- Required env: `AI_INTEGRATIONS_OPENAI_BASE_URL`, `AI_INTEGRATIONS_OPENAI_API_KEY` (auto-provisioned by Replit AI Integrations), `SESSION_SECRET` (for token signing)
 
 ## Stack
 
@@ -17,7 +17,7 @@ A mobile app that analyzes a selfie using AI vision and generates a personalized
 - Mobile: Expo (SDK 54), Expo Router, React Native
 - API: Express 5
 - DB: PostgreSQL + Drizzle ORM (not yet used — no user persistence needed)
-- AI: OpenAI GPT vision via `@workspace/integrations-openai-ai-server`
+- AI: OpenAI GPT vision (analyze) + GPT-4.1-mini (chat) via `@workspace/integrations-openai-ai-server`
 - Validation: Zod (`zod/v4`), `drizzle-zod`
 - API codegen: Orval (from OpenAPI spec)
 - Build: esbuild (CJS bundle for server)
@@ -25,23 +25,34 @@ A mobile app that analyzes a selfie using AI vision and generates a personalized
 ## Where things live
 
 - `artifacts/mobile/` — Expo mobile app
-  - `app/index.tsx` — Landing screen
+  - `app/(tabs)/index.tsx` — Home (season card, feature DNA, daily tip, recommendations)
+  - `app/(tabs)/wardrobe.tsx` — Wardrobe style guide (outfits, accessories, glasses)
+  - `app/(tabs)/chat.tsx` — AI Stylist Chat (Aura, personalized by full profile)
+  - `app/(tabs)/wishlist.tsx` — Saved recommendations
+  - `app/(tabs)/shop.tsx` — Curated mock product browse
   - `app/upload.tsx` — Photo upload + analysis trigger
-  - `app/dashboard.tsx` — Results dashboard (Profile, Beauty, Fashion, Products tabs)
+  - `app/analyzing.tsx` — Animated analysis screen (fetches token → calls /api/analyze)
+  - `app/profile.tsx` — Deep profile: aesthetic identity, color story, skin health, accessories
   - `context/AnalysisContext.tsx` — Shared analysis state (AsyncStorage backed)
   - `constants/colors.ts` — Warm luxury palette (#FAF8F5 bg, #C4956A primary)
 - `artifacts/api-server/src/routes/analyze.ts` — POST /api/analyze (OpenAI vision)
-- `lib/api-spec/openapi.yaml` — Source of truth for API contracts
-- `lib/integrations-openai-ai-server/` — OpenAI SDK wrapper
+- `artifacts/api-server/src/routes/chat.ts` — POST /api/chat (OpenAI chat, profile-aware)
+- `artifacts/api-server/src/routes/auth.ts` — GET /api/auth/token (short-lived HMAC token)
+- `artifacts/api-server/src/middlewares/rateLimiter.ts` — express-rate-limit (10 req/15 min)
+- `artifacts/api-server/src/middlewares/requireAnalyzeToken.ts` — Bearer token validation
+- `artifacts/api-server/src/lib/token.ts` — HMAC-SHA256 token issue/validate (SESSION_SECRET)
+- `lib/api-spec/openapi.yaml` — Source of truth for all API contracts
 
 ## Architecture decisions
 
 - Image is base64-encoded on device and sent as JSON body (no multipart form handling needed)
 - Analysis results stored in AsyncStorage via AnalysisContext — no backend persistence
 - Stack navigation (no tabs) for a clean linear flow: Landing → Upload → Dashboard
-- OpenAI GPT-5.4 used for vision analysis; returns strict JSON matching the full Aesthetic Identity Profile schema
-- Dashboard uses tab-based sections (Profile, Beauty, Fashion, Shop) within the results screen
-- `AnalysisResult` in `AnalysisContext.tsx` has optional extended fields (new analyses get them, old stored ones don't — all UI guards with `??`)
+- OpenAI GPT vision used for face analysis; GPT-4.1-mini for chat (faster, cheaper)
+- Chat system prompt embeds the full Aesthetic Identity Profile so Aura knows the user deeply
+- Token-based caller identity: mobile must GET /api/auth/token (HMAC-signed, 10 min TTL) before calling /api/analyze or /api/chat — prevents unauthenticated proxy abuse
+- Per-IP rate limiting (10 req/15 min) + global concurrency cap (3 in-flight) protect OpenAI quota
+- MIME allowlist + base64 size cap (6 MB) applied before any OpenAI call
 
 ## Product
 
@@ -50,11 +61,10 @@ A mobile app that analyzes a selfie using AI vision and generates a personalized
 - Accessories guide: earring styles + necklace lengths matched to face shape
 - Aesthetic archetypes (2-4 style identities), makeup direction, fashion direction
 - Skincare focus areas and shopping keywords for downstream product search
-- Receive a personalized color palette (5-8 hex colors), beauty/fashion/hair/glasses recommendations
-- Color Season analysis (Spring/Summer/Autumn/Winter) with palette, best/avoid colors, gradient card on home + full detail on profile screen
+- Color Season analysis (Spring/Summer/Autumn/Winter) with palette, best/avoid colors
 - Feature DNA horizontal scroll on home (face, skin, undertone, eyes, hair, lips as gradient cards)
 - Daily rotating tip card on home screen (personalized from analysis, falls back to generic tips)
-- Season badge pill on profile card; "Details" button links to profile screen
+- **AI Stylist Chat (Aura)** — conversational AI tab that knows the user's full profile; suggests starter questions; supports multi-turn conversation; token auth + rate-limited
 - Browse curated mock product recommendations in the Shop tab
 - Results persisted locally (AsyncStorage) so they survive app restarts
 
@@ -67,8 +77,9 @@ _Populate as you build._
 - Always run `pnpm --filter @workspace/api-spec run codegen` after changing `lib/api-spec/openapi.yaml`
 - Web preview has rendering quirks (fonts/icons may appear faint) — use Expo Go on device for the real experience
 - `lib/integrations-openai-ai-server` requires `@types/node` as a devDependency (already added)
-- In Hermes/Metro, define helper components BEFORE the screen that uses them — hoisting is unreliable. `SeasonCard` and `DailyTip` must appear above `HomeScreen` in `index.tsx`
+- In Hermes/Metro, define helper components BEFORE the screen that uses them — hoisting is unreliable
 - Ionicons show as Chinese symbols on Android/web if not explicitly loaded: add `...Ionicons.font` to the `useFonts({})` call in `_layout.tsx`
+- Chat token is cached for 8 min client-side (token TTL is 10 min) to avoid fetching a new token on every message
 
 ## Pointers
 

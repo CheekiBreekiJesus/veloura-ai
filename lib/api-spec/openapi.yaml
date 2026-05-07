@@ -212,6 +212,41 @@ components:
         - makeup_direction
         - fashion_direction
         - shopping_keywords
+    ChatMessage:
+      type: object
+      properties:
+        role:
+          type: string
+          enum: [user, assistant]
+        content:
+          type: string
+      required:
+        - role
+        - content
+    ChatRequest:
+      type: object
+      properties:
+        messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChatMessage"
+          description: Conversation history (max 40 messages, each max 2000 chars)
+        profile:
+          $ref: "#/components/schemas/AnalysisResult"
+          description: The user's Aesthetic Identity Profile for context
+        userName:
+          type: string
+          description: User's first name for personalization
+      required:
+        - messages
+    ChatResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          description: The AI stylist's reply
+      required:
+        - message
     ErrorResponse:
       type: object
       properties:
@@ -253,6 +288,56 @@ paths:
                 $ref: "#/components/schemas/AuthTokenResponse"
         "429":
           description: Too many token requests
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /chat:
+    post:
+      operationId: chatWithStylist
+      tags: [analysis]
+      summary: Chat with the AI stylist
+      description: >
+        Send a conversational message to Aura, the personal AI stylist.
+        The full conversation history and the user's Aesthetic Identity Profile
+        are included so the AI can give deeply personalized advice.
+        Requires a valid Bearer token from GET /api/auth/token.
+      security:
+        - analyzeToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatRequest"
+      responses:
+        "200":
+          description: AI stylist reply
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatResponse"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Missing or invalid analyze token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: AI stylist temporarily unavailable
           content:
             application/json:
               schema:
