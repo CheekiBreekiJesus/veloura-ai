@@ -3,7 +3,7 @@ import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Animated,
   Dimensions,
@@ -22,6 +22,7 @@ import { useAnalysis, type AnalysisResult } from "@/context/AnalysisContext";
 import { getDailyTip } from "@/constants/tips";
 import { getColorSeason, getSeasonProfile } from "@/constants/seasons";
 import { useColors } from "@/hooks/useColors";
+import ShareModal from "@/components/ShareModal";
 
 const ND = Platform.OS !== "web";
 
@@ -280,6 +281,7 @@ export default function HomeScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { analysis, imageUri, userName } = useAnalysis();
+  const [shareVisible, setShareVisible] = useState(false);
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const botPad = Platform.OS === "web" ? 34 + 50 : insets.bottom + 80;
@@ -296,24 +298,39 @@ export default function HomeScreen() {
   const displayName = userName?.trim() ? `, ${userName.trim()}` : "";
 
   return (
-    <ScrollView
-      style={[styles.root, { backgroundColor: colors.background }]}
-      contentContainerStyle={{ paddingBottom: botPad }}
-      showsVerticalScrollIndicator={false}
-    >
-      <Header
-        greeting={`${getGreeting()}${displayName} ✦`}
-        colors={colors}
-        topPad={topPad}
+    <>
+      <ScrollView
+        style={[styles.root, { backgroundColor: colors.background }]}
+        contentContainerStyle={{ paddingBottom: botPad }}
+        showsVerticalScrollIndicator={false}
+      >
+        <Header
+          greeting={`${getGreeting()}${displayName} ✦`}
+          colors={colors}
+          topPad={topPad}
+        />
+        <ProfileCard
+          analysis={analysis}
+          imageUri={imageUri}
+          colors={colors}
+          season={season}
+          seasonEmoji={seasonProfile.emoji}
+          onShare={() => setShareVisible(true)}
+        />
+        <PaletteStrip palette={analysis.color_palette} colors={colors} />
+        <FeatureDNA analysis={analysis} colors={colors} />
+        <SeasonCard seasonProfile={seasonProfile} colors={colors} />
+        <DailyTip tip={tip} colors={colors} />
+        <TodayForYou cats={cats} colors={colors} />
+        <AIRecommendations recs={recs} colors={colors} />
+      </ScrollView>
+      <ShareModal
+        visible={shareVisible}
+        onClose={() => setShareVisible(false)}
+        analysis={analysis}
+        userName={userName}
       />
-      <ProfileCard analysis={analysis} imageUri={imageUri} colors={colors} season={season} seasonEmoji={seasonProfile.emoji} />
-      <PaletteStrip palette={analysis.color_palette} colors={colors} />
-      <FeatureDNA analysis={analysis} colors={colors} />
-      <SeasonCard seasonProfile={seasonProfile} colors={colors} />
-      <DailyTip tip={tip} colors={colors} />
-      <TodayForYou cats={cats} colors={colors} />
-      <AIRecommendations recs={recs} colors={colors} />
-    </ScrollView>
+    </>
   );
 }
 
@@ -375,12 +392,14 @@ function ProfileCard({
   colors,
   season,
   seasonEmoji,
+  onShare,
 }: {
   analysis: AnalysisResult;
   imageUri: string | null;
   colors: ReturnType<typeof useColors>;
   season: string;
   seasonEmoji: string;
+  onShare: () => void;
 }) {
   const anim = useFadeIn(80);
   return (
@@ -436,15 +455,29 @@ function ProfileCard({
             ))}
           </View>
         </View>
-        <Pressable
-          onPress={async () => {
-            await Haptics.selectionAsync();
-            router.push("/profile");
-          }}
-          style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
-        >
-          <Text style={[styles.editLabel, { color: colors.primary }]}>View ›</Text>
-        </Pressable>
+        <View style={styles.profileActions}>
+          <Pressable
+            onPress={async () => {
+              await Haptics.selectionAsync();
+              router.push("/profile");
+            }}
+            style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
+          >
+            <Text style={[styles.editLabel, { color: colors.primary }]}>View ›</Text>
+          </Pressable>
+          <Pressable
+            onPress={async () => {
+              await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              onShare();
+            }}
+            style={({ pressed }) => [
+              styles.shareIconBtn,
+              { backgroundColor: colors.primary + "15", opacity: pressed ? 0.7 : 1 },
+            ]}
+          >
+            <Ionicons name="share-outline" size={15} color={colors.primary} />
+          </Pressable>
+        </View>
       </View>
     </Animated.View>
   );
@@ -802,6 +835,11 @@ const styles = StyleSheet.create({
   traitRow: { flexDirection: "row", alignItems: "center", gap: 6 },
   traitText: { fontSize: 13, fontFamily: "Inter_400Regular" },
   editLabel: { fontSize: 14, fontFamily: "Inter_500Medium" },
+  profileActions: { alignItems: "flex-end", gap: 8 },
+  shareIconBtn: {
+    width: 30, height: 30, borderRadius: 15,
+    alignItems: "center", justifyContent: "center",
+  },
   paletteRow: { flexDirection: "row", gap: 10, marginBottom: 6 },
   paletteDot: { width: 36, height: 36, borderRadius: 18 },
   paletteCaption: { fontSize: 12, fontFamily: "Inter_400Regular" },

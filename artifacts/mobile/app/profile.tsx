@@ -3,7 +3,7 @@ import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import React, { useRef } from "react";
+import React, { useRef, useState } from "react";
 import {
   Animated,
   Dimensions,
@@ -15,6 +15,8 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+import ShareModal from "@/components/ShareModal";
 
 import { useAnalysis } from "@/context/AnalysisContext";
 import { getColorSeason, getSeasonProfile } from "@/constants/seasons";
@@ -105,6 +107,7 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const { analysis, imageUri, userName, clearAnalysis } = useAnalysis();
   const scrollY = useRef(new Animated.Value(0)).current;
+  const [shareVisible, setShareVisible] = useState(false);
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const botPad = Platform.OS === "web" ? 34 : insets.bottom + 20;
@@ -546,6 +549,21 @@ export default function ProfileScreen() {
 
         {/* ── Actions ──────────────────────────────────────────────────────── */}
         <View style={[styles.section, { gap: 12 }]}>
+          {/* Share button */}
+          <Pressable
+            onPress={async () => {
+              await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              setShareVisible(true);
+            }}
+            style={({ pressed }) => [
+              styles.shareBtn,
+              { backgroundColor: colors.card, borderColor: colors.border, opacity: pressed ? 0.8 : 1 },
+            ]}
+          >
+            <Ionicons name="share-outline" size={20} color={colors.primary} />
+            <Text style={[styles.shareBtnText, { color: colors.primary }]}>Share Style Profile</Text>
+          </Pressable>
+
           <Pressable
             onPress={async () => {
               await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -564,6 +582,14 @@ export default function ProfileScreen() {
           </Pressable>
         </View>
       </Animated.ScrollView>
+
+      {/* Share modal */}
+      <ShareModal
+        visible={shareVisible}
+        onClose={() => setShareVisible(false)}
+        analysis={analysis}
+        userName={userName}
+      />
     </View>
   );
 }
@@ -667,6 +693,11 @@ const styles = StyleSheet.create({
   recIndex: { width: 28, height: 28, borderRadius: 14, alignItems: "center", justifyContent: "center", marginTop: 1 },
   recIndexText: { fontSize: 13, fontFamily: "Inter_700Bold" },
   recText: { flex: 1, fontSize: 14, fontFamily: "Inter_400Regular", lineHeight: 22 },
+  shareBtn: {
+    flexDirection: "row", alignItems: "center", justifyContent: "center",
+    gap: 10, paddingVertical: 16, borderRadius: 18, borderWidth: 1,
+  },
+  shareBtnText: { fontSize: 16, fontFamily: "Inter_600SemiBold" },
   analyzeBtn: {
     flexDirection: "row", alignItems: "center", justifyContent: "center",
     gap: 10, paddingVertical: 17, borderRadius: 18,
