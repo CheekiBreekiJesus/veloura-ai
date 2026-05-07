@@ -8,7 +8,8 @@ export type ClothingCategory =
   | "Dresses"
   | "Outerwear"
   | "Shoes"
-  | "Accessories";
+  | "Accessories"
+  | "Sleepwear";
 
 export interface WardrobeItem {
   id: string;

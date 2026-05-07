@@ -38,6 +38,7 @@ const CATEGORIES: ClothingCategory[] = [
   "Outerwear",
   "Shoes",
   "Accessories",
+  "Sleepwear",
 ];
 
 type AnalysisResult = {

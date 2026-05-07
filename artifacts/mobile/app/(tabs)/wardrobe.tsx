@@ -69,7 +69,7 @@ const OUTFIT_GRADIENTS: [string, string][] = [
 const OUTFIT_TEXT = "#2D1F14";
 const OUTFIT_TEXT_DIM = "#6B4C35";
 
-type StyleCategory = "Casual" | "Formal" | "Evening" | "Weekend";
+type StyleCategory = "Casual" | "Formal" | "Evening" | "Weekend" | "Beach" | "Nightlife" | "Sportswear" | "Sleepwear" | "Workwear";
 type SortOption = "recent" | "score";
 type WardrobeSection = "closet" | "picks" | "seasons";
 
@@ -84,13 +84,18 @@ const SEASON_LABELS: Record<Season, string> = {
 
 const FILTER_KEYWORDS: Record<StyleCategory, string[]> = {
   Casual: ["casual", "everyday", "relaxed", "street", "jeans", "denim", "comfortable", "comfy", "basics", "simple", "effortless"],
-  Formal: ["formal", "business", "professional", "suit", "blazer", "work", "office", "structured", "tailored", "corporate", "polished"],
+  Formal: ["formal", "black tie", "suit", "structured", "tailored", "polished", "gala", "ceremony"],
   Evening: ["evening", "night", "cocktail", "party", "gown", "dinner", "elegant", "soirée", "occasion", "date", "glamour", "glam"],
-  Weekend: ["weekend", "leisure", "activewear", "sport", "athletic", "outdoor", "brunch", "holiday", "travel", "adventure"],
+  Weekend: ["weekend", "leisure", "outdoor", "brunch", "holiday", "travel", "adventure", "picnic"],
+  Beach: ["beach", "swimwear", "bikini", "swimsuit", "resort", "tropical", "sarong", "cover-up", "coverup", "poolside", "surf", "boardshort", "swim"],
+  Nightlife: ["nightlife", "club", "bar", "going out", "sequin", "bodycon", "glitter", "metallic", "mini dress", "night out"],
+  Sportswear: ["gym", "workout", "yoga", "running", "leggings", "training", "cycling", "performance", "moisture", "compression", "athletic", "activewear", "sport", "fitness"],
+  Sleepwear: ["pajama", "pyjama", "lounge", "sleep", "nightwear", "robe", "cozy", "satin slip", "nightgown", "pj"],
+  Workwear: ["workwear", "office", "work outfit", "business casual", "desk", "smart casual", "trousers", "pencil skirt", "corporate", "professional"],
 };
 
 const CLOTHING_CATEGORIES: ClothingCategory[] = [
-  "Tops", "Bottoms", "Dresses", "Outerwear", "Shoes", "Accessories",
+  "Tops", "Bottoms", "Dresses", "Outerwear", "Shoes", "Accessories", "Sleepwear",
 ];
 
 function classifyRec(text: string): StyleCategory[] {
@@ -126,6 +131,7 @@ function categoryIcon(cat: ClothingCategory): React.ComponentProps<typeof Ionico
     case "Outerwear": return "cloudy-outline";
     case "Shoes": return "footsteps-outline";
     case "Accessories": return "watch-outline";
+    case "Sleepwear": return "moon-outline";
   }
 }
 
@@ -610,7 +616,7 @@ export default function WardrobeScreen() {
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const botPad = Platform.OS === "web" ? 34 + 50 : insets.bottom + 80;
 
-  const filters = ["All", "Casual", "Formal", "Evening", "Weekend"];
+  const filters = ["All", "Casual", "Beach", "Sportswear", "Formal", "Nightlife", "Weekend", "Sleepwear", "Workwear"];
 
   const filteredRecs = analysis
     ? analysis.fashion_recommendations.filter((rec) => {
