@@ -80,12 +80,14 @@ interface AnalysisContextValue {
   imageUri: string | null;
   userName: string | null;
   pendingImage: PendingImage | null;
+  pendingChatInput: string | null;
   chatHistory: ChatMessage[];
   setAnalysis: (result: AnalysisResult, uri: string) => Promise<void>;
   clearAnalysis: () => Promise<void>;
   clearChatHistory: () => Promise<void>;
   setUserName: (name: string) => Promise<void>;
   setPendingImage: (img: PendingImage | null) => void;
+  setPendingChatInput: (msg: string | null) => void;
   saveChatHistory: (messages: ChatMessage[]) => Promise<void>;
 }
 
@@ -103,6 +105,7 @@ export function AnalysisProvider({ children }: { children: React.ReactNode }) {
   const [pendingImage, setPendingImageState] = useState<PendingImage | null>(
     null
   );
+  const [pendingChatInput, setPendingChatInputState] = useState<string | null>(null);
   const [chatHistory, setChatHistoryState] = useState<ChatMessage[]>([]);
 
   useEffect(() => {
@@ -172,6 +175,10 @@ export function AnalysisProvider({ children }: { children: React.ReactNode }) {
     setPendingImageState(img);
   }, []);
 
+  const setPendingChatInput = useCallback((msg: string | null) => {
+    setPendingChatInputState(msg);
+  }, []);
+
   return (
     <AnalysisContext.Provider
       value={{
@@ -179,12 +186,14 @@ export function AnalysisProvider({ children }: { children: React.ReactNode }) {
         imageUri,
         userName,
         pendingImage,
+        pendingChatInput,
         chatHistory,
         setAnalysis,
         clearAnalysis,
         clearChatHistory,
         setUserName,
         setPendingImage,
+        setPendingChatInput,
         saveChatHistory,
       }}
     >

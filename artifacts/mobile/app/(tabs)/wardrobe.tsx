@@ -97,7 +97,7 @@ function categoryIcon(cat: ClothingCategory): React.ComponentProps<typeof Ionico
 export default function WardrobeScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { analysis } = useAnalysis();
+  const { analysis, setPendingChatInput } = useAnalysis();
   const { wardrobeItems, feedback, setFeedback, removeItem } = useWardrobe();
 
   const [section, setSection] = useState<"closet" | "picks">("closet");
@@ -105,6 +105,10 @@ export default function WardrobeScreen() {
   const [closetFilter, setClosetFilter] = useState<ClothingCategory | "All">("All");
   const [sortBy, setSortBy] = useState<SortOption>("recent");
   const [selectedItem, setSelectedItem] = useState<WardrobeItem | null>(null);
+
+  // Outfit Builder
+  const [outfitMode, setOutfitMode] = useState(false);
+  const [outfitSelected, setOutfitSelected] = useState<string[]>([]);
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const botPad = Platform.OS === "web" ? 34 + 50 : insets.bottom + 80;
@@ -185,10 +189,51 @@ export default function WardrobeScreen() {
     });
   };
 
+  const handleAskAura = (item: WardrobeItem) => {
+    const snippet = item.compatibilityNotes.length > 150
+      ? item.compatibilityNotes.substring(0, 150) + "…"
+      : item.compatibilityNotes;
+    const msg = `I have a ${item.name} (${item.category}, compatibility score ${item.compatibilityScore}/100). ${snippet} How should I style it? What outfits can I build around it?`;
+    setPendingChatInput(msg);
+    setSelectedItem(null);
+    router.push("/(tabs)/chat");
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  };
+
+  const toggleOutfitSelect = async (id: string) => {
+    await Haptics.selectionAsync();
+    setOutfitSelected((prev) =>
+      prev.includes(id)
+        ? prev.filter((x) => x !== id)
+        : prev.length < 6
+        ? [...prev, id]
+        : prev
+    );
+  };
+
+  const handleStyleWithAura = async () => {
+    const items = wardrobeItems.filter((i) => outfitSelected.includes(i.id));
+    const list = items
+      .map((i) => `${i.name} (${i.category}, score ${i.compatibilityScore}/100)`)
+      .join(", ");
+    const msg = `I'm trying to build an outfit from pieces I own: ${list}. Can you suggest how to combine them into a great look? Please give me specific styling tips for each piece and any additional items that would complete the outfit.`;
+    setPendingChatInput(msg);
+    setOutfitMode(false);
+    setOutfitSelected([]);
+    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    router.push("/(tabs)/chat");
+  };
+
+  const exitOutfitMode = async () => {
+    await Haptics.selectionAsync();
+    setOutfitMode(false);
+    setOutfitSelected([]);
+  };
+
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
       <ScrollView
-        contentContainerStyle={{ paddingBottom: botPad }}
+        contentContainerStyle={{ paddingBottom: outfitMode ? botPad + 80 : botPad }}
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
@@ -209,6 +254,7 @@ export default function WardrobeScreen() {
               onPress={async () => {
                 await Haptics.selectionAsync();
                 setSection(s);
+                if (outfitMode) { setOutfitMode(false); setOutfitSelected([]); }
               }}
               style={[
                 styles.sectionBtn,
@@ -249,17 +295,24 @@ export default function WardrobeScreen() {
             <View style={styles.closetHeader}>
               <View>
                 <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
-                  My Closet
+                  {outfitMode ? "Pick items to style" : "My Closet"}
                 </Text>
-                {wardrobeItems.length > 0 && (
+                {wardrobeItems.length > 0 && !outfitMode && (
                   <Text style={[styles.closetSubtitle, { color: colors.mutedForeground }]}>
                     {wardrobeItems.length} item{wardrobeItems.length !== 1 ? "s" : ""}
                     {avgScore !== null ? ` · avg score ${avgScore}` : ""}
                   </Text>
                 )}
+                {outfitMode && (
+                  <Text style={[styles.closetSubtitle, { color: colors.primary }]}>
+                    {outfitSelected.length === 0
+                      ? "Tap items to select (up to 6)"
+                      : `${outfitSelected.length} selected`}
+                  </Text>
+                )}
               </View>
               <View style={styles.closetHeaderRight}>
-                {wardrobeItems.length > 1 && (
+                {wardrobeItems.length > 1 && !outfitMode && (
                   <Pressable
                     onPress={async () => {
                       await Haptics.selectionAsync();
@@ -277,26 +330,48 @@ export default function WardrobeScreen() {
                     </Text>
                   </Pressable>
                 )}
-                <Pressable
-                  onPress={async () => {
-                    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    router.push("/add-item");
-                  }}
-                  style={({ pressed }) => [
-                    styles.addBtn,
-                    { backgroundColor: colors.primary, opacity: pressed ? 0.85 : 1 },
-                  ]}
-                >
-                  <Ionicons name="add" size={18} color={colors.primaryForeground} />
-                  <Text style={[styles.addBtnText, { color: colors.primaryForeground }]}>
-                    Add
-                  </Text>
-                </Pressable>
+                {outfitMode ? (
+                  <Pressable
+                    onPress={exitOutfitMode}
+                    style={[styles.addBtn, { backgroundColor: colors.secondary, borderColor: colors.border, borderWidth: 1 }]}
+                  >
+                    <Ionicons name="close" size={16} color={colors.foreground} />
+                    <Text style={[styles.addBtnText, { color: colors.foreground }]}>Done</Text>
+                  </Pressable>
+                ) : (
+                  <>
+                    {wardrobeItems.length >= 2 && (
+                      <Pressable
+                        onPress={async () => {
+                          await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                          setOutfitMode(true);
+                        }}
+                        style={[styles.outfitBtn, { backgroundColor: colors.primary + "18", borderColor: colors.primary + "40" }]}
+                      >
+                        <Ionicons name="color-wand-outline" size={15} color={colors.primary} />
+                        <Text style={[styles.outfitBtnText, { color: colors.primary }]}>Outfit</Text>
+                      </Pressable>
+                    )}
+                    <Pressable
+                      onPress={async () => {
+                        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        router.push("/add-item");
+                      }}
+                      style={({ pressed }) => [
+                        styles.addBtn,
+                        { backgroundColor: colors.primary, opacity: pressed ? 0.85 : 1 },
+                      ]}
+                    >
+                      <Ionicons name="add" size={18} color={colors.primaryForeground} />
+                      <Text style={[styles.addBtnText, { color: colors.primaryForeground }]}>Add</Text>
+                    </Pressable>
+                  </>
+                )}
               </View>
             </View>
 
             {/* Wardrobe stats panel */}
-            {wardrobeItems.length > 0 && (
+            {wardrobeItems.length > 0 && !outfitMode && (
               <StatsPanel
                 avgScore={avgScore}
                 wardrobeColors={wardrobeColors}
@@ -304,6 +379,11 @@ export default function WardrobeScreen() {
                 total={wardrobeItems.length}
                 colors={colors}
               />
+            )}
+
+            {/* Wardrobe insights */}
+            {wardrobeItems.length >= 4 && !outfitMode && (
+              <InsightsPanel items={wardrobeItems} colors={colors} />
             )}
 
             {wardrobeItems.length === 0 ? (
@@ -333,52 +413,54 @@ export default function WardrobeScreen() {
               </View>
             ) : (
               <>
-                {/* Category filter */}
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.categoryScroll}
-                >
-                  {(["All", ...CLOTHING_CATEGORIES] as const).map((cat) => {
-                    const count = cat === "All" ? wardrobeItems.length : (categoryCounts[cat] ?? 0);
-                    const active = closetFilter === cat;
-                    return (
-                      <Pressable
-                        key={cat}
-                        onPress={async () => {
-                          await Haptics.selectionAsync();
-                          setClosetFilter(cat);
-                        }}
-                        style={[
-                          styles.categoryPill,
-                          {
-                            backgroundColor: active ? colors.primary : colors.secondary,
-                            borderColor: active ? colors.primary : colors.border,
-                            opacity: count === 0 ? 0.45 : 1,
-                          },
-                        ]}
-                      >
-                        {cat !== "All" && (
-                          <Ionicons
-                            name={categoryIcon(cat as ClothingCategory)}
-                            size={12}
-                            color={active ? colors.primaryForeground : colors.mutedForeground}
-                          />
-                        )}
-                        <Text style={[styles.categoryPillText, { color: active ? colors.primaryForeground : colors.foreground }]}>
-                          {cat}
-                        </Text>
-                        {count > 0 && (
-                          <View style={[styles.categoryCount, { backgroundColor: active ? "rgba(255,255,255,0.28)" : colors.primary + "20" }]}>
-                            <Text style={[styles.categoryCountText, { color: active ? colors.primaryForeground : colors.primary }]}>
-                              {count}
-                            </Text>
-                          </View>
-                        )}
-                      </Pressable>
-                    );
-                  })}
-                </ScrollView>
+                {/* Category filter (hidden in outfit mode) */}
+                {!outfitMode && (
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.categoryScroll}
+                  >
+                    {(["All", ...CLOTHING_CATEGORIES] as const).map((cat) => {
+                      const count = cat === "All" ? wardrobeItems.length : (categoryCounts[cat] ?? 0);
+                      const active = closetFilter === cat;
+                      return (
+                        <Pressable
+                          key={cat}
+                          onPress={async () => {
+                            await Haptics.selectionAsync();
+                            setClosetFilter(cat);
+                          }}
+                          style={[
+                            styles.categoryPill,
+                            {
+                              backgroundColor: active ? colors.primary : colors.secondary,
+                              borderColor: active ? colors.primary : colors.border,
+                              opacity: count === 0 ? 0.45 : 1,
+                            },
+                          ]}
+                        >
+                          {cat !== "All" && (
+                            <Ionicons
+                              name={categoryIcon(cat as ClothingCategory)}
+                              size={12}
+                              color={active ? colors.primaryForeground : colors.mutedForeground}
+                            />
+                          )}
+                          <Text style={[styles.categoryPillText, { color: active ? colors.primaryForeground : colors.foreground }]}>
+                            {cat}
+                          </Text>
+                          {count > 0 && (
+                            <View style={[styles.categoryCount, { backgroundColor: active ? "rgba(255,255,255,0.28)" : colors.primary + "20" }]}>
+                              <Text style={[styles.categoryCountText, { color: active ? colors.primaryForeground : colors.primary }]}>
+                                {count}
+                              </Text>
+                            </View>
+                          )}
+                        </Pressable>
+                      );
+                    })}
+                  </ScrollView>
+                )}
 
                 {displayedItems.length === 0 ? (
                   <View style={[styles.noResults, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
@@ -395,12 +477,20 @@ export default function WardrobeScreen() {
                   </View>
                 ) : (
                   <View style={styles.itemGrid}>
-                    {displayedItems.map((item) => (
+                    {(outfitMode ? wardrobeItems : displayedItems).map((item) => (
                       <ClosetItemCard
                         key={item.id}
                         item={item}
                         colors={colors}
-                        onPress={() => setSelectedItem(item)}
+                        outfitMode={outfitMode}
+                        selected={outfitSelected.includes(item.id)}
+                        onPress={() => {
+                          if (outfitMode) {
+                            void toggleOutfitSelect(item.id);
+                          } else {
+                            setSelectedItem(item);
+                          }
+                        }}
                       />
                     ))}
                   </View>
@@ -540,6 +630,69 @@ export default function WardrobeScreen() {
         )}
       </ScrollView>
 
+      {/* Outfit Builder floating bar */}
+      {outfitMode && (
+        <View
+          style={[
+            styles.outfitBar,
+            {
+              backgroundColor: colors.card,
+              borderTopColor: colors.border,
+              paddingBottom: insets.bottom + 10,
+            },
+          ]}
+        >
+          {outfitSelected.length < 2 ? (
+            <View style={styles.outfitBarInner}>
+              <Ionicons name="color-wand-outline" size={20} color={colors.primary} />
+              <Text style={[styles.outfitBarHint, { color: colors.mutedForeground }]}>
+                Select at least 2 items to style together
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.outfitBarInner}>
+              <View style={styles.outfitBarLeft}>
+                <View style={styles.outfitMiniAvatars}>
+                  {wardrobeItems
+                    .filter((i) => outfitSelected.includes(i.id))
+                    .slice(0, 3)
+                    .map((item, idx) => (
+                      <View
+                        key={item.id}
+                        style={[
+                          styles.outfitMiniAvatar,
+                          { marginLeft: idx > 0 ? -10 : 0, zIndex: 3 - idx, borderColor: colors.card },
+                        ]}
+                      >
+                        {item.imageUri ? (
+                          <Image source={{ uri: item.imageUri }} style={styles.outfitMiniAvatarImg} contentFit="cover" />
+                        ) : (
+                          <View style={[styles.outfitMiniAvatarImg, { backgroundColor: colors.secondary, alignItems: "center", justifyContent: "center" }]}>
+                            <Ionicons name="shirt-outline" size={12} color={colors.primary} />
+                          </View>
+                        )}
+                      </View>
+                    ))}
+                </View>
+                <Text style={[styles.outfitBarCount, { color: colors.foreground }]}>
+                  {outfitSelected.length} piece{outfitSelected.length !== 1 ? "s" : ""} selected
+                </Text>
+              </View>
+              <Pressable
+                onPress={handleStyleWithAura}
+                style={({ pressed }) => [
+                  styles.styleBtn,
+                  { backgroundColor: colors.primary, opacity: pressed ? 0.88 : 1 },
+                ]}
+              >
+                <Ionicons name="sparkles" size={16} color="#fff" />
+                <Text style={styles.styleBtnText}>Style with Aura</Text>
+              </Pressable>
+            </View>
+          )}
+        </View>
+      )}
+
       {/* Item Detail Modal */}
       <ItemDetailModal
         item={selectedItem}
@@ -549,10 +702,85 @@ export default function WardrobeScreen() {
           setSelectedItem(null);
           handleRemoveItem(item);
         }}
-        onFindSimilar={(item) => {
-          void handleFindSimilar(item);
-        }}
+        onFindSimilar={(item) => { void handleFindSimilar(item); }}
+        onAskAura={(item) => handleAskAura(item)}
       />
+    </View>
+  );
+}
+
+function InsightsPanel({
+  items,
+  colors,
+}: {
+  items: WardrobeItem[];
+  colors: ReturnType<typeof useColors>;
+}) {
+  const best = useMemo(
+    () => [...items].sort((a, b) => b.compatibilityScore - a.compatibilityScore)[0],
+    [items]
+  );
+
+  const missingCategory = useMemo(() => {
+    const owned = new Set(items.map((i) => i.category));
+    return CLOTHING_CATEGORIES.find((c) => !owned.has(c)) ?? null;
+  }, [items]);
+
+  const pctAbove70 = Math.round(
+    (items.filter((i) => i.compatibilityScore >= 70).length / items.length) * 100
+  );
+
+  const healthColor = pctAbove70 >= 70 ? "#4CAF50" : pctAbove70 >= 40 ? "#FF9800" : "#F44336";
+
+  return (
+    <View style={[styles.insightsCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      <View style={styles.insightsHeader}>
+        <Ionicons name="bulb-outline" size={15} color={colors.primary} />
+        <Text style={[styles.insightsTitle, { color: colors.foreground }]}>Wardrobe Insights</Text>
+      </View>
+
+      <View style={[styles.insightsDivider, { backgroundColor: colors.border }]} />
+
+      {/* Best match */}
+      <View style={styles.insightRow}>
+        <View style={[styles.insightIcon, { backgroundColor: "#4CAF5018" }]}>
+          <Ionicons name="trophy-outline" size={14} color="#4CAF50" />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.insightLabel, { color: colors.mutedForeground }]}>Best match</Text>
+          <Text style={[styles.insightValue, { color: colors.foreground }]} numberOfLines={1}>
+            {best.name}
+            <Text style={{ color: scoreColor(best.compatibilityScore) }}> · {best.compatibilityScore}/100</Text>
+          </Text>
+        </View>
+      </View>
+
+      {/* Wardrobe health */}
+      <View style={styles.insightRow}>
+        <View style={[styles.insightIcon, { backgroundColor: healthColor + "18" }]}>
+          <Ionicons name="pulse-outline" size={14} color={healthColor} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.insightLabel, { color: colors.mutedForeground }]}>Wardrobe health</Text>
+          <Text style={[styles.insightValue, { color: colors.foreground }]}>
+            <Text style={{ color: healthColor }}>{pctAbove70}%</Text>
+            {" of items score above 70"}
+          </Text>
+        </View>
+      </View>
+
+      {/* Gap suggestion */}
+      {missingCategory && (
+        <View style={styles.insightRow}>
+          <View style={[styles.insightIcon, { backgroundColor: colors.primary + "18" }]}>
+            <Ionicons name={categoryIcon(missingCategory)} size={14} color={colors.primary} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.insightLabel, { color: colors.mutedForeground }]}>Add to complete your wardrobe</Text>
+            <Text style={[styles.insightValue, { color: colors.primary }]}>{missingCategory}</Text>
+          </View>
+        </View>
+      )}
     </View>
   );
 }
@@ -577,25 +805,18 @@ function StatsPanel({
   return (
     <View style={[styles.statsCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
       <View style={styles.statsRow}>
-        {/* Total items */}
         <View style={styles.statItem}>
           <Text style={[styles.statNum, { color: colors.foreground }]}>{total}</Text>
           <Text style={[styles.statLabel, { color: colors.mutedForeground }]}>Items</Text>
         </View>
-
         <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
-
-        {/* Avg score */}
         <View style={styles.statItem}>
           <Text style={[styles.statNum, { color: avgScore !== null ? scoreColor(avgScore) : colors.foreground }]}>
             {avgScore ?? "—"}
           </Text>
           <Text style={[styles.statLabel, { color: colors.mutedForeground }]}>Avg Score</Text>
         </View>
-
         <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
-
-        {/* Color story */}
         <View style={styles.statItem}>
           <View style={styles.colorDots}>
             {wardrobeColors.slice(0, 5).map((c, i) => (
@@ -615,20 +836,13 @@ function StatsPanel({
         </View>
       </View>
 
-      {/* Category breakdown */}
       {topCategories.length > 0 && (
         <View style={[styles.categoryBreakdown, { borderTopColor: colors.border }]}>
           {topCategories.map(([cat, count]) => (
             <View key={cat} style={styles.breakdownItem}>
-              <Ionicons
-                name={categoryIcon(cat as ClothingCategory)}
-                size={13}
-                color={colors.primary}
-              />
+              <Ionicons name={categoryIcon(cat as ClothingCategory)} size={13} color={colors.primary} />
               <Text style={[styles.breakdownCat, { color: colors.foreground }]}>{cat}</Text>
-              <Text style={[styles.breakdownCount, { color: colors.mutedForeground }]}>
-                {count}
-              </Text>
+              <Text style={[styles.breakdownCount, { color: colors.mutedForeground }]}>{count}</Text>
             </View>
           ))}
         </View>
@@ -643,12 +857,14 @@ function ItemDetailModal({
   onClose,
   onRemove,
   onFindSimilar,
+  onAskAura,
 }: {
   item: WardrobeItem | null;
   colors: ReturnType<typeof useColors>;
   onClose: () => void;
   onRemove: (item: WardrobeItem) => void;
   onFindSimilar: (item: WardrobeItem) => void;
+  onAskAura: (item: WardrobeItem) => void;
 }) {
   const insets = useSafeAreaInsets();
   if (!item) return null;
@@ -675,7 +891,7 @@ function ItemDetailModal({
             </View>
           )}
           <LinearGradient
-            colors={["rgba(0,0,0,0.35)", "transparent"]}
+            colors={["rgba(0,0,0,0.38)", "transparent"]}
             style={styles.modalImageTop}
           >
             <Pressable
@@ -688,8 +904,6 @@ function ItemDetailModal({
               <Ionicons name="close" size={20} color="#fff" />
             </Pressable>
           </LinearGradient>
-
-          {/* Score badge on photo */}
           <View style={[styles.modalScoreBadge, { backgroundColor: sColor + "ee" }]}>
             <Text style={styles.modalScoreBadgeText}>{sc}</Text>
           </View>
@@ -703,41 +917,33 @@ function ItemDetailModal({
         >
           {/* Name + category + color */}
           <View style={styles.modalNameRow}>
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.modalName, { color: colors.foreground }]} numberOfLines={2}>
-                {item.name}
-              </Text>
-              <View style={styles.modalMetaRow}>
-                <View style={[styles.modalCatChip, { backgroundColor: colors.secondary }]}>
-                  <Ionicons name={categoryIcon(item.category)} size={11} color={colors.primary} />
-                  <Text style={[styles.modalCatText, { color: colors.primary }]}>
-                    {item.category}
+            <Text style={[styles.modalName, { color: colors.foreground }]} numberOfLines={2}>
+              {item.name}
+            </Text>
+            <View style={styles.modalMetaRow}>
+              <View style={[styles.modalCatChip, { backgroundColor: colors.secondary }]}>
+                <Ionicons name={categoryIcon(item.category)} size={11} color={colors.primary} />
+                <Text style={[styles.modalCatText, { color: colors.primary }]}>{item.category}</Text>
+              </View>
+              {item.dominantColor && (
+                <View style={styles.modalColorRow}>
+                  <View style={[styles.modalColorSwatch, { backgroundColor: item.dominantColor }]} />
+                  <Text style={[styles.modalColorHex, { color: colors.mutedForeground }]}>
+                    {item.dominantColor}
                   </Text>
                 </View>
-                {item.dominantColor && (
-                  <View style={styles.modalColorRow}>
-                    <View style={[styles.modalColorSwatch, { backgroundColor: item.dominantColor }]} />
-                    <Text style={[styles.modalColorHex, { color: colors.mutedForeground }]}>
-                      {item.dominantColor}
-                    </Text>
-                  </View>
-                )}
-              </View>
+              )}
             </View>
           </View>
 
           {/* Compatibility score bar */}
           <View style={[styles.modalSection, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <View style={styles.modalScoreHeader}>
-              <Text style={[styles.modalSectionTitle, { color: colors.foreground }]}>
-                Compatibility
-              </Text>
+              <Text style={[styles.modalSectionTitle, { color: colors.foreground }]}>Compatibility</Text>
               <Text style={[styles.modalScoreNum, { color: sColor }]}>{sc}/100</Text>
             </View>
             <View style={[styles.scoreTrack, { backgroundColor: colors.secondary }]}>
-              <View
-                style={[styles.scoreBar, { width: `${sc}%`, backgroundColor: sColor }]}
-              />
+              <View style={[styles.scoreBar, { width: `${sc}%` as `${number}%`, backgroundColor: sColor }]} />
             </View>
             <View style={styles.modalScoreLabelRow}>
               <View style={[styles.modalScoreLabelChip, { backgroundColor: sColor + "20" }]}>
@@ -764,6 +970,19 @@ function ItemDetailModal({
             </View>
           )}
 
+          {/* Ask Aura CTA */}
+          <Pressable
+            onPress={() => onAskAura(item)}
+            style={({ pressed }) => [
+              styles.askAuraBtn,
+              { backgroundColor: colors.primary, opacity: pressed ? 0.88 : 1 },
+            ]}
+          >
+            <Ionicons name="sparkles" size={18} color="#fff" />
+            <Text style={styles.askAuraBtnText}>Ask Aura how to style this</Text>
+            <Ionicons name="arrow-forward" size={16} color="rgba(255,255,255,0.7)" />
+          </Pressable>
+
           {/* Actions */}
           <View style={styles.modalActions}>
             <Pressable
@@ -774,9 +993,7 @@ function ItemDetailModal({
               ]}
             >
               <Ionicons name="search-outline" size={18} color={colors.primary} />
-              <Text style={[styles.modalActionText, { color: colors.foreground }]}>
-                Find Similar
-              </Text>
+              <Text style={[styles.modalActionText, { color: colors.foreground }]}>Find Similar</Text>
             </Pressable>
             <Pressable
               onPress={() => onRemove(item)}
@@ -786,9 +1003,7 @@ function ItemDetailModal({
               ]}
             >
               <Ionicons name="trash-outline" size={18} color="#F44336" />
-              <Text style={[styles.modalActionText, { color: "#F44336" }]}>
-                Remove
-              </Text>
+              <Text style={[styles.modalActionText, { color: "#F44336" }]}>Remove</Text>
             </Pressable>
           </View>
         </ScrollView>
@@ -800,10 +1015,14 @@ function ItemDetailModal({
 function ClosetItemCard({
   item,
   colors,
+  outfitMode,
+  selected,
   onPress,
 }: {
   item: WardrobeItem;
   colors: ReturnType<typeof useColors>;
+  outfitMode: boolean;
+  selected: boolean;
   onPress: () => void;
 }) {
   const score = item.compatibilityScore;
@@ -814,7 +1033,12 @@ function ClosetItemCard({
       onPress={onPress}
       style={({ pressed }) => [
         styles.itemCard,
-        { backgroundColor: colors.card, borderColor: colors.border, opacity: pressed ? 0.88 : 1 },
+        {
+          backgroundColor: colors.card,
+          borderColor: selected ? colors.primary : colors.border,
+          borderWidth: selected ? 2.5 : StyleSheet.hairlineWidth,
+          opacity: outfitMode && !selected ? 0.75 : pressed ? 0.88 : 1,
+        },
       ]}
     >
       {item.imageUri ? (
@@ -825,28 +1049,46 @@ function ClosetItemCard({
         </View>
       )}
 
-      {/* Score badge top-right */}
-      <View style={[styles.scoreBadge, { backgroundColor: sColor + "ee" }]}>
-        <Text style={styles.scoreBadgeText}>{score}</Text>
-      </View>
+      {/* Score badge or selection check */}
+      {outfitMode ? (
+        <View style={[
+          styles.selectBadge,
+          { backgroundColor: selected ? colors.primary : "rgba(255,255,255,0.7)" },
+        ]}>
+          <Ionicons
+            name={selected ? "checkmark" : "add"}
+            size={14}
+            color={selected ? "#fff" : colors.mutedForeground}
+          />
+        </View>
+      ) : (
+        <View style={[styles.scoreBadge, { backgroundColor: sColor + "ee" }]}>
+          <Text style={styles.scoreBadgeText}>{score}</Text>
+        </View>
+      )}
 
       {/* Bottom overlay */}
       <LinearGradient
         colors={["transparent", "rgba(0,0,0,0.65)"]}
         style={styles.itemOverlay}
       >
-        <Text style={styles.itemName} numberOfLines={1}>
-          {item.name}
-        </Text>
+        <Text style={styles.itemName} numberOfLines={1}>{item.name}</Text>
         <View style={styles.itemFooter}>
           <View style={[styles.catChip, { backgroundColor: "rgba(255,255,255,0.2)" }]}>
             <Text style={styles.catChipText}>{item.category}</Text>
           </View>
-          <View style={styles.tapHint}>
-            <Ionicons name="chevron-forward" size={12} color="rgba(255,255,255,0.7)" />
-          </View>
+          {!outfitMode && (
+            <View style={styles.tapHint}>
+              <Ionicons name="chevron-forward" size={12} color="rgba(255,255,255,0.7)" />
+            </View>
+          )}
         </View>
       </LinearGradient>
+
+      {/* Selected overlay */}
+      {selected && (
+        <View style={styles.selectedOverlay} />
+      )}
     </Pressable>
   );
 }
@@ -880,12 +1122,7 @@ function OutfitCard({
   const icon = OUTFIT_ICONS[index % OUTFIT_ICONS.length];
 
   return (
-    <LinearGradient
-      colors={gradient}
-      style={styles.outfitCard}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-    >
+    <LinearGradient colors={gradient} style={styles.outfitCard} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
       <View style={styles.outfitContent}>
         <View style={[styles.outfitNum, { backgroundColor: "rgba(255,255,255,0.75)" }]}>
           <Text style={[styles.outfitNumText, { color: OUTFIT_TEXT_DIM }]}>{index + 1}</Text>
@@ -906,46 +1143,26 @@ function OutfitCard({
       <View style={[styles.outfitIcon, { backgroundColor: "rgba(255,255,255,0.65)" }]}>
         <Ionicons name={icon} size={22} color={OUTFIT_TEXT_DIM} />
       </View>
-
-      {/* Feedback row */}
       <View style={styles.feedbackRow}>
         <Pressable
           onPress={() => onFeedback("liked")}
-          style={[
-            styles.feedbackBtn,
-            {
-              backgroundColor: currentFeedback === "liked" ? "#4CAF5033" : "rgba(255,255,255,0.55)",
-              borderColor: currentFeedback === "liked" ? "#4CAF50" : "transparent",
-            },
-          ]}
+          style={[styles.feedbackBtn, {
+            backgroundColor: currentFeedback === "liked" ? "#4CAF5033" : "rgba(255,255,255,0.55)",
+            borderColor: currentFeedback === "liked" ? "#4CAF50" : "transparent",
+          }]}
         >
-          <Ionicons
-            name={currentFeedback === "liked" ? "thumbs-up" : "thumbs-up-outline"}
-            size={14}
-            color={currentFeedback === "liked" ? "#4CAF50" : OUTFIT_TEXT_DIM}
-          />
-          <Text style={[styles.feedbackLabel, { color: currentFeedback === "liked" ? "#4CAF50" : OUTFIT_TEXT_DIM }]}>
-            Like
-          </Text>
+          <Ionicons name={currentFeedback === "liked" ? "thumbs-up" : "thumbs-up-outline"} size={14} color={currentFeedback === "liked" ? "#4CAF50" : OUTFIT_TEXT_DIM} />
+          <Text style={[styles.feedbackLabel, { color: currentFeedback === "liked" ? "#4CAF50" : OUTFIT_TEXT_DIM }]}>Like</Text>
         </Pressable>
         <Pressable
           onPress={() => onFeedback("disliked")}
-          style={[
-            styles.feedbackBtn,
-            {
-              backgroundColor: currentFeedback === "disliked" ? "#F4433633" : "rgba(255,255,255,0.55)",
-              borderColor: currentFeedback === "disliked" ? "#F44336" : "transparent",
-            },
-          ]}
+          style={[styles.feedbackBtn, {
+            backgroundColor: currentFeedback === "disliked" ? "#F4433633" : "rgba(255,255,255,0.55)",
+            borderColor: currentFeedback === "disliked" ? "#F44336" : "transparent",
+          }]}
         >
-          <Ionicons
-            name={currentFeedback === "disliked" ? "thumbs-down" : "thumbs-down-outline"}
-            size={14}
-            color={currentFeedback === "disliked" ? "#F44336" : OUTFIT_TEXT_DIM}
-          />
-          <Text style={[styles.feedbackLabel, { color: currentFeedback === "disliked" ? "#F44336" : OUTFIT_TEXT_DIM }]}>
-            Not me
-          </Text>
+          <Ionicons name={currentFeedback === "disliked" ? "thumbs-down" : "thumbs-down-outline"} size={14} color={currentFeedback === "disliked" ? "#F44336" : OUTFIT_TEXT_DIM} />
+          <Text style={[styles.feedbackLabel, { color: currentFeedback === "disliked" ? "#F44336" : OUTFIT_TEXT_DIM }]}>Not me</Text>
         </Pressable>
       </View>
     </LinearGradient>
@@ -980,10 +1197,7 @@ const styles = StyleSheet.create({
   headerSub: { fontSize: 14, fontFamily: "Inter_400Regular" },
 
   sectionToggle: { flexDirection: "row", paddingHorizontal: 20, gap: 10, marginBottom: 20 },
-  sectionBtn: {
-    flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center",
-    gap: 6, paddingVertical: 11, borderRadius: 14, borderWidth: StyleSheet.hairlineWidth,
-  },
+  sectionBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 11, borderRadius: 14, borderWidth: StyleSheet.hairlineWidth },
   sectionBtnText: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
   countBadge: { minWidth: 20, height: 20, borderRadius: 10, alignItems: "center", justifyContent: "center", paddingHorizontal: 5 },
   countText: { fontSize: 11, fontFamily: "Inter_700Bold" },
@@ -992,21 +1206,18 @@ const styles = StyleSheet.create({
   closetHeader: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 14 },
   closetSubtitle: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 2 },
   closetHeaderRight: { flexDirection: "row", alignItems: "center", gap: 8 },
-
   sectionTitle: { fontSize: 17, fontFamily: "Inter_700Bold" },
 
-  sortBtn: {
-    flexDirection: "row", alignItems: "center", gap: 5,
-    paddingHorizontal: 10, paddingVertical: 7, borderRadius: 10, borderWidth: StyleSheet.hairlineWidth,
-  },
+  sortBtn: { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 10, borderWidth: StyleSheet.hairlineWidth },
   sortBtnText: { fontSize: 12, fontFamily: "Inter_500Medium" },
+
+  outfitBtn: { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 11, paddingVertical: 8, borderRadius: 12, borderWidth: 1 },
+  outfitBtnText: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
 
   addBtn: { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 12 },
   addBtnText: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
 
-  statsCard: {
-    borderRadius: 18, borderWidth: StyleSheet.hairlineWidth, marginBottom: 16, overflow: "hidden",
-  },
+  statsCard: { borderRadius: 18, borderWidth: StyleSheet.hairlineWidth, marginBottom: 14, overflow: "hidden" },
   statsRow: { flexDirection: "row", alignItems: "center", paddingVertical: 14, paddingHorizontal: 16 },
   statItem: { flex: 1, alignItems: "center", gap: 4 },
   statNum: { fontSize: 22, fontFamily: "Inter_700Bold" },
@@ -1014,27 +1225,27 @@ const styles = StyleSheet.create({
   statDivider: { width: StyleSheet.hairlineWidth, height: 36 },
   colorDots: { flexDirection: "row", alignItems: "center", height: 26 },
   colorDot: { width: 20, height: 20, borderRadius: 10, borderWidth: 1.5, borderColor: "#fff" },
-
-  categoryBreakdown: {
-    flexDirection: "row", paddingHorizontal: 16, paddingVertical: 10,
-    borderTopWidth: StyleSheet.hairlineWidth, gap: 16,
-  },
+  categoryBreakdown: { flexDirection: "row", paddingHorizontal: 16, paddingVertical: 10, borderTopWidth: StyleSheet.hairlineWidth, gap: 16 },
   breakdownItem: { flexDirection: "row", alignItems: "center", gap: 4 },
   breakdownCat: { fontSize: 12, fontFamily: "Inter_500Medium" },
   breakdownCount: { fontSize: 12, fontFamily: "Inter_400Regular" },
 
+  insightsCard: { borderRadius: 18, borderWidth: StyleSheet.hairlineWidth, marginBottom: 14, overflow: "hidden" },
+  insightsHeader: { flexDirection: "row", alignItems: "center", gap: 7, paddingHorizontal: 16, paddingTop: 14, paddingBottom: 10 },
+  insightsTitle: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
+  insightsDivider: { height: StyleSheet.hairlineWidth, marginHorizontal: 16, marginBottom: 4 },
+  insightRow: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, paddingVertical: 10 },
+  insightIcon: { width: 32, height: 32, borderRadius: 10, alignItems: "center", justifyContent: "center" },
+  insightLabel: { fontSize: 11, fontFamily: "Inter_400Regular", marginBottom: 2 },
+  insightValue: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
+
   categoryScroll: { gap: 8, paddingBottom: 14 },
-  categoryPill: {
-    flexDirection: "row", alignItems: "center", gap: 5,
-    paddingHorizontal: 13, paddingVertical: 8, borderRadius: 20, borderWidth: 1,
-  },
+  categoryPill: { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 13, paddingVertical: 8, borderRadius: 20, borderWidth: 1 },
   categoryPillText: { fontSize: 12, fontFamily: "Inter_500Medium" },
   categoryCount: { paddingHorizontal: 6, paddingVertical: 1, borderRadius: 8 },
   categoryCountText: { fontSize: 10, fontFamily: "Inter_700Bold" },
 
-  closetEmpty: {
-    alignItems: "center", padding: 28, borderRadius: 20, borderWidth: StyleSheet.hairlineWidth, gap: 12, marginBottom: 16,
-  },
+  closetEmpty: { alignItems: "center", padding: 28, borderRadius: 20, borderWidth: StyleSheet.hairlineWidth, gap: 12, marginBottom: 16 },
   closetEmptyIcon: { width: 72, height: 72, borderRadius: 36, alignItems: "center", justifyContent: "center", marginBottom: 4 },
   closetEmptyTitle: { fontSize: 18, fontFamily: "Inter_600SemiBold" },
   closetEmptyDesc: { fontSize: 14, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 22 },
@@ -1042,17 +1253,30 @@ const styles = StyleSheet.create({
   closetEmptyBtnText: { fontSize: 15, fontFamily: "Inter_600SemiBold", color: "#fff" },
 
   itemGrid: { flexDirection: "row", flexWrap: "wrap", gap: ITEM_GAP, marginBottom: 16 },
-  itemCard: { width: ITEM_WIDTH, height: ITEM_HEIGHT, borderRadius: 18, overflow: "hidden", borderWidth: StyleSheet.hairlineWidth },
+  itemCard: { width: ITEM_WIDTH, height: ITEM_HEIGHT, borderRadius: 18, overflow: "hidden" },
   itemImage: { width: "100%", height: "100%", position: "absolute" },
   itemImagePlaceholder: { alignItems: "center", justifyContent: "center" },
   scoreBadge: { position: "absolute", top: 10, right: 10, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10 },
   scoreBadgeText: { fontSize: 12, fontFamily: "Inter_700Bold", color: "#fff" },
+  selectBadge: { position: "absolute", top: 10, right: 10, width: 26, height: 26, borderRadius: 13, alignItems: "center", justifyContent: "center" },
+  selectedOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(196,149,106,0.18)", borderRadius: 18 },
   itemOverlay: { position: "absolute", bottom: 0, left: 0, right: 0, paddingHorizontal: 12, paddingTop: 24, paddingBottom: 12 },
   itemName: { fontSize: 13, fontFamily: "Inter_600SemiBold", color: "#fff", marginBottom: 6 },
   itemFooter: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   catChip: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
   catChipText: { fontSize: 10, fontFamily: "Inter_600SemiBold", color: "rgba(255,255,255,0.9)" },
   tapHint: { width: 22, height: 22, borderRadius: 11, backgroundColor: "rgba(255,255,255,0.18)", alignItems: "center", justifyContent: "center" },
+
+  outfitBar: { position: "absolute", bottom: 0, left: 0, right: 0, borderTopWidth: StyleSheet.hairlineWidth, paddingHorizontal: 20, paddingTop: 14 },
+  outfitBarInner: { flexDirection: "row", alignItems: "center", gap: 12 },
+  outfitBarLeft: { flex: 1, flexDirection: "row", alignItems: "center", gap: 10 },
+  outfitMiniAvatars: { flexDirection: "row", alignItems: "center" },
+  outfitMiniAvatar: { width: 34, height: 34, borderRadius: 17, borderWidth: 2, overflow: "hidden" },
+  outfitMiniAvatarImg: { width: "100%", height: "100%" },
+  outfitBarHint: { flex: 1, fontSize: 13, fontFamily: "Inter_400Regular" },
+  outfitBarCount: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
+  styleBtn: { flexDirection: "row", alignItems: "center", gap: 7, paddingHorizontal: 16, paddingVertical: 12, borderRadius: 14 },
+  styleBtnText: { fontSize: 14, fontFamily: "Inter_700Bold", color: "#fff" },
 
   archetypeBanner: { borderRadius: 18, padding: 20, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   archetypeLabel: { fontSize: 12, fontFamily: "Inter_400Regular", color: "rgba(255,255,255,0.8)", marginBottom: 4 },
@@ -1105,16 +1329,13 @@ const styles = StyleSheet.create({
   modalHero: { height: 320, position: "relative" },
   modalImage: { width: "100%", height: "100%" },
   modalImagePlaceholder: { alignItems: "center", justifyContent: "center" },
-  modalImageTop: {
-    position: "absolute", top: 0, left: 0, right: 0, height: 100,
-    paddingTop: 16, paddingHorizontal: 16, flexDirection: "row", alignItems: "flex-start",
-  },
+  modalImageTop: { position: "absolute", top: 0, left: 0, right: 0, height: 100, paddingTop: 16, paddingHorizontal: 16, flexDirection: "row", alignItems: "flex-start" },
   modalCloseBtn: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
   modalScoreBadge: { position: "absolute", top: 16, right: 16, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
   modalScoreBadgeText: { fontSize: 16, fontFamily: "Inter_700Bold", color: "#fff" },
 
   modalContent: { flex: 1, paddingHorizontal: 20, paddingTop: 20 },
-  modalNameRow: { marginBottom: 20 },
+  modalNameRow: { marginBottom: 16 },
   modalName: { fontSize: 22, fontFamily: "Inter_700Bold", lineHeight: 30, marginBottom: 10 },
   modalMetaRow: { flexDirection: "row", alignItems: "center", gap: 10 },
   modalCatChip: { flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10 },
@@ -1125,7 +1346,6 @@ const styles = StyleSheet.create({
 
   modalSection: { borderRadius: 18, borderWidth: StyleSheet.hairlineWidth, padding: 16, marginBottom: 14, gap: 10 },
   modalSectionTitle: { fontSize: 15, fontFamily: "Inter_700Bold" },
-
   modalScoreHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   modalScoreNum: { fontSize: 20, fontFamily: "Inter_700Bold" },
   scoreTrack: { height: 8, borderRadius: 4, overflow: "hidden" },
@@ -1134,14 +1354,13 @@ const styles = StyleSheet.create({
   modalScoreLabelChip: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
   modalScoreLabelText: { fontSize: 12, fontFamily: "Inter_600SemiBold" },
   modalScoreHint: { fontSize: 12, fontFamily: "Inter_400Regular" },
-
   modalNotesHeader: { flexDirection: "row", alignItems: "center", gap: 8 },
   modalNotes: { fontSize: 14, fontFamily: "Inter_400Regular", lineHeight: 23 },
 
+  askAuraBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, paddingVertical: 15, borderRadius: 18, marginBottom: 14 },
+  askAuraBtnText: { fontSize: 15, fontFamily: "Inter_700Bold", color: "#fff", flex: 1, textAlign: "center" },
+
   modalActions: { flexDirection: "row", gap: 12, marginTop: 4 },
-  modalActionBtn: {
-    flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center",
-    gap: 8, paddingVertical: 14, borderRadius: 16, borderWidth: StyleSheet.hairlineWidth,
-  },
+  modalActionBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 14, borderRadius: 16, borderWidth: StyleSheet.hairlineWidth },
   modalActionText: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
 });

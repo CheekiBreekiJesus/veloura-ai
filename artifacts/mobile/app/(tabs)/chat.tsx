@@ -156,7 +156,7 @@ function SuggestionChips({
 export default function StylistChatScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { analysis, userName, chatHistory, saveChatHistory } = useAnalysis();
+  const { analysis, userName, chatHistory, saveChatHistory, pendingChatInput, setPendingChatInput } = useAnalysis();
   const { feedback } = useWardrobe();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -171,6 +171,14 @@ export default function StylistChatScreen() {
     const d = process.env["EXPO_PUBLIC_DOMAIN"];
     return d ? `https://${d}` : "";
   })();
+
+  // Consume a pending chat input queued from another screen (e.g. wardrobe "Ask Aura")
+  useEffect(() => {
+    if (pendingChatInput) {
+      setInput(pendingChatInput);
+      setPendingChatInput(null);
+    }
+  }, [pendingChatInput, setPendingChatInput]);
 
   // Reset local state whenever analysis is cleared (clearAnalysis called)
   useEffect(() => {
