@@ -90,3 +90,8 @@ export function useSeason() {
   if (!ctx) throw new Error("useSeason must be used within SeasonProvider");
   return ctx;
 }
+
+/** Convenience alias — returns only the computed current season. */
+export function useCurrentSeason(): Season {
+  return useSeason().currentSeason;
+}

@@ -22,6 +22,8 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
 import { useAnalysis } from "@/context/AnalysisContext";
 import {
   buildMeasurementsText,
@@ -574,10 +576,18 @@ export default function WardrobeScreen() {
 
   const [section, setSection] = useState<WardrobeSection>("closet");
   const [autoTagging, setAutoTagging] = useState(false);
-  const [autoTagBannerDismissed, setAutoTagBannerDismissed] = useState(false);
+  const [autoTagBannerDismissed, setAutoTagBannerDismissed] = useState<boolean | null>(null);
   const [gapNote, setGapNote] = useState<string | null>(null);
   const [plannerSuggestions, setPlannerSuggestions] = useState<Partial<Record<Season, string>>>({});
   const seasonInsightsFetched = useRef(false);
+
+  // Load + persist auto-tag banner dismissal across sessions
+  useEffect(() => {
+    void AsyncStorage.getItem("veloura_autotag_dismissed").then((v) => {
+      setAutoTagBannerDismissed(v === "1");
+    });
+  }, []);
+
   const [activeFilter, setActiveFilter] = useState("All");
   const [closetFilter, setClosetFilter] = useState<ClothingCategory | "All">("All");
   const [sortBy, setSortBy] = useState<SortOption>("recent");
@@ -1112,13 +1122,16 @@ export default function WardrobeScreen() {
               colors={colors}
             />
 
-            {/* Auto-tag banner — one-time first-entry prompt */}
-            {untaggedItems.length > 0 && wardrobeItems.length > 0 && !autoTagBannerDismissed && (
+            {/* Auto-tag banner — one-time first-entry prompt; null = still loading dismissal state */}
+            {untaggedItems.length > 0 && wardrobeItems.length > 0 && autoTagBannerDismissed === false && (
               <AutoTagBanner
                 untaggedCount={untaggedItems.length}
                 tagging={autoTagging}
                 onAutoTag={() => { void handleAutoTagAll(); }}
-                onDismiss={() => setAutoTagBannerDismissed(true)}
+                onDismiss={() => {
+                  setAutoTagBannerDismissed(true);
+                  void AsyncStorage.setItem("veloura_autotag_dismissed", "1");
+                }}
                 colors={colors}
               />
             )}
