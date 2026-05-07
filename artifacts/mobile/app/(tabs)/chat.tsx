@@ -272,14 +272,18 @@ export default function StylistChatScreen() {
     }
   }, [pendingChatInput, setPendingChatInput]);
 
-  // Auto-send tip context when navigated from Tip of the Day
-  const tipInjectedRef = useRef(false);
+  // Auto-send tip context when navigated from Tip of the Day.
+  // We track the last injected signature so each distinct tip fires once, but
+  // a second tap of a new tip (different title/body) will still auto-send.
+  const tipInjectedRef = useRef<string>("");
   useEffect(() => {
-    if (!tipTitle || tipInjectedRef.current || !initialized || loading) return;
-    tipInjectedRef.current = true;
+    const sig = tipTitle ? `${tipTitle}|${tipBody ?? ""}` : "";
+    if (!sig || tipInjectedRef.current === sig || !initialized || loading) return;
+    tipInjectedRef.current = sig;
     const msg = tipBody
       ? `Let's talk about today's tip: ${tipTitle} — ${tipBody}`
       : `Let's talk about today's tip: ${tipTitle}`;
+    // Clear params so a route re-render with stale params doesn't re-fire.
     router.setParams({ tipTitle: "", tipBody: "" });
     void send(msg);
   }, [initialized, loading, tipTitle, tipBody, send]);
