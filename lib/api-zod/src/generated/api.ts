@@ -237,6 +237,27 @@ export const MakeupTryOnResponse = zod.object({
 });
 
 /**
+ * Accepts a clothing photo (base64) and returns a background-free PNG with a transparent backdrop, suitable for displaying in the wardrobe grid. Requires a valid Bearer token from GET /api/auth/token. Rate-limited to 30 requests per IP per 15-minute window.
+
+ * @summary Remove background from a clothing image
+ */
+export const RemoveBackgroundBody = zod.object({
+  imageBase64: zod
+    .string()
+    .describe(
+      "Base64-encoded image data. Maximum ~6 MB of base64 chars. Accepted MIME types: image\/jpeg, image\/png, image\/webp.\n",
+    ),
+  mimeType: zod.string().describe("MIME type of the image (e.g., image\/jpeg)"),
+});
+
+export const RemoveBackgroundResponse = zod.object({
+  imageBase64: zod
+    .string()
+    .describe("Base64-encoded PNG with background removed (transparent)"),
+  mimeType: zod.string().describe('Always \"image\/png\"'),
+});
+
+/**
  * Analyzes a selfie using AI vision and returns a full Aesthetic Identity Profile. Requires a valid Bearer token from GET /api/auth/token. Rate-limited to 10 requests per IP per 15-minute window. Rejected if the server has 3 or more concurrent analysis requests in flight.
 
  * @summary Analyze face from image

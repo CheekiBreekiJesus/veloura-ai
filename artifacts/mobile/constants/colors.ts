@@ -58,6 +58,8 @@ const colors = {
   },
 
   radius: 16,
+
+  wardrobeNeutralBg: "#F5F2EE",
 };
 
 export default colors;

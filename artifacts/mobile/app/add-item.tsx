@@ -62,6 +62,28 @@ function scoreLabel(score: number): string {
   return "Poor Match";
 }
 
+async function removeBackground(
+  imageBase64: string,
+  mimeType: string,
+  token: string
+): Promise<{ imageBase64: string; mimeType: string } | null> {
+  try {
+    const res = await fetch(`${BASE_URL}/api/remove-background`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ imageBase64, mimeType }),
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as { imageBase64: string; mimeType: string };
+    return data;
+  } catch {
+    return null;
+  }
+}
+
 export default function AddItemScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -77,6 +99,7 @@ export default function AddItemScreen() {
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [savingPhase, setSavingPhase] = useState<"saving" | "removing-bg">("saving");
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const botPad = Platform.OS === "web" ? 34 : insets.bottom;
@@ -163,26 +186,51 @@ export default function AddItemScreen() {
     if (!imageBase64 || !result) return;
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setSaving(true);
+    setSavingPhase("saving");
 
-    const persistableUri = `data:${mimeType};base64,${imageBase64}`;
+    const originalUri = `data:${mimeType};base64,${imageBase64}`;
 
-    // Save original photo to "Veloura Wardrobe" album before building the item
+    // Save original photo to "Veloura Wardrobe" album before background removal
     let galleryUri: string | undefined;
     if (imageUri && Platform.OS !== "web") {
       const saved = await saveToGallery(imageUri, "Veloura Wardrobe");
       if (saved) galleryUri = saved;
     }
 
+    // Attempt background removal
+    setSavingPhase("removing-bg");
+    let finalImageUri = originalUri;
+    let backgroundRemoved = false;
+
+    try {
+      const tokenRes = await fetch(`${BASE_URL}/api/auth/token`);
+      if (tokenRes.ok) {
+        const { token } = (await tokenRes.json()) as { token: string };
+        const bgResult = await removeBackground(imageBase64, mimeType, token);
+        if (bgResult) {
+          finalImageUri = `data:${bgResult.mimeType};base64,${bgResult.imageBase64}`;
+          backgroundRemoved = true;
+        } else {
+          if (__DEV__) console.warn("[Veloura] Background removal returned null — falling back to original image");
+        }
+      } else {
+        if (__DEV__) console.warn("[Veloura] Token fetch failed for background removal — falling back to original image");
+      }
+    } catch (bgErr) {
+      if (__DEV__) console.warn("[Veloura] Background removal failed:", bgErr);
+    }
+
     const item: WardrobeItem = {
       id: `item-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       name: name.trim() || result.name,
       category,
-      imageUri: persistableUri,
+      imageUri: finalImageUri,
       galleryUri,
       dominantColor: result.dominantColor,
       compatibilityScore: result.compatibilityScore,
       compatibilityNotes: result.compatibilityNotes,
       addedAt: Date.now(),
+      backgroundRemoved,
     };
 
     await addItem(item);
@@ -437,7 +485,12 @@ export default function AddItemScreen() {
                 ]}
               >
                 {saving ? (
-                  <ActivityIndicator size="small" color="#fff" />
+                  <View style={styles.savingInner}>
+                    <ActivityIndicator size="small" color="#fff" />
+                    <Text style={styles.saveBtnText}>
+                      {savingPhase === "removing-bg" ? "Removing background…" : "Saving…"}
+                    </Text>
+                  </View>
                 ) : (
                   <Text style={styles.saveBtnText}>Add to My Closet</Text>
                 )}
@@ -530,5 +583,6 @@ const styles = StyleSheet.create({
     flex: 2, alignItems: "center", justifyContent: "center",
     paddingVertical: 15, borderRadius: 15,
   },
+  savingInner: { flexDirection: "row", alignItems: "center", gap: 8 },
   saveBtnText: { fontSize: 15, fontFamily: "Inter_600SemiBold", color: "#fff" },
 });

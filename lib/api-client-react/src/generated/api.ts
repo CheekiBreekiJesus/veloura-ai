@@ -26,6 +26,8 @@ import type {
   HealthStatus,
   MakeupPreviewResult,
   MakeupTryOnRequest,
+  RemoveBackgroundRequest,
+  RemoveBackgroundResult,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
@@ -363,6 +365,94 @@ export const useMakeupTryOn = <
   TContext
 > => {
   return useMutation(getMakeupTryOnMutationOptions(options));
+};
+
+/**
+ * Accepts a clothing photo (base64) and returns a background-free PNG with a transparent backdrop, suitable for displaying in the wardrobe grid. Requires a valid Bearer token from GET /api/auth/token. Rate-limited to 30 requests per IP per 15-minute window.
+
+ * @summary Remove background from a clothing image
+ */
+export const getRemoveBackgroundUrl = () => {
+  return `/api/remove-background`;
+};
+
+export const removeBackground = async (
+  removeBackgroundRequest: RemoveBackgroundRequest,
+  options?: RequestInit,
+): Promise<RemoveBackgroundResult> => {
+  return customFetch<RemoveBackgroundResult>(getRemoveBackgroundUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(removeBackgroundRequest),
+  });
+};
+
+export const getRemoveBackgroundMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof removeBackground>>,
+    TError,
+    { data: BodyType<RemoveBackgroundRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof removeBackground>>,
+  TError,
+  { data: BodyType<RemoveBackgroundRequest> },
+  TContext
+> => {
+  const mutationKey = ["removeBackground"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof removeBackground>>,
+    { data: BodyType<RemoveBackgroundRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return removeBackground(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RemoveBackgroundMutationResult = NonNullable<
+  Awaited<ReturnType<typeof removeBackground>>
+>;
+export type RemoveBackgroundMutationBody = BodyType<RemoveBackgroundRequest>;
+export type RemoveBackgroundMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Remove background from a clothing image
+ */
+export const useRemoveBackground = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof removeBackground>>,
+    TError,
+    { data: BodyType<RemoveBackgroundRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof removeBackground>>,
+  TError,
+  { data: BodyType<RemoveBackgroundRequest> },
+  TContext
+> => {
+  return useMutation(getRemoveBackgroundMutationOptions(options));
 };
 
 /**

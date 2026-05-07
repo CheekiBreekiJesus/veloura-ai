@@ -5,6 +5,7 @@ import analyzeRouter from "./analyze";
 import analyzeClothingRouter from "./analyze-clothing";
 import chatRouter from "./chat";
 import makeupTryOnRouter from "./makeup-try-on";
+import removeBackgroundRouter from "./remove-background";
 
 const router: IRouter = Router();
 
@@ -14,5 +15,6 @@ router.use(analyzeRouter);
 router.use(analyzeClothingRouter);
 router.use(chatRouter);
 router.use(makeupTryOnRouter);
+router.use(removeBackgroundRouter);
 
 export default router;

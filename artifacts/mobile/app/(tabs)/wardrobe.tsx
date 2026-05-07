@@ -33,6 +33,7 @@ import {
   type FeedbackValue,
   type WardrobeItem,
 } from "@/context/WardrobeContext";
+import colorTokens from "@/constants/colors";
 import { useColors } from "@/hooks/useColors";
 
 const { width } = Dimensions.get("window");
@@ -1002,7 +1003,13 @@ function ItemDetailModal({
         {/* Photo hero */}
         <View style={styles.modalHero}>
           {item.imageUri ? (
-            <Image source={{ uri: item.imageUri }} style={styles.modalImage} contentFit="cover" />
+            item.backgroundRemoved ? (
+              <View style={[styles.modalImage, styles.modalImageNeutralBg]}>
+                <Image source={{ uri: item.imageUri }} style={styles.modalImageContain} contentFit="contain" />
+              </View>
+            ) : (
+              <Image source={{ uri: item.imageUri }} style={styles.modalImage} contentFit="cover" />
+            )
           ) : (
             <View style={[styles.modalImage, styles.modalImagePlaceholder, { backgroundColor: colors.secondary }]}>
               <Ionicons name="shirt-outline" size={56} color={colors.mutedForeground} />
@@ -1160,7 +1167,13 @@ function ClosetItemCard({
       ]}
     >
       {item.imageUri ? (
-        <Image source={{ uri: item.imageUri }} style={styles.itemImage} contentFit="cover" />
+        item.backgroundRemoved ? (
+          <View style={[styles.itemImage, styles.itemImageNeutralBg]}>
+            <Image source={{ uri: item.imageUri }} style={styles.itemImageContain} contentFit="contain" />
+          </View>
+        ) : (
+          <Image source={{ uri: item.imageUri }} style={styles.itemImage} contentFit="cover" />
+        )
       ) : (
         <View style={[styles.itemImage, styles.itemImagePlaceholder, { backgroundColor: colors.secondary }]}>
           <Ionicons name="shirt-outline" size={32} color={colors.mutedForeground} />
@@ -1374,6 +1387,8 @@ const styles = StyleSheet.create({
   itemCard: { width: ITEM_WIDTH, height: ITEM_HEIGHT, borderRadius: 18, overflow: "hidden" },
   itemImage: { width: "100%", height: "100%", position: "absolute" },
   itemImagePlaceholder: { alignItems: "center", justifyContent: "center" },
+  itemImageNeutralBg: { backgroundColor: colorTokens.wardrobeNeutralBg, alignItems: "center", justifyContent: "center" },
+  itemImageContain: { width: "100%", height: "100%", position: "absolute" },
   scoreBadge: { position: "absolute", top: 10, right: 10, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10 },
   scoreBadgeText: { fontSize: 12, fontFamily: "Inter_700Bold", color: "#fff" },
   selectBadge: { position: "absolute", top: 10, right: 10, width: 26, height: 26, borderRadius: 13, alignItems: "center", justifyContent: "center" },
@@ -1447,6 +1462,8 @@ const styles = StyleSheet.create({
   modalHero: { height: 320, position: "relative" },
   modalImage: { width: "100%", height: "100%" },
   modalImagePlaceholder: { alignItems: "center", justifyContent: "center" },
+  modalImageNeutralBg: { backgroundColor: colorTokens.wardrobeNeutralBg, alignItems: "center", justifyContent: "center" },
+  modalImageContain: { width: "100%", height: "100%" },
   modalImageTop: { position: "absolute", top: 0, left: 0, right: 0, height: 100, paddingTop: 16, paddingHorizontal: 16, flexDirection: "row", alignItems: "flex-start" },
   modalCloseBtn: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
   modalScoreBadge: { position: "absolute", top: 16, right: 16, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },

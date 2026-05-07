@@ -19,6 +19,7 @@ export interface WardrobeItem {
   compatibilityScore: number;
   compatibilityNotes: string;
   addedAt: number;
+  backgroundRemoved?: boolean;
 }
 
 export type FeedbackValue = "liked" | "disliked";
@@ -30,6 +31,7 @@ interface WardrobeContextValue {
   removeItem: (id: string) => Promise<void>;
   setFeedback: (key: string, value: FeedbackValue | null) => Promise<void>;
   clearAll: () => Promise<void>;
+  reprocessItem: (id: string) => Promise<void>;
 }
 
 const WardrobeContext = createContext<WardrobeContextValue | null>(null);
@@ -94,9 +96,14 @@ export function WardrobeProvider({ children }: { children: React.ReactNode }) {
     ]);
   }, []);
 
+  const reprocessItem = useCallback(async (_id: string) => {
+    // No-op placeholder for a future "Reprocess existing items" feature.
+    // When implemented, this will re-run background removal on an existing wardrobe item.
+  }, []);
+
   return (
     <WardrobeContext.Provider
-      value={{ wardrobeItems, feedback, addItem, removeItem, setFeedback, clearAll }}
+      value={{ wardrobeItems, feedback, addItem, removeItem, setFeedback, clearAll, reprocessItem }}
     >
       {children}
     </WardrobeContext.Provider>

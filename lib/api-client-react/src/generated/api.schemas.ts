@@ -242,6 +242,21 @@ export interface ChatResponse {
   message: string;
 }
 
+export interface RemoveBackgroundRequest {
+  /** Base64-encoded image data. Maximum ~6 MB of base64 chars. Accepted MIME types: image/jpeg, image/png, image/webp.
+   */
+  imageBase64: string;
+  /** MIME type of the image (e.g., image/jpeg) */
+  mimeType: string;
+}
+
+export interface RemoveBackgroundResult {
+  /** Base64-encoded PNG with background removed (transparent) */
+  imageBase64: string;
+  /** Always "image/png" */
+  mimeType: string;
+}
+
 export interface ErrorResponse {
   error: string;
 }
