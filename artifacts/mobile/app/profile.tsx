@@ -372,6 +372,20 @@ export default function ProfileScreen() {
           <View style={styles.sectionHeader}>
             <Ionicons name="scan-outline" size={18} color={colors.primary} />
             <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Feature Analysis</Text>
+            <Pressable
+              onPress={async () => {
+                await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                router.push("/face-features");
+              }}
+              style={({ pressed }) => [
+                { marginLeft: "auto", opacity: pressed ? 0.7 : 1 },
+              ]}
+            >
+              <View style={[{ flexDirection: "row", alignItems: "center", gap: 3, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10, backgroundColor: colors.primary + "15", borderWidth: 1, borderColor: colors.primary + "30" }]}>
+                <Text style={[{ fontSize: 12, fontFamily: "Inter_600SemiBold", color: colors.primary }]}>Face Features</Text>
+                <Ionicons name="chevron-forward" size={12} color={colors.primary} />
+              </View>
+            </Pressable>
           </View>
           <View style={styles.grid}>
             {fields.map((field, i) => (

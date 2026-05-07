@@ -39,6 +39,8 @@ Return exactly this structure (all fields required):
   "jawline_definition": "",
   "cheekbone_prominence": "",
   "facial_symmetry_score": 0.0,
+  "eyebrow_shape": "",
+  "nose_shape": "",
   "skin_tone_category": "",
   "skin_evenness": "",
   "skin_type": "",
@@ -81,6 +83,8 @@ glasses_suggestions: 3–5 frame styles that suit the face shape
 jawline_definition: one of soft, medium, sharp
 cheekbone_prominence: one of low, medium, high
 facial_symmetry_score: float 0.0–1.0 (visual estimate)
+eyebrow_shape: describe specifically (e.g. "Straight", "Arched", "Feathered", "Rounded", "Angled", "Softly Arched")
+nose_shape: describe specifically (e.g. "Soft Button", "Refined Straight", "Gently Rounded", "Aquiline", "Broad", "Narrow Bridge")
 
 skin_type: one of oily, combination, normal, dry, sensitive — default "normal" if uncertain
 skin_tone_category: one of very_light, light, medium, tan, deep

@@ -166,6 +166,10 @@ export interface AnalysisResult {
    * @maximum 1
    */
   facial_symmetry_score: number;
+  /** e.g. Straight, Arched, Feathered, Rounded, Angled */
+  eyebrow_shape: string;
+  /** e.g. Soft Button, Refined Straight, Gently Rounded, Aquiline */
+  nose_shape: string;
   /** Detected skin type category */
   skin_type: AnalysisResultSkinType;
   skin_tone_category: AnalysisResultSkinToneCategory;

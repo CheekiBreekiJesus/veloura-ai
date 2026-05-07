@@ -139,6 +139,12 @@ components:
           type: number
           minimum: 0
           maximum: 1
+        eyebrow_shape:
+          type: string
+          description: "e.g. Straight, Arched, Feathered, Rounded, Angled"
+        nose_shape:
+          type: string
+          description: "e.g. Soft Button, Refined Straight, Gently Rounded, Aquiline"
         # ── Extended skin analysis ────────────────────────────────────────
         skin_type:
           type: string
@@ -217,6 +223,8 @@ components:
         - jawline_definition
         - cheekbone_prominence
         - facial_symmetry_score
+        - eyebrow_shape
+        - nose_shape
         - skin_tone_category
         - skin_evenness
         - skin_type

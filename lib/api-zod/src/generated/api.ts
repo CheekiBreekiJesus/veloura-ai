@@ -65,6 +65,14 @@ export const ChatWithStylistBody = zod.object({
         .number()
         .min(chatWithStylistBodyProfileFacialSymmetryScoreMin)
         .max(chatWithStylistBodyProfileFacialSymmetryScoreMax),
+      eyebrow_shape: zod
+        .string()
+        .describe("e.g. Straight, Arched, Feathered, Rounded, Angled"),
+      nose_shape: zod
+        .string()
+        .describe(
+          "e.g. Soft Button, Refined Straight, Gently Rounded, Aquiline",
+        ),
       skin_type: zod
         .enum(["oily", "combination", "normal", "dry", "sensitive"])
         .describe("Detected skin type category"),
@@ -157,6 +165,12 @@ export const AnalyzeFaceResponse = zod.object({
     .number()
     .min(analyzeFaceResponseFacialSymmetryScoreMin)
     .max(analyzeFaceResponseFacialSymmetryScoreMax),
+  eyebrow_shape: zod
+    .string()
+    .describe("e.g. Straight, Arched, Feathered, Rounded, Angled"),
+  nose_shape: zod
+    .string()
+    .describe("e.g. Soft Button, Refined Straight, Gently Rounded, Aquiline"),
   skin_type: zod
     .enum(["oily", "combination", "normal", "dry", "sensitive"])
     .describe("Detected skin type category"),

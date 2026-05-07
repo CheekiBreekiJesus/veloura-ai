@@ -43,6 +43,8 @@ export interface AnalysisResult {
   jawline_definition?: string;
   cheekbone_prominence?: string;
   facial_symmetry_score?: number;
+  eyebrow_shape: string;
+  nose_shape: string;
 
   // ── Extended skin analysis ───────────────────────────────────────────────
   skin_type?: "oily" | "combination" | "normal" | "dry" | "sensitive";
