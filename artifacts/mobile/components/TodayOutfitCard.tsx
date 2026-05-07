@@ -3,12 +3,13 @@ import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Animated,
   Easing,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -297,7 +298,11 @@ function SuggestedState({
       )}
 
       {result.items.length > 0 && (
-        <View style={styles.itemChips}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.itemChips}
+        >
           {result.items.map((item, i) => (
             <View
               key={i}
@@ -332,7 +337,7 @@ function SuggestedState({
               ) : null}
             </View>
           ))}
-        </View>
+        </ScrollView>
       )}
     </View>
   );
@@ -355,6 +360,8 @@ export default function TodayOutfitCard() {
     reset,
   } = useTodayOutfit();
 
+  const [lastAction, setLastAction] = useState<"upload" | "suggest" | null>(null);
+
   const handleUpload = async () => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     const res = await ImagePicker.launchImageLibraryAsync({
@@ -371,6 +378,7 @@ export default function TodayOutfitCard() {
       return;
     }
 
+    setLastAction("upload");
     setUploading();
 
     try {
@@ -427,6 +435,8 @@ export default function TodayOutfitCard() {
       return;
     }
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+    setLastAction("suggest");
     setSuggesting();
 
     const wardrobeList = wardrobeItems
@@ -467,25 +477,44 @@ export default function TodayOutfitCard() {
 
       const { reply } = (await apiRes.json()) as { reply: string };
 
-      const lines = reply
+      const dashLines = reply
         .split("\n")
         .filter((l) => l.trim().startsWith("-"))
-        .map((l) => l.replace(/^-\s*/, "").trim());
+        .map((l) => l.replace(/^-\s*/, "").trim())
+        .filter((l) => l.length > 0);
 
-      const matchedItems = lines
+      const matchedItems = dashLines
         .map((line) => {
           const matched = wardrobeItems.find(
             (item) =>
               line.toLowerCase().includes(item.name.toLowerCase()) ||
-              line.toLowerCase().includes(item.category.toLowerCase())
+              item.name.toLowerCase().includes(line.toLowerCase().slice(0, 12))
           );
-          return { name: line, category: matched?.category ?? "" };
+          if (matched) {
+            return { name: matched.name, category: matched.category };
+          }
+          const categoryMatch = wardrobeItems.find((item) =>
+            line.toLowerCase().includes(item.category.toLowerCase())
+          );
+          if (categoryMatch) {
+            return { name: line, category: categoryMatch.category };
+          }
+          return { name: line, category: "" };
         })
         .filter((item) => item.name.length > 0);
 
       setSuggested({ suggestionText: reply, items: matchedItems });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Suggestion failed");
+    }
+  };
+
+  const handleRetry = () => {
+    reset();
+    if (lastAction === "upload") {
+      void handleUpload();
+    } else if (lastAction === "suggest") {
+      void handleSuggest();
     }
   };
 
@@ -538,9 +567,9 @@ export default function TodayOutfitCard() {
           <Text style={[styles.errorText, { color: colors.destructive }]}>
             {error}
           </Text>
-          <Pressable onPress={reset}>
+          <Pressable onPress={handleRetry}>
             <Text style={[styles.retryText, { color: colors.primary }]}>
-              Dismiss
+              Retry
             </Text>
           </Pressable>
         </View>
@@ -792,6 +821,7 @@ const styles = StyleSheet.create({
   },
   itemChips: {
     gap: 8,
+    paddingBottom: 2,
   },
   chip: {
     flexDirection: "row",
@@ -801,11 +831,12 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     borderRadius: 10,
     borderWidth: StyleSheet.hairlineWidth,
+    maxWidth: 220,
   },
   chipText: {
-    flex: 1,
     fontSize: 13,
     fontFamily: "Inter_500Medium",
+    flexShrink: 1,
   },
   chipCat: {
     paddingHorizontal: 7,
