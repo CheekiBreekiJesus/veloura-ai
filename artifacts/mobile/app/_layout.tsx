@@ -48,6 +48,10 @@ function RootLayoutNav() {
         name="settings"
         options={{ headerShown: false, presentation: "modal" }}
       />
+      <Stack.Screen
+        name="chat"
+        options={{ headerShown: false, presentation: "modal" }}
+      />
     </Stack>
   );
 }

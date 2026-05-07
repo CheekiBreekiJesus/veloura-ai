@@ -27,6 +27,26 @@ const OUTFIT_GRADIENTS: [string, string][] = [
   ["#F5F0D9", "#EADCB8"],
 ];
 
+type StyleCategory = "Casual" | "Formal" | "Evening" | "Weekend";
+
+const FILTER_KEYWORDS: Record<StyleCategory, string[]> = {
+  Casual: ["casual", "everyday", "relaxed", "street", "jeans", "denim", "comfortable", "comfy", "basics", "simple", "effortless"],
+  Formal: ["formal", "business", "professional", "suit", "blazer", "work", "office", "structured", "tailored", "corporate", "polished"],
+  Evening: ["evening", "night", "cocktail", "party", "gown", "dinner", "elegant", "soirée", "occasion", "date", "glamour", "glam"],
+  Weekend: ["weekend", "leisure", "activewear", "sport", "athletic", "outdoor", "brunch", "holiday", "travel", "adventure"],
+};
+
+function classifyRec(text: string): StyleCategory[] {
+  const lower = text.toLowerCase();
+  const matched: StyleCategory[] = [];
+  for (const [cat, keywords] of Object.entries(FILTER_KEYWORDS)) {
+    if (keywords.some((kw) => lower.includes(kw))) {
+      matched.push(cat as StyleCategory);
+    }
+  }
+  return matched.length > 0 ? matched : ["Casual"];
+}
+
 export default function WardrobeScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -37,6 +57,16 @@ export default function WardrobeScreen() {
   const botPad = Platform.OS === "web" ? 34 + 50 : insets.bottom + 80;
 
   const filters = ["All", "Casual", "Formal", "Evening", "Weekend"];
+
+  const filteredRecs = analysis
+    ? analysis.fashion_recommendations.filter((rec) => {
+        if (activeFilter === "All") return true;
+        const cats = classifyRec(rec);
+        return cats.includes(activeFilter as StyleCategory);
+      })
+    : [];
+
+  const noResults = analysis && filteredRecs.length === 0;
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
@@ -117,74 +147,114 @@ export default function WardrobeScreen() {
         {/* Fashion Recommendations */}
         {analysis ? (
           <View style={styles.sectionPad}>
-            <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
-              👗 Fashion Recommendations
-            </Text>
-            {analysis.fashion_recommendations.map((rec, i) => (
-              <OutfitCard
-                key={i}
-                index={i}
-                text={rec}
-                gradient={OUTFIT_GRADIENTS[i % OUTFIT_GRADIENTS.length]}
-              />
-            ))}
+            <View style={styles.sectionTitleRow}>
+              <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
+                {activeFilter === "All" ? "Fashion Recommendations" : `${activeFilter} Style`}
+              </Text>
+              {activeFilter !== "All" && (
+                <View style={[styles.filterBadge, { backgroundColor: colors.primary + "18" }]}>
+                  <Text style={[styles.filterBadgeText, { color: colors.primary }]}>
+                    {filteredRecs.length} {filteredRecs.length === 1 ? "item" : "items"}
+                  </Text>
+                </View>
+              )}
+            </View>
 
-            <Text
-              style={[
-                styles.sectionTitle,
-                { color: colors.foreground, marginTop: 12 },
-              ]}
-            >
-              🎨 Color Palette for Outfits
-            </Text>
-            <View
-              style={[
-                styles.paletteCard,
-                { backgroundColor: colors.card, borderColor: colors.border },
-              ]}
-            >
-              <View style={styles.paletteSwatches}>
-                {analysis.color_palette.map((hex, i) => (
-                  <View key={i} style={styles.swatchItem}>
-                    <View
-                      style={[styles.swatch, { backgroundColor: hex }]}
-                    />
-                    <Text
-                      style={[styles.swatchHex, { color: colors.mutedForeground }]}
-                    >
-                      {hex}
+            {noResults ? (
+              <View style={[styles.noResults, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
+                <Ionicons name="shirt-outline" size={32} color={colors.mutedForeground} />
+                <Text style={[styles.noResultsTitle, { color: colors.foreground }]}>
+                  No {activeFilter} recommendations
+                </Text>
+                <Text style={[styles.noResultsDesc, { color: colors.mutedForeground }]}>
+                  Your profile didn't include specific {activeFilter.toLowerCase()} items. Try a different filter or view all.
+                </Text>
+                <Pressable
+                  onPress={() => setActiveFilter("All")}
+                  style={[styles.noResultsBtn, { backgroundColor: colors.primary }]}
+                >
+                  <Text style={[styles.noResultsBtnText, { color: colors.primaryForeground }]}>
+                    Show All
+                  </Text>
+                </Pressable>
+              </View>
+            ) : (
+              filteredRecs.map((rec, i) => {
+                const cats = classifyRec(rec);
+                return (
+                  <OutfitCard
+                    key={i}
+                    index={i}
+                    text={rec}
+                    categories={cats}
+                    gradient={OUTFIT_GRADIENTS[i % OUTFIT_GRADIENTS.length]}
+                    colors={colors}
+                    activeFilter={activeFilter}
+                  />
+                );
+              })
+            )}
+
+            {activeFilter === "All" && (
+              <>
+                <Text
+                  style={[
+                    styles.sectionTitle,
+                    { color: colors.foreground, marginTop: 12 },
+                  ]}
+                >
+                  Color Palette for Outfits
+                </Text>
+                <View
+                  style={[
+                    styles.paletteCard,
+                    { backgroundColor: colors.card, borderColor: colors.border },
+                  ]}
+                >
+                  <View style={styles.paletteSwatches}>
+                    {analysis.color_palette.map((hex, i) => (
+                      <View key={i} style={styles.swatchItem}>
+                        <View
+                          style={[styles.swatch, { backgroundColor: hex }]}
+                        />
+                        <Text
+                          style={[styles.swatchHex, { color: colors.mutedForeground }]}
+                        >
+                          {hex}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                  <Text style={[styles.paletteHint, { color: colors.mutedForeground }]}>
+                    Wear these colors to complement your{" "}
+                    {analysis.undertone.toLowerCase()} undertone
+                  </Text>
+                </View>
+
+                <Text
+                  style={[
+                    styles.sectionTitle,
+                    { color: colors.foreground, marginTop: 12 },
+                  ]}
+                >
+                  Glasses Suggestions
+                </Text>
+                {analysis.glasses_suggestions.map((g, i) => (
+                  <View
+                    key={i}
+                    style={[
+                      styles.simpleCard,
+                      { backgroundColor: colors.card, borderColor: colors.border },
+                    ]}
+                  >
+                    <Ionicons name="glasses-outline" size={20} color={colors.primary} />
+                    <Text style={[styles.simpleText, { color: colors.foreground }]}>
+                      {g}
                     </Text>
                   </View>
                 ))}
-              </View>
-              <Text style={[styles.paletteHint, { color: colors.mutedForeground }]}>
-                Wear these colors to complement your{" "}
-                {analysis.undertone.toLowerCase()} undertone
-              </Text>
-            </View>
-
-            <Text
-              style={[
-                styles.sectionTitle,
-                { color: colors.foreground, marginTop: 12 },
-              ]}
-            >
-              👓 Glasses Suggestions
-            </Text>
-            {analysis.glasses_suggestions.map((g, i) => (
-              <View
-                key={i}
-                style={[
-                  styles.simpleCard,
-                  { backgroundColor: colors.card, borderColor: colors.border },
-                ]}
-              >
-                <Ionicons name="glasses-outline" size={20} color={colors.primary} />
-                <Text style={[styles.simpleText, { color: colors.foreground }]}>
-                  {g}
-                </Text>
-              </View>
-            ))}
+              </>
+            )}
           </View>
         ) : (
           <EmptyState colors={colors} />
@@ -201,11 +271,17 @@ const OUTFIT_TEXT_DIM = "#6B4C35";
 function OutfitCard({
   index,
   text,
+  categories,
   gradient,
+  colors,
+  activeFilter,
 }: {
   index: number;
   text: string;
+  categories: StyleCategory[];
   gradient: [string, string];
+  colors: ReturnType<typeof useColors>;
+  activeFilter: string;
 }) {
   const OUTFIT_ICONS = [
     "shirt-outline",
@@ -229,7 +305,20 @@ function OutfitCard({
             {index + 1}
           </Text>
         </View>
-        <Text style={[styles.outfitText, { color: OUTFIT_TEXT }]}>{text}</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.outfitText, { color: OUTFIT_TEXT }]}>
+            {text}
+          </Text>
+          {activeFilter === "All" && (
+            <View style={styles.catTags}>
+              {categories.map((cat) => (
+                <View key={cat} style={[styles.catTag, { backgroundColor: "rgba(255,255,255,0.65)" }]}>
+                  <Text style={[styles.catTagText, { color: colors.primary }]}>{cat}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+        </View>
       </View>
       <View style={[styles.outfitIcon, { backgroundColor: "rgba(255,255,255,0.65)" }]}>
         <Ionicons name={icon} size={22} color={OUTFIT_TEXT_DIM} />
@@ -291,14 +380,29 @@ const styles = StyleSheet.create({
   },
   filterText: { fontSize: 13, fontFamily: "Inter_500Medium" },
   sectionPad: { paddingHorizontal: 20 },
-  sectionTitle: { fontSize: 17, fontFamily: "Inter_700Bold", marginBottom: 12 },
+  sectionTitleRow: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 12 },
+  sectionTitle: { fontSize: 17, fontFamily: "Inter_700Bold" },
+  filterBadge: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 10 },
+  filterBadgeText: { fontSize: 11, fontFamily: "Inter_600SemiBold" },
+  noResults: {
+    alignItems: "center",
+    padding: 28,
+    borderRadius: 18,
+    borderWidth: 1,
+    gap: 10,
+    marginBottom: 16,
+  },
+  noResultsTitle: { fontSize: 16, fontFamily: "Inter_600SemiBold" },
+  noResultsDesc: { fontSize: 13, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 20 },
+  noResultsBtn: { paddingHorizontal: 20, paddingVertical: 10, borderRadius: 12, marginTop: 4 },
+  noResultsBtnText: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
   outfitCard: {
     borderRadius: 18,
     padding: 16,
     borderWidth: 1,
     marginBottom: 12,
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     justifyContent: "space-between",
     gap: 12,
   },
@@ -309,15 +413,21 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
+    flexShrink: 0,
+    marginTop: 2,
   },
   outfitNumText: { fontSize: 14, fontFamily: "Inter_700Bold" },
-  outfitText: { flex: 1, fontSize: 14, fontFamily: "Inter_400Regular", lineHeight: 22 },
+  outfitText: { fontSize: 14, fontFamily: "Inter_400Regular", lineHeight: 22, marginBottom: 6 },
+  catTags: { flexDirection: "row", flexWrap: "wrap", gap: 4 },
+  catTag: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
+  catTagText: { fontSize: 10, fontFamily: "Inter_600SemiBold" },
   outfitIcon: {
     width: 44,
     height: 44,
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
+    flexShrink: 0,
   },
   paletteCard: { padding: 16, borderRadius: 16, borderWidth: 1, marginBottom: 16 },
   paletteSwatches: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginBottom: 10 },

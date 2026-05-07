@@ -40,6 +40,7 @@ type CategoryCard = {
   subtitle: string;
   icon: React.ComponentProps<typeof Ionicons>["name"];
   gradient: [string, string];
+  destination: "profile" | "wardrobe" | "shop" | "stylist";
 };
 
 function buildCategories(a: AnalysisResult): CategoryCard[] {
@@ -49,42 +50,51 @@ function buildCategories(a: AnalysisResult): CategoryCard[] {
       subtitle: a.beauty_recommendations[0] ?? "Routine for you",
       icon: "water-outline",
       gradient: ["#FDECD3", "#F5D5B0"],
+      destination: "profile",
     },
     {
       title: "Cosmetics",
       subtitle: a.beauty_recommendations[1] ?? "Your glam look",
       icon: "sparkles-outline",
       gradient: ["#F0E4F5", "#DFC8EF"],
+      destination: "profile",
     },
     {
       title: "Hairstyle",
       subtitle: a.hairstyle_suggestions[0] ?? "Flatters your shape",
       icon: "cut-outline",
       gradient: ["#D9EEF5", "#B8DCEA"],
+      destination: "wardrobe",
     },
     {
       title: "Outfit",
       subtitle: a.fashion_recommendations[0] ?? "Curated for you",
       icon: "shirt-outline",
       gradient: ["#D9F5E4", "#B8EAD0"],
+      destination: "wardrobe",
     },
   ];
 }
 
-type Rec = { title: string; desc: string; icon: React.ComponentProps<typeof Ionicons>["name"] };
+type Rec = {
+  title: string;
+  desc: string;
+  icon: React.ComponentProps<typeof Ionicons>["name"];
+  destination: "profile" | "wardrobe" | "shop" | "stylist";
+};
 
 function buildRecs(a: AnalysisResult): Rec[] {
   const recs: Rec[] = [];
   if (a.beauty_recommendations[0])
-    recs.push({ title: "Glow Routine", desc: a.beauty_recommendations[0], icon: "sunny-outline" });
+    recs.push({ title: "Glow Routine", desc: a.beauty_recommendations[0], icon: "sunny-outline", destination: "profile" });
   if (a.beauty_recommendations[1])
-    recs.push({ title: "Makeup Look", desc: a.beauty_recommendations[1], icon: "color-palette-outline" });
+    recs.push({ title: "Makeup Look", desc: a.beauty_recommendations[1], icon: "color-palette-outline", destination: "profile" });
   if (a.hairstyle_suggestions[0])
-    recs.push({ title: "Hairstyle Tip", desc: a.hairstyle_suggestions[0], icon: "cut-outline" });
+    recs.push({ title: "Hairstyle Tip", desc: a.hairstyle_suggestions[0], icon: "cut-outline", destination: "wardrobe" });
   if (a.fashion_recommendations[0])
-    recs.push({ title: "Style Direction", desc: a.fashion_recommendations[0], icon: "shirt-outline" });
+    recs.push({ title: "Style Direction", desc: a.fashion_recommendations[0], icon: "shirt-outline", destination: "wardrobe" });
   if (a.glasses_suggestions[0])
-    recs.push({ title: "Eyewear Pick", desc: a.glasses_suggestions[0], icon: "glasses-outline" });
+    recs.push({ title: "Eyewear Pick", desc: a.glasses_suggestions[0], icon: "glasses-outline", destination: "shop" });
   return recs;
 }
 
@@ -223,33 +233,45 @@ function DailyTip({
   const anim = useFadeIn(280);
   return (
     <Animated.View style={[styles.sectionPad, anim]}>
-      <View
-        style={[
-          styles.tipCard,
-          { backgroundColor: colors.card, borderColor: colors.border },
-        ]}
+      <Pressable
+        onPress={async () => {
+          await Haptics.selectionAsync();
+          router.push("/stylist" as never);
+        }}
+        style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
       >
-        <View style={styles.tipHeader}>
-          <View style={[styles.tipIconWrap, { backgroundColor: colors.primary + "18" }]}>
-            <Ionicons
-              name={tip.icon as React.ComponentProps<typeof Ionicons>["name"]}
-              size={18}
-              color={colors.primary}
-            />
+        <View
+          style={[
+            styles.tipCard,
+            { backgroundColor: colors.card, borderColor: colors.border },
+          ]}
+        >
+          <View style={styles.tipHeader}>
+            <View style={[styles.tipIconWrap, { backgroundColor: colors.primary + "18" }]}>
+              <Ionicons
+                name={tip.icon as React.ComponentProps<typeof Ionicons>["name"]}
+                size={18}
+                color={colors.primary}
+              />
+            </View>
+            <View style={styles.tipMeta}>
+              <Text style={[styles.tipLabel, { color: colors.mutedForeground }]}>
+                TIP OF THE DAY
+              </Text>
+              <Text style={[styles.tipTitle, { color: colors.foreground }]}>
+                {tip.title}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color={colors.mutedForeground} />
           </View>
-          <View style={styles.tipMeta}>
-            <Text style={[styles.tipLabel, { color: colors.mutedForeground }]}>
-              TIP OF THE DAY
-            </Text>
-            <Text style={[styles.tipTitle, { color: colors.foreground }]}>
-              {tip.title}
-            </Text>
-          </View>
+          <Text style={[styles.tipBody, { color: colors.mutedForeground }]}>
+            {tip.body}
+          </Text>
+          <Text style={[styles.tipCta, { color: colors.primary }]}>
+            Ask your stylist →
+          </Text>
         </View>
-        <Text style={[styles.tipBody, { color: colors.mutedForeground }]}>
-          {tip.body}
-        </Text>
-      </View>
+      </Pressable>
     </Animated.View>
   );
 }
@@ -458,6 +480,20 @@ function TodayForYou({
   colors: ReturnType<typeof useColors>;
 }) {
   const anim = useFadeIn(240);
+
+  const handleCategoryPress = async (cat: CategoryCard) => {
+    await Haptics.selectionAsync();
+    if (cat.destination === "profile") {
+      router.push("/profile");
+    } else if (cat.destination === "wardrobe") {
+      router.push("/(tabs)/wardrobe");
+    } else if (cat.destination === "shop") {
+      router.push("/(tabs)/shop");
+    } else if (cat.destination === "stylist") {
+      router.push("/(tabs)/stylist" as never);
+    }
+  };
+
   return (
     <Animated.View style={anim}>
       <View style={styles.sectionHeader}>
@@ -473,10 +509,7 @@ function TodayForYou({
         {cats.map((cat, i) => (
           <Pressable
             key={i}
-            onPress={async () => {
-              await Haptics.selectionAsync();
-              router.push("/wardrobe");
-            }}
+            onPress={() => handleCategoryPress(cat)}
             style={({ pressed }) => ({ opacity: pressed ? 0.88 : 1 })}
           >
             <LinearGradient
@@ -518,6 +551,20 @@ function AIRecommendations({
   colors: ReturnType<typeof useColors>;
 }) {
   const anim = useFadeIn(320);
+
+  const handleRecPress = async (rec: Rec) => {
+    await Haptics.selectionAsync();
+    if (rec.destination === "profile") {
+      router.push("/profile");
+    } else if (rec.destination === "wardrobe") {
+      router.push("/(tabs)/wardrobe");
+    } else if (rec.destination === "shop") {
+      router.push("/(tabs)/shop");
+    } else if (rec.destination === "stylist") {
+      router.push("/(tabs)/stylist" as never);
+    }
+  };
+
   return (
     <Animated.View style={[styles.sectionPad, anim]}>
       <Text style={[styles.sectionTitle, { color: colors.foreground, marginBottom: 12 }]}>
@@ -526,9 +573,7 @@ function AIRecommendations({
       {recs.map((rec, i) => (
         <Pressable
           key={i}
-          onPress={async () => {
-            await Haptics.selectionAsync();
-          }}
+          onPress={() => handleRecPress(rec)}
           style={({ pressed }) => [
             styles.recRow,
             {
@@ -559,6 +604,38 @@ function AIRecommendations({
           </View>
         </Pressable>
       ))}
+
+      {/* Chat CTA */}
+      <Pressable
+        onPress={async () => {
+          await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          router.push("/(tabs)/stylist" as never);
+        }}
+        style={({ pressed }) => [
+          styles.chatCta,
+          {
+            backgroundColor: colors.primary + "12",
+            borderColor: colors.primary + "30",
+            opacity: pressed ? 0.8 : 1,
+          },
+        ]}
+      >
+        <LinearGradient
+          colors={["#F5EDE3", "#E8C4A0"]}
+          style={styles.chatCtaIcon}
+        >
+          <Ionicons name="sparkles" size={16} color={colors.primary} />
+        </LinearGradient>
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.chatCtaTitle, { color: colors.foreground }]}>
+            Chat with your AI Stylist
+          </Text>
+          <Text style={[styles.chatCtaSub, { color: colors.mutedForeground }]}>
+            Ask questions about your look, get personalized advice
+          </Text>
+        </View>
+        <Ionicons name="chevron-forward" size={18} color={colors.primary} />
+      </Pressable>
     </Animated.View>
   );
 }
@@ -573,6 +650,33 @@ function OnboardingView({
   botPad: number;
 }) {
   const anim = useFadeIn(0);
+  const features = [
+    {
+      icon: "scan-outline" as const,
+      title: "Feature Analysis",
+      desc: "Face shape, skin tone, undertone, eye shape & more",
+      gradient: ["#FDECD3", "#F5D5B0"] as [string, string],
+    },
+    {
+      icon: "color-palette-outline" as const,
+      title: "Color Season",
+      desc: "Discover your palette and which colors to wear",
+      gradient: ["#D9EEF5", "#B8DCEA"] as [string, string],
+    },
+    {
+      icon: "shirt-outline" as const,
+      title: "Style Guide",
+      desc: "Fashion, beauty, hairstyle & accessories curated for you",
+      gradient: ["#D9F5E4", "#B8EAD0"] as [string, string],
+    },
+    {
+      icon: "sparkles-outline" as const,
+      title: "AI Stylist Chat",
+      desc: "Ask your personal stylist anything, anytime",
+      gradient: ["#F0E4F5", "#DFC8EF"] as [string, string],
+    },
+  ];
+
   return (
     <ScrollView
       style={[styles.root, { backgroundColor: colors.background }]}
@@ -591,63 +695,60 @@ function OnboardingView({
         <Text style={[styles.appLabel, { color: colors.mutedForeground }]}>
           VELOURA
         </Text>
+        <Text style={[styles.onboardTitle, { color: colors.foreground }]}>
+          Discover what{"\n"}truly suits you.
+        </Text>
+        <Text style={[styles.onboardSub, { color: colors.mutedForeground }]}>
+          Upload a selfie and receive a complete, AI-powered beauty and style profile crafted just for you.
+        </Text>
       </Animated.View>
 
-      <Text style={[styles.onboardTitle, { color: colors.foreground }]}>
-        Discover what{"\n"}truly suits you.
-      </Text>
-      <Text style={[styles.onboardSub, { color: colors.mutedForeground }]}>
-        Upload a selfie and receive a personalized beauty and fashion profile crafted by AI.
-      </Text>
-
-      <LinearGradient
-        colors={["#F5EDE3", "#FAF2EA"]}
-        style={[styles.previewCard, { borderColor: colors.border }]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-      >
-        <View style={styles.previewPalette}>
-          {["#C4956A", "#E8C4A0", "#F5EDE3", "#9B8B7E", "#4A3728"].map((c, i) => (
-            <View key={i} style={[styles.previewDot, { backgroundColor: c }]} />
-          ))}
-        </View>
-        <View style={styles.previewTags}>
-          {["Warm Undertone", "Oval Face", "Soft Classic", "Wavy Hair"].map((tag, i) => (
-            <View
-              key={i}
-              style={[styles.previewTag, { backgroundColor: colors.primary + "20" }]}
-            >
-              <Text style={[styles.previewTagText, { color: colors.primary }]}>
-                {tag}
-              </Text>
+      {/* Feature grid */}
+      <Animated.View style={[styles.featureGrid, anim]}>
+        {features.map((feat, i) => (
+          <LinearGradient
+            key={i}
+            colors={feat.gradient}
+            style={[styles.featureCard, { borderColor: colors.border }]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          >
+            <View style={[styles.featureIconWrap, { backgroundColor: "rgba(255,255,255,0.7)" }]}>
+              <Ionicons name={feat.icon} size={22} color={colors.primary} />
             </View>
-          ))}
-        </View>
-        <Text style={[styles.previewCaption, { color: colors.mutedForeground }]}>
-          Sample analysis output
-        </Text>
-      </LinearGradient>
+            <Text style={[styles.featureCardTitle, { color: colors.foreground }]}>
+              {feat.title}
+            </Text>
+            <Text style={[styles.featureCardDesc, { color: colors.mutedForeground }]}>
+              {feat.desc}
+            </Text>
+          </LinearGradient>
+        ))}
+      </Animated.View>
 
-      <Pressable
-        onPress={async () => {
-          await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-          router.push("/upload");
-        }}
-        style={({ pressed }) => [
-          styles.startBtn,
-          { backgroundColor: colors.primary, opacity: pressed ? 0.85 : 1 },
-        ]}
-      >
-        <Ionicons name="sparkles" size={20} color={colors.primaryForeground} />
-        <Text style={[styles.startBtnText, { color: colors.primaryForeground }]}>
-          Start Style Analysis
-        </Text>
-        <Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} />
-      </Pressable>
+      {/* CTA */}
+      <Animated.View style={[{ marginTop: 32 }, anim]}>
+        <Pressable
+          onPress={async () => {
+            await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            router.push("/upload");
+          }}
+          style={({ pressed }) => [
+            styles.startBtn,
+            { backgroundColor: colors.primary, opacity: pressed ? 0.85 : 1 },
+          ]}
+        >
+          <Ionicons name="camera-outline" size={20} color={colors.primaryForeground} />
+          <Text style={[styles.startBtnText, { color: colors.primaryForeground }]}>
+            Start Style Analysis
+          </Text>
+          <Ionicons name="arrow-forward" size={18} color={colors.primaryForeground} />
+        </Pressable>
 
-      <Text style={[styles.privacyNote, { color: colors.mutedForeground }]}>
-        Your photo is analyzed securely and never stored.
-      </Text>
+        <Text style={[styles.privacyNote, { color: colors.mutedForeground }]}>
+          Your photo is analyzed securely and never stored on our servers.
+        </Text>
+      </Animated.View>
     </ScrollView>
   );
 }
@@ -747,6 +848,25 @@ const styles = StyleSheet.create({
   recDesc: { fontSize: 12, fontFamily: "Inter_400Regular", lineHeight: 18 },
   viewPill: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20 },
   viewPillText: { fontSize: 13, fontFamily: "Inter_500Medium" },
+  chatCta: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    padding: 16,
+    borderRadius: 18,
+    borderWidth: 1,
+    marginTop: 4,
+  },
+  chatCtaIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+  chatCtaTitle: { fontSize: 14, fontFamily: "Inter_600SemiBold", marginBottom: 2 },
+  chatCtaSub: { fontSize: 12, fontFamily: "Inter_400Regular", lineHeight: 17 },
   dnaScroll: { paddingHorizontal: 20, gap: 10 },
   dnaCard: { width: 90, padding: 12, borderRadius: 16, borderWidth: 1, gap: 6 },
   dnaIconWrap: { width: 32, height: 32, borderRadius: 10, alignItems: "center", justifyContent: "center" },
@@ -764,13 +884,14 @@ const styles = StyleSheet.create({
   seasonDesc: { fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 20 },
   seasonSwatches: { flexDirection: "row", gap: 8 },
   seasonSwatch: { width: 32, height: 32, borderRadius: 16 },
-  tipCard: { borderRadius: 18, borderWidth: 1, padding: 16, gap: 12 },
+  tipCard: { borderRadius: 18, borderWidth: 1, padding: 16, gap: 10 },
   tipHeader: { flexDirection: "row", alignItems: "center", gap: 12 },
   tipIconWrap: { width: 40, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center" },
   tipMeta: { flex: 1 },
   tipLabel: { fontSize: 10, fontFamily: "Inter_600SemiBold", letterSpacing: 1, marginBottom: 2 },
   tipTitle: { fontSize: 15, fontFamily: "Inter_600SemiBold" },
   tipBody: { fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 20 },
+  tipCta: { fontSize: 12, fontFamily: "Inter_500Medium" },
   onboardContent: { paddingHorizontal: 24 },
   logoImg: {
     width: 72,
@@ -778,16 +899,28 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     marginBottom: 12,
   },
-  appLabel: { fontSize: 11, fontFamily: "Inter_600SemiBold", letterSpacing: 2.5 },
-  onboardTitle: { fontSize: 36, fontFamily: "Inter_700Bold", lineHeight: 44, marginBottom: 14 },
-  onboardSub: { fontSize: 16, fontFamily: "Inter_400Regular", lineHeight: 24, marginBottom: 28 },
-  previewCard: { borderRadius: 20, padding: 20, borderWidth: 1, marginBottom: 28 },
-  previewPalette: { flexDirection: "row", gap: 10, marginBottom: 14 },
-  previewDot: { width: 34, height: 34, borderRadius: 17 },
-  previewTags: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 12 },
-  previewTag: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 },
-  previewTagText: { fontSize: 12, fontFamily: "Inter_500Medium" },
-  previewCaption: { fontSize: 12, fontFamily: "Inter_400Regular" },
+  appLabel: { fontSize: 11, fontFamily: "Inter_600SemiBold", letterSpacing: 2.5, marginBottom: 16 },
+  onboardTitle: { fontSize: 36, fontFamily: "Inter_700Bold", lineHeight: 44, marginBottom: 12, textAlign: "center" },
+  onboardSub: { fontSize: 15, fontFamily: "Inter_400Regular", lineHeight: 24, textAlign: "center" },
+  featureGrid: { gap: 12 },
+  featureCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    padding: 16,
+    borderRadius: 18,
+    borderWidth: 1,
+  },
+  featureIconWrap: {
+    width: 46,
+    height: 46,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+  featureCardTitle: { fontSize: 15, fontFamily: "Inter_600SemiBold", marginBottom: 3 },
+  featureCardDesc: { fontSize: 12, fontFamily: "Inter_400Regular", lineHeight: 18, flex: 1 },
   startBtn: {
     flexDirection: "row",
     alignItems: "center",

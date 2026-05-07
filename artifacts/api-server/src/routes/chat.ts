@@ -1,9 +1,16 @@
 import { Router } from "express";
 import { openai } from "@workspace/integrations-openai-ai-server";
-import { analyzeLimiter } from "../middlewares/rateLimiter";
-import { requireAnalyzeToken } from "../middlewares/requireAnalyzeToken";
+import { rateLimit } from "express-rate-limit";
 
 const router = Router();
+
+const chatLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 60,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  message: { error: "Too many chat requests — please wait a few minutes and try again." },
+});
 
 const MAX_MESSAGES = 40;
 const MAX_MESSAGE_LENGTH = 2000;
@@ -84,78 +91,71 @@ Your role is to help ${name} with:
 - Always be supportive and confidence-building — never critical of features`;
 }
 
-router.post(
-  "/chat",
-  analyzeLimiter,
-  requireAnalyzeToken,
-  async (req, res): Promise<void> => {
-    const { messages, profile, userName } = req.body as {
-      messages?: unknown;
-      profile?: unknown;
-      userName?: unknown;
-    };
+router.post("/chat", chatLimiter, async (req, res): Promise<void> => {
+  const { messages, profile, userName } = req.body as {
+    messages?: unknown;
+    profile?: unknown;
+    userName?: unknown;
+  };
 
-    // Validate messages
-    if (!Array.isArray(messages) || messages.length === 0) {
-      res.status(400).json({ error: "messages must be a non-empty array" });
+  if (!Array.isArray(messages) || messages.length === 0) {
+    res.status(400).json({ error: "messages must be a non-empty array" });
+    return;
+  }
+  if (messages.length > MAX_MESSAGES) {
+    res.status(400).json({ error: `Too many messages (max ${MAX_MESSAGES})` });
+    return;
+  }
+
+  for (const m of messages) {
+    if (
+      typeof m !== "object" ||
+      m === null ||
+      !["user", "assistant"].includes((m as { role?: string }).role ?? "") ||
+      typeof (m as { content?: string }).content !== "string"
+    ) {
+      res.status(400).json({ error: "Each message must have role (user|assistant) and content (string)" });
       return;
     }
-    if (messages.length > MAX_MESSAGES) {
-      res.status(400).json({ error: `Too many messages (max ${MAX_MESSAGES})` });
+    if ((m as { content: string }).content.length > MAX_MESSAGE_LENGTH) {
+      res.status(400).json({ error: `Message content too long (max ${MAX_MESSAGE_LENGTH} chars)` });
       return;
-    }
-
-    // Validate each message shape
-    for (const m of messages) {
-      if (
-        typeof m !== "object" ||
-        m === null ||
-        !["user", "assistant"].includes((m as { role?: string }).role ?? "") ||
-        typeof (m as { content?: string }).content !== "string"
-      ) {
-        res.status(400).json({ error: "Each message must have role (user|assistant) and content (string)" });
-        return;
-      }
-      if ((m as { content: string }).content.length > MAX_MESSAGE_LENGTH) {
-        res.status(400).json({ error: `Message content too long (max ${MAX_MESSAGE_LENGTH} chars)` });
-        return;
-      }
-    }
-
-    const safeProfile = profile && typeof profile === "object" ? (profile as Record<string, unknown>) : {};
-    const safeUserName = typeof userName === "string" && userName.trim() ? userName.trim() : null;
-
-    const systemPrompt = buildSystemPrompt(safeProfile, safeUserName);
-
-    const chatMessages = (messages as Array<{ role: string; content: string }>).map((m) => ({
-      role: m.role as "user" | "assistant",
-      content: m.content,
-    }));
-
-    try {
-      const completion = await openai.chat.completions.create({
-        model: "gpt-4.1-mini",
-        max_tokens: 600,
-        temperature: 0.75,
-        messages: [
-          { role: "system", content: systemPrompt },
-          ...chatMessages,
-        ],
-      });
-
-      const reply = completion.choices[0]?.message?.content?.trim() ?? "";
-      if (!reply) {
-        req.log.error("OpenAI returned empty chat response");
-        res.status(500).json({ error: "AI stylist did not respond — please try again" });
-        return;
-      }
-
-      res.json({ message: reply });
-    } catch (err) {
-      req.log.error({ err }, "Chat OpenAI call failed");
-      res.status(500).json({ error: "AI stylist is temporarily unavailable — please try again" });
     }
   }
-);
+
+  const safeProfile = profile && typeof profile === "object" ? (profile as Record<string, unknown>) : {};
+  const safeUserName = typeof userName === "string" && userName.trim() ? userName.trim() : null;
+
+  const systemPrompt = buildSystemPrompt(safeProfile, safeUserName);
+
+  const chatMessages = (messages as Array<{ role: string; content: string }>).map((m) => ({
+    role: m.role as "user" | "assistant",
+    content: m.content,
+  }));
+
+  try {
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4.1-mini",
+      max_tokens: 600,
+      temperature: 0.75,
+      messages: [
+        { role: "system", content: systemPrompt },
+        ...chatMessages,
+      ],
+    });
+
+    const reply = completion.choices[0]?.message?.content?.trim() ?? "";
+    if (!reply) {
+      req.log.error("OpenAI returned empty chat response");
+      res.status(500).json({ error: "AI stylist did not respond — please try again" });
+      return;
+    }
+
+    res.json({ reply });
+  } catch (err) {
+    req.log.error({ err }, "Chat OpenAI call failed");
+    res.status(500).json({ error: "AI stylist is temporarily unavailable — please try again" });
+  }
+});
 
 export default router;
