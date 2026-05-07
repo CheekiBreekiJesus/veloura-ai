@@ -71,3 +71,19 @@ export function useCountry() {
   if (!ctx) throw new Error("useCountry must be used within CountryProvider");
   return ctx;
 }
+
+export const CURRENCY_CONFIG: Record<CountryCode, { symbol: string; rate: number; code: string }> = {
+  US:  { symbol: "$",  rate: 1.00, code: "USD" },
+  GB:  { symbol: "£",  rate: 0.79, code: "GBP" },
+  AU:  { symbol: "A$", rate: 1.55, code: "AUD" },
+  CA:  { symbol: "C$", rate: 1.36, code: "CAD" },
+  FR:  { symbol: "€",  rate: 0.92, code: "EUR" },
+  DE:  { symbol: "€",  rate: 0.92, code: "EUR" },
+  INT: { symbol: "$",  rate: 1.00, code: "USD" },
+};
+
+export function formatPrice(priceNumeric: number, country: CountryCode): string {
+  const cfg = CURRENCY_CONFIG[country];
+  const converted = Math.round(priceNumeric * cfg.rate);
+  return `${cfg.symbol}${converted}+`;
+}

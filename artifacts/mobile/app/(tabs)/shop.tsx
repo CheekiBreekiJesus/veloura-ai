@@ -19,7 +19,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAnalysis } from "@/context/AnalysisContext";
-import { useCountry } from "@/context/CountryContext";
+import { CURRENCY_CONFIG, formatPrice, useCountry, type CountryCode } from "@/context/CountryContext";
 import { useStylePrefs } from "@/context/StylePrefsContext";
 import { useWishlistProducts } from "@/context/WishlistProductContext";
 import { useColors } from "@/hooks/useColors";
@@ -293,6 +293,15 @@ export default function ShopScreen() {
               </Pressable>
             )}
           </View>
+
+          {country !== "US" && (
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
+              <Ionicons name="information-circle-outline" size={13} color={colors.mutedForeground} />
+              <Text style={{ fontSize: 12, fontFamily: "Inter_400Regular", color: colors.mutedForeground }}>
+                Prices shown in {CURRENCY_CONFIG[country as CountryCode].code}
+              </Text>
+            </View>
+          )}
         </LinearGradient>
 
         {/* Personalized banner */}
@@ -568,7 +577,7 @@ function FeaturedCard({
 
         <View style={styles.featFooter}>
           <View>
-            <Text style={[styles.featPrice, { color: "#2D1F14" }]}>{product.price}</Text>
+            <Text style={[styles.featPrice, { color: "#2D1F14" }]}>{formatPrice(product.priceNumeric, country as CountryCode)}</Text>
             <Text style={[styles.featRetailer, { color: "#6B4C35" }]}>{retailer}</Text>
           </View>
           <View style={[styles.featBtn, { backgroundColor: "#C4956A" }]}>
@@ -625,7 +634,7 @@ function ProductRow({
       </View>
 
       <View style={styles.productRight}>
-        <Text style={[styles.productPrice, { color: colors.foreground }]}>{product.price}</Text>
+        <Text style={[styles.productPrice, { color: colors.foreground }]}>{formatPrice(product.priceNumeric, country as CountryCode)}</Text>
         <Text style={[styles.productRetailerText, { color: colors.mutedForeground }]}>{retailer}</Text>
         <View style={styles.productActions}>
           <Pressable
@@ -768,7 +777,7 @@ function ProductDetailModal({
             </View>
 
             <Text style={[styles.modalName, { color: colors.foreground }]}>{product.name}</Text>
-            <Text style={[styles.modalPrice, { color: colors.primary }]}>{product.price}</Text>
+            <Text style={[styles.modalPrice, { color: colors.primary }]}>{formatPrice(product.priceNumeric, country as CountryCode)}</Text>
 
             {/* Why it matches */}
             <View style={[styles.matchBanner, { backgroundColor: colors.primary + "12", borderColor: colors.primary + "28" }]}>
