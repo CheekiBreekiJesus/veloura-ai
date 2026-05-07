@@ -1,0 +1,151 @@
+Here’s a clean **copy-paste prompt block** for Replit:
+
+---
+
+You are working inside an existing AI face analysis pipeline for a personal styling application.
+
+Your task is to enhance the current face analyser output by converting it into a structured “Aesthetic Identity Profile” that will be used for downstream recommendations (skincare, makeup, hairstyles, fashion, accessories, and shopping suggestions).
+
+Do NOT modify the image processing or detection pipeline. Only improve the interpretation and structured output layer.
+
+---
+
+INPUT:
+You will receive face analysis data derived from a user selfie (face landmarks, detected features, or model outputs).
+
+---
+
+TASK:
+Transform the input into a structured JSON object that represents a complete aesthetic identity profile.
+
+You must infer and output the following categories:
+
+---
+
+FACE STRUCTURE:
+
+* face_shape: oval, round, square, heart, diamond, oblong, unknown
+* jawline_definition: soft, medium, sharp
+* cheekbone_prominence: low, medium, high
+* facial_symmetry_score: float between 0.0 and 1.0
+
+---
+
+SKIN ANALYSIS (visual estimation only, no medical diagnosis):
+
+* skin_tone_category: very_light, light, medium, tan, deep
+* undertone: warm, cool, neutral, unknown
+* skin_evenness: low, medium, high
+* visible_skin_concerns:
+
+  * acne: none, mild, moderate, severe
+  * redness: none, mild, moderate, severe
+  * dryness: none, mild, moderate, severe
+
+---
+
+COLOR PROFILE:
+
+* contrast_level: low, medium, high
+* best_color_families: list of 3–6 items (e.g. earth tones, pastels, jewel tones, neutrals, monochrome)
+
+---
+
+HAIR & STYLE PROFILE:
+
+* hair_texture_estimate: straight, wavy, curly, coily, unknown
+* recommended_hair_lengths: short, medium, long, layered (array)
+* recommended_style_direction: soft, structured, voluminous, minimalist, edgy, classic
+
+---
+
+ACCESSORIES COMPATIBILITY:
+
+* recommended_glasses_shapes: list
+* recommended_earring_styles: list
+* recommended_necklace_lengths: short, medium, long, layered, any
+
+---
+
+AESTHETIC ARCHETYPES:
+Assign 2–4 style identities based on facial features and overall visual impression.
+Examples: soft natural, minimalist clean, classic elegant, romantic soft, bold dramatic, modern chic
+
+---
+
+RECOMMENDATION SEEDS (for downstream AI systems):
+
+* skincare_focus_areas: hydration, oil control, glow, texture, acne care, etc.
+* makeup_style_direction: natural, soft glam, glam, bold, editorial
+* fashion_style_direction: casual, elegant, streetwear, minimalist luxury, etc.
+* shopping_keywords: SEO-style tags for product search
+
+---
+
+OUTPUT RULES:
+
+* Return ONLY valid JSON
+* No explanations
+* No markdown
+* No extra text
+* If uncertain, use "unknown"
+* Be consistent and structured
+
+---
+
+OUTPUT FORMAT:
+
+{
+"face_structure": {
+"face_shape": "",
+"jawline_definition": "",
+"cheekbone_prominence": "",
+"facial_symmetry_score": 0.0
+},
+"skin_analysis": {
+"skin_tone_category": "",
+"undertone": "",
+"skin_evenness": "",
+"visible_skin_concerns": {
+"acne": "",
+"redness": "",
+"dryness": ""
+}
+},
+"color_profile": {
+"contrast_level": "",
+"best_color_families": []
+},
+"hair_profile": {
+"hair_texture_estimate": "",
+"recommended_hair_lengths": [],
+"recommended_style_direction": ""
+},
+"accessories": {
+"recommended_glasses_shapes": [],
+"recommended_earring_styles": [],
+"recommended_necklace_lengths": []
+},
+"aesthetic_archetypes": [],
+"recommendation_seeds": {
+"skincare_focus_areas": [],
+"makeup_style_direction": "",
+"fashion_style_direction": "",
+"shopping_keywords": []
+}
+}
+
+---
+
+GOAL:
+This structured output will be used by downstream systems including:
+
+* AI stylist assistant
+* skincare recommendation engine
+* fashion and outfit generator
+* virtual try-on system
+* affiliate shopping engine
+
+Your job is to make the face analysis output structured, consistent, and production-ready for scaling.
+
+---

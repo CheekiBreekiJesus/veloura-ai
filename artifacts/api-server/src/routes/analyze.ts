@@ -1,7 +1,29 @@
 import { Router } from "express";
 import { openai } from "@workspace/integrations-openai-ai-server";
+import { analyzeLimiter } from "../middlewares/rateLimiter";
 
 const router = Router();
+
+// ── Concurrency cap ────────────────────────────────────────────────────────
+// Limits simultaneous in-flight OpenAI vision calls to prevent runaway costs
+// when many requests arrive at the same time (e.g. a botnet burst).
+const MAX_CONCURRENT = 3;
+let activeRequests = 0;
+
+// ── MIME type allowlist ────────────────────────────────────────────────────
+const ALLOWED_MIME_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+  "image/heic",
+  "image/heif",
+]);
+
+// ── Base64 payload cap ─────────────────────────────────────────────────────
+// A 6 MB base64 string encodes ~4.5 MB of binary data — sufficient for any
+// reasonable selfie. Payloads above this are rejected before touching OpenAI.
+const MAX_BASE64_CHARS = 6 * 1024 * 1024;
 
 const SYSTEM_PROMPT = `You are a professional aesthetic analysis engine for a premium AI styling app.
 Analyze the face in the image and return ONLY valid JSON — no markdown, no explanations.
@@ -83,58 +105,92 @@ makeup_direction: one of natural, soft glam, glam, bold, editorial
 fashion_direction: concise label e.g. "minimalist luxury", "romantic casual", "polished classic"
 shopping_keywords: 6–10 SEO-style search tags for product recommendations`;
 
-router.post("/analyze", async (req, res) => {
+router.post("/analyze", analyzeLimiter, async (req, res): Promise<void> => {
+  // ── Input validation ─────────────────────────────────────────────────────
   const { imageBase64, mimeType } = req.body as {
-    imageBase64: string;
-    mimeType: string;
+    imageBase64: unknown;
+    mimeType: unknown;
   };
 
-  if (!imageBase64 || !mimeType) {
-    res.status(400).json({ error: "imageBase64 and mimeType are required" });
+  if (typeof imageBase64 !== "string" || typeof mimeType !== "string") {
+    res.status(400).json({ error: "imageBase64 and mimeType are required strings" });
     return;
   }
 
-  const response = await openai.chat.completions.create({
-    model: "gpt-5.4",
-    max_completion_tokens: 3000,
-    messages: [
-      {
-        role: "system",
-        content: SYSTEM_PROMPT,
-      },
-      {
-        role: "user",
-        content: [
-          {
-            type: "image_url",
-            image_url: {
-              url: `data:${mimeType};base64,${imageBase64}`,
-              detail: "high",
+  if (!ALLOWED_MIME_TYPES.has(mimeType)) {
+    res.status(400).json({
+      error: `Unsupported image type. Allowed: ${[...ALLOWED_MIME_TYPES].join(", ")}`,
+    });
+    return;
+  }
+
+  if (imageBase64.length > MAX_BASE64_CHARS) {
+    res.status(400).json({ error: "Image payload too large. Please use a smaller photo." });
+    return;
+  }
+
+  // Basic base64 format check — reject obviously non-image payloads.
+  if (!/^[A-Za-z0-9+/]+=*$/.test(imageBase64.slice(0, 100))) {
+    res.status(400).json({ error: "imageBase64 must be a valid base64-encoded image." });
+    return;
+  }
+
+  // ── Concurrency cap ──────────────────────────────────────────────────────
+  if (activeRequests >= MAX_CONCURRENT) {
+    req.log.warn({ activeRequests }, "Analyze concurrency cap reached");
+    res.status(503).json({ error: "Server is busy — please try again in a moment." });
+    return;
+  }
+
+  activeRequests++;
+  req.log.info({ activeRequests, ip: req.ip }, "Analyze request started");
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-5.4",
+      max_completion_tokens: 3000,
+      messages: [
+        {
+          role: "system",
+          content: SYSTEM_PROMPT,
+        },
+        {
+          role: "user",
+          content: [
+            {
+              type: "image_url",
+              image_url: {
+                url: `data:${mimeType};base64,${imageBase64}`,
+                detail: "high",
+              },
             },
-          },
-          {
-            type: "text",
-            text: "Analyze this person's facial features and produce a complete Aesthetic Identity Profile in the required JSON format.",
-          },
-        ],
-      },
-    ],
-  });
+            {
+              type: "text",
+              text: "Analyze this person's facial features and produce a complete Aesthetic Identity Profile in the required JSON format.",
+            },
+          ],
+        },
+      ],
+    });
 
-  const content = response.choices[0]?.message?.content;
-  if (!content) {
-    res.status(500).json({ error: "No response from AI model" });
-    return;
+    const content = response.choices[0]?.message?.content;
+    if (!content) {
+      res.status(500).json({ error: "No response from AI model" });
+      return;
+    }
+
+    const cleaned = content
+      .replace(/^```json\s*/i, "")
+      .replace(/^```\s*/i, "")
+      .replace(/\s*```$/i, "")
+      .trim();
+
+    const analysisResult = JSON.parse(cleaned) as unknown;
+    res.json(analysisResult);
+  } finally {
+    activeRequests--;
+    req.log.info({ activeRequests }, "Analyze request finished");
   }
-
-  const cleaned = content
-    .replace(/^```json\s*/i, "")
-    .replace(/^```\s*/i, "")
-    .replace(/\s*```$/i, "")
-    .trim();
-
-  const analysisResult = JSON.parse(cleaned) as unknown;
-  res.json(analysisResult);
 });
 
 export default router;
