@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
@@ -22,63 +23,49 @@ const AURA_AVATAR = require("../../assets/images/aura-avatar.png");
 import { useAnalysis } from "@/context/AnalysisContext";
 import { useColors } from "@/hooks/useColors";
 
-// ── Types ────────────────────────────────────────────────────────────────────
-
-interface Message {
+type Message = {
   id: string;
   role: "user" | "assistant";
   content: string;
-  ts: number;
-}
+};
 
-// ── Starter suggestions ──────────────────────────────────────────────────────
-
-const SUGGESTIONS = [
-  "💄 What makeup look suits me?",
-  "💇 How should I style my hair?",
-  "🎨 My colors for this season?",
-  "👓 Glasses frames for my face?",
-  "✨ Build me a skincare routine",
-  "👗 Outfits for my archetype",
-  "💍 What jewelry suits me?",
-  "🛍️ Where should I shop?",
-];
-
-// ── API helpers ───────────────────────────────────────────────────────────────
-
-async function fetchToken(baseUrl: string): Promise<string> {
-  const res = await fetch(`${baseUrl}/api/auth/token`);
-  if (!res.ok) throw new Error("Could not authenticate — please try again");
-  const data = (await res.json()) as { token: string };
-  return data.token;
-}
+const BASE_URL = process.env["EXPO_PUBLIC_DOMAIN"]
+  ? `https://${process.env["EXPO_PUBLIC_DOMAIN"]}`
+  : "";
 
 async function sendChat(
-  baseUrl: string,
-  token: string,
-  messages: Array<{ role: string; content: string }>,
-  profile: object | null,
-  userName: string | null
+  messages: { role: string; content: string }[],
+  profile: object | null
 ): Promise<string> {
-  const res = await fetch(`${baseUrl}/api/chat`, {
+  const res = await fetch(`${BASE_URL}/api/chat`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({ messages, profile, userName }),
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ messages, profile }),
   });
   if (!res.ok) {
-    const err = (await res.json()) as { error?: string };
-    throw new Error(err.error ?? "AI stylist unavailable");
+    const err = (await res.json().catch(() => ({}))) as { error?: string };
+    throw new Error(err.error ?? "Chat request failed");
   }
-  const data = (await res.json()) as { message: string };
-  return data.message;
+  const data = (await res.json()) as { reply: string };
+  return data.reply;
 }
 
-// ── Message bubble ────────────────────────────────────────────────────────────
+function buildWelcome(analysis: ReturnType<typeof useAnalysis>["analysis"]): string {
+  if (!analysis) {
+    return "Hi! ✨ Upload a selfie first for full style advice.";
+  }
+  return `Hi! ✨ I see ${analysis.style_archetype} vibes. Ask me anything — makeup, outfits, skincare, hair. 💄👗`;
+}
 
-function Bubble({
+const QUICK_PROMPTS = [
+  "💄 Makeup for me?",
+  "👗 Best outfits?",
+  "✨ Colors to wear?",
+  "💇 Hair ideas?",
+  "👓 Glasses that suit me?",
+];
+
+function MessageBubble({
   message,
   colors,
 }: {
@@ -88,13 +75,7 @@ function Bubble({
   const isUser = message.role === "user";
   return (
     <View style={[styles.bubbleRow, isUser ? styles.bubbleRowUser : styles.bubbleRowAI]}>
-      {!isUser && (
-        <Image
-          source={AURA_AVATAR}
-          style={styles.avatar}
-          contentFit="cover"
-        />
-      )}
+      {!isUser && <Image source={AURA_AVATAR} style={styles.avatar} contentFit="cover" />}
       <View
         style={[
           styles.bubble,
@@ -104,20 +85,13 @@ function Bubble({
           { maxWidth: "80%" },
         ]}
       >
-        <Text
-          style={[
-            styles.bubbleText,
-            { color: isUser ? "#fff" : colors.foreground },
-          ]}
-        >
+        <Text style={[styles.bubbleText, { color: isUser ? "#fff" : colors.foreground }]}>
           {message.content}
         </Text>
       </View>
     </View>
   );
 }
-
-// ── Typing indicator ──────────────────────────────────────────────────────────
 
 function TypingIndicator({ colors }: { colors: ReturnType<typeof useColors> }) {
   const d1 = useRef(new Animated.Value(0.3)).current;
@@ -158,8 +132,6 @@ function TypingIndicator({ colors }: { colors: ReturnType<typeof useColors> }) {
   );
 }
 
-// ── Suggestion chips ──────────────────────────────────────────────────────────
-
 function SuggestionChips({
   colors,
   onSelect,
@@ -170,7 +142,7 @@ function SuggestionChips({
   return (
     <View style={styles.suggestions}>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.suggestionRow}>
-        {SUGGESTIONS.map((s) => (
+        {QUICK_PROMPTS.map((s) => (
           <Pressable
             key={s}
             onPress={() => onSelect(s)}
@@ -190,94 +162,46 @@ function SuggestionChips({
   );
 }
 
-// ── Empty / No-analysis state ─────────────────────────────────────────────────
-
-function NoAnalysis({ colors }: { colors: ReturnType<typeof useColors> }) {
-  return (
-    <View style={[styles.noAnalysisRoot, { backgroundColor: colors.background }]}>
-      <LinearGradient
-        colors={[colors.primary + "22", colors.primary + "08"]}
-        style={styles.noAnalysisIcon}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-      >
-        <Ionicons name="chatbubbles-outline" size={36} color={colors.primary} />
-      </LinearGradient>
-      <Text style={[styles.noAnalysisTitle, { color: colors.foreground }]}>
-        Meet Aura, Your AI Stylist
-      </Text>
-      <Text style={[styles.noAnalysisBody, { color: colors.mutedForeground }]}>
-        Complete a style analysis first. Aura will read your full Aesthetic Identity Profile and be ready to advise you on everything — makeup, outfits, skincare, and more.
-      </Text>
-      <Pressable
-        onPress={() => router.push("/upload")}
-        style={({ pressed }) => [
-          styles.noAnalysisBtn,
-          { backgroundColor: pressed ? colors.primary + "dd" : colors.primary },
-        ]}
-      >
-        <Text style={styles.noAnalysisBtnText}>Start Style Analysis</Text>
-      </Pressable>
-    </View>
-  );
-}
-
-// ── Main screen ───────────────────────────────────────────────────────────────
-
-export default function ChatScreen() {
+export default function StylistChatScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { analysis, userName } = useAnalysis();
-
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [tokenCache, setTokenCache] = useState<{ token: string; exp: number } | null>(null);
-
   const scrollRef = useRef<ScrollView>(null);
-  const inputRef = useRef<TextInput>(null);
+  const tokenCache = useRef<{ token: string; exp: number } | null>(null);
 
   const baseUrl = (() => {
     const d = process.env["EXPO_PUBLIC_DOMAIN"];
     return d ? `https://${d}` : "";
   })();
 
-  // Initial greeting from Aura when screen loads (only once)
   useEffect(() => {
     if (!analysis) return;
     const firstName = userName?.split(" ")[0] ?? null;
-    const archetypes = analysis.aesthetic_archetypes?.slice(0, 2).join(" and ") ?? analysis.style_archetype;
-    const season = (analysis as unknown as Record<string, unknown>).color_season as string | undefined;
-    const greeting = [
-      firstName ? `Hi ${firstName}! ` : "Hi there! ",
-      `I'm Aura, your personal AI stylist. I've read your full Aesthetic Identity Profile — `,
-      `you're a beautiful ${archetypes}`,
-      season ? ` with a ${season} color palette. ` : ". ",
-      `I'm here whenever you want advice on style, beauty, skincare, hair, or shopping. What would you like to explore today?`,
-    ].join("");
+    const greeting = `${firstName ? `Hi ${firstName}! ` : "Hi! "}✨ Short and sweet — ask me anything. 💄👗`;
 
     setMessages([
       {
         id: "greeting",
         role: "assistant",
         content: greeting,
-        ts: Date.now(),
       },
     ]);
-  }, [analysis]);
+  }, [analysis, userName]);
 
-  // Scroll to bottom whenever messages change
   useEffect(() => {
     setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 80);
   }, [messages, loading]);
 
   const getToken = useCallback(async (): Promise<string> => {
-    if (tokenCache && Date.now() < tokenCache.exp) return tokenCache.token;
-    const t = await fetchToken(baseUrl);
-    setTokenCache({ token: t, exp: Date.now() + 8 * 60 * 1000 }); // cache 8 min (token valid 10)
+    if (tokenCache.current && Date.now() < tokenCache.current.exp) return tokenCache.current.token;
+    const t = await fetch(`${baseUrl}/api/auth/token`).then((r) => r.json()).then((d) => d.token as string);
+    tokenCache.current = { token: t, exp: Date.now() + 8 * 60 * 1000 };
     return t;
-  }, [baseUrl, tokenCache]);
+  }, [baseUrl]);
 
   const send = useCallback(
     async (text?: string) => {
@@ -287,12 +211,7 @@ export default function ChatScreen() {
       setInput("");
       setError(null);
 
-      const userMsg: Message = {
-        id: `u-${Date.now()}`,
-        role: "user",
-        content,
-        ts: Date.now(),
-      };
+      const userMsg: Message = { id: `u-${Date.now()}`, role: "user", content };
       const nextMessages = [...messages, userMsg];
       setMessages(nextMessages);
       setLoading(true);
@@ -300,15 +219,11 @@ export default function ChatScreen() {
       try {
         const token = await getToken();
         const history = nextMessages.map((m) => ({ role: m.role, content: m.content }));
-        const reply = await sendChat(baseUrl, token, history, analysis, userName ?? null);
-        setMessages((prev) => [
-          ...prev,
-          { id: `a-${Date.now()}`, role: "assistant", content: reply, ts: Date.now() },
-        ]);
+        const reply = await sendChat(history, analysis);
+        setMessages((prev) => [...prev, { id: `a-${Date.now()}`, role: "assistant", content: reply, ts: Date.now() } as Message]);
       } catch (err) {
         const msg = err instanceof Error ? err.message : "Something went wrong";
         setError(msg);
-        // Remove the optimistic user message on error
         setMessages(nextMessages.slice(0, -1));
       } finally {
         setLoading(false);
@@ -330,7 +245,6 @@ export default function ChatScreen() {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       keyboardVerticalOffset={0}
     >
-      {/* Header */}
       <View
         style={[
           styles.header,
@@ -341,21 +255,14 @@ export default function ChatScreen() {
           },
         ]}
       >
-        <Image
-          source={AURA_AVATAR}
-          style={styles.headerAvatar}
-          contentFit="cover"
-        />
+        <Image source={AURA_AVATAR} style={styles.headerAvatar} contentFit="cover" />
         <View style={styles.headerText}>
           <Text style={[styles.headerName, { color: colors.foreground }]}>Aura</Text>
-          <Text style={[styles.headerSub, { color: colors.mutedForeground }]}>
-            Your personal AI stylist
-          </Text>
+          <Text style={[styles.headerSub, { color: colors.mutedForeground }]}>Your personal AI stylist</Text>
         </View>
         <View style={[styles.onlineDot, { backgroundColor: "#4CAF50" }]} />
       </View>
 
-      {/* Messages */}
       <ScrollView
         ref={scrollRef}
         style={styles.messages}
@@ -364,37 +271,20 @@ export default function ChatScreen() {
         showsVerticalScrollIndicator={false}
       >
         {messages.map((m) => (
-          <Bubble key={m.id} message={m} colors={colors} />
+          <MessageBubble key={m.id} message={m} colors={colors} />
         ))}
         {loading && <TypingIndicator colors={colors} />}
-
-        {/* Suggestion chips shown after greeting */}
-        {showSuggestions && (
-          <SuggestionChips colors={colors} onSelect={(s) => { send(s); }} />
-        )}
-
-        {/* Error notice */}
+        {showSuggestions && <SuggestionChips colors={colors} onSelect={(s) => { send(s); }} />}
         {error && (
-          <View style={[styles.errorBanner, { backgroundColor: "#FF5252" + "18", borderColor: "#FF5252" + "40" }]}>
-            <Ionicons name="alert-circle-outline" size={16} color="#FF5252" />
-            <Text style={[styles.errorText, { color: "#FF5252" }]}>{error}</Text>
+          <View style={[styles.errorBanner, { backgroundColor: colors.card, borderColor: colors.border }]}> 
+            <Ionicons name="alert-circle-outline" size={18} color={colors.primary} />
+            <Text style={[styles.errorText, { color: colors.foreground }]}>{error}</Text>
           </View>
         )}
       </ScrollView>
 
-      {/* Input bar */}
-      <View
-        style={[
-          styles.inputBar,
-          {
-            borderTopColor: colors.border,
-            backgroundColor: colors.background,
-            paddingBottom: insets.bottom + 8,
-          },
-        ]}
-      >
+      <View style={[styles.inputBar, { borderTopColor: colors.border, paddingBottom: insets.bottom + 10, backgroundColor: colors.background }]}> 
         <TextInput
-          ref={inputRef}
           value={input}
           onChangeText={setInput}
           placeholder="Ask Aura anything…"
@@ -439,153 +329,63 @@ export default function ChatScreen() {
   );
 }
 
+function NoAnalysis({ colors }: { colors: ReturnType<typeof useColors> }) {
+  return (
+    <View style={[styles.noAnalysisRoot, { backgroundColor: colors.background }] }>
+      <View style={[styles.noAnalysisIcon, { backgroundColor: colors.secondary }]}>
+        <Ionicons name="sparkles" size={34} color={colors.primary} />
+      </View>
+      <Text style={[styles.noAnalysisTitle, { color: colors.foreground }]}>Meet Aura, Your AI Stylist</Text>
+      <Text style={[styles.noAnalysisBody, { color: colors.mutedForeground }]}>Complete a style analysis first. Aura will read your full Aesthetic Identity Profile and be ready to advise you on everything — makeup, outfits, skincare, and more.</Text>
+      <Pressable
+        onPress={async () => {
+          await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          router.push("/upload");
+        }}
+        style={({ pressed }) => [
+          styles.noAnalysisBtn,
+          { backgroundColor: colors.primary, opacity: pressed ? 0.9 : 1 },
+        ]}
+      >
+        <Text style={[styles.noAnalysisBtnText, { color: "#fff" }]}>Start Style Analysis</Text>
+      </Pressable>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   root: { flex: 1 },
-
-  // Header
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    paddingBottom: 14,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    gap: 12,
-  },
-  headerAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerAvatarText: {
-    color: "#fff",
-    fontSize: 18,
-    fontFamily: "Inter_600SemiBold",
-  },
+  header: { flexDirection: "row", alignItems: "center", paddingHorizontal: 20, paddingBottom: 14, borderBottomWidth: StyleSheet.hairlineWidth, gap: 12 },
+  headerAvatar: { width: 40, height: 40, borderRadius: 20 },
   headerText: { flex: 1 },
   headerName: { fontSize: 16, fontFamily: "Inter_600SemiBold" },
   headerSub: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 1 },
   onlineDot: { width: 9, height: 9, borderRadius: 5 },
-
-  // Messages
   messages: { flex: 1 },
   messagesContent: { padding: 16, gap: 12, paddingBottom: 8 },
-
   bubbleRow: { flexDirection: "row", alignItems: "flex-end", gap: 8, marginBottom: 4 },
   bubbleRowUser: { justifyContent: "flex-end" },
   bubbleRowAI: { justifyContent: "flex-start" },
-  avatar: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    alignItems: "center",
-    justifyContent: "center",
-    flexShrink: 0,
-  },
-  avatarText: { color: "#fff", fontSize: 13, fontFamily: "Inter_600SemiBold" },
-  bubble: {
-    borderRadius: 18,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    flexShrink: 1,
-  },
+  avatar: { width: 30, height: 30, borderRadius: 15, flexShrink: 0 },
+  bubble: { borderRadius: 18, paddingHorizontal: 14, paddingVertical: 10, flexShrink: 1 },
   bubbleUser: { borderBottomRightRadius: 4 },
   bubbleAI: { borderBottomLeftRadius: 4, borderWidth: StyleSheet.hairlineWidth },
   bubbleText: { fontSize: 15, fontFamily: "Inter_400Regular", lineHeight: 22 },
-
-  // Typing indicator
   typingDots: { flexDirection: "row", gap: 5, alignItems: "center", paddingVertical: 2 },
   typingDot: { width: 7, height: 7, borderRadius: 4 },
-
-  // Suggestion chips
   suggestions: { marginTop: 8, marginBottom: 4 },
   suggestionRow: { gap: 8, paddingHorizontal: 4 },
-  chip: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: StyleSheet.hairlineWidth,
-  },
+  chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: StyleSheet.hairlineWidth },
   chipText: { fontSize: 13, fontFamily: "Inter_400Regular" },
-
-  // Error
-  errorBanner: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    borderRadius: 10,
-    borderWidth: 1,
-    padding: 12,
-    marginTop: 4,
-  },
+  errorBanner: { flexDirection: "row", alignItems: "center", gap: 8, borderRadius: 10, borderWidth: 1, padding: 12, marginTop: 4 },
   errorText: { flex: 1, fontSize: 13, fontFamily: "Inter_400Regular" },
-
-  // Input bar
-  inputBar: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    paddingHorizontal: 16,
-    paddingTop: 10,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    gap: 10,
-  },
-  input: {
-    flex: 1,
-    borderRadius: 22,
-    borderWidth: StyleSheet.hairlineWidth,
-    paddingHorizontal: 16,
-    paddingVertical: Platform.OS === "ios" ? 10 : 8,
-    fontSize: 15,
-    fontFamily: "Inter_400Regular",
-    maxHeight: 120,
-    lineHeight: 20,
-  },
-  sendBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    alignItems: "center",
-    justifyContent: "center",
-    flexShrink: 0,
-  },
-
-  // No analysis
-  noAnalysisRoot: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 36,
-    gap: 16,
-  },
-  noAnalysisIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 8,
-  },
-  noAnalysisTitle: {
-    fontSize: 22,
-    fontFamily: "Inter_600SemiBold",
-    textAlign: "center",
-  },
-  noAnalysisBody: {
-    fontSize: 15,
-    fontFamily: "Inter_400Regular",
-    textAlign: "center",
-    lineHeight: 24,
-  },
-  noAnalysisBtn: {
-    paddingHorizontal: 28,
-    paddingVertical: 14,
-    borderRadius: 14,
-    marginTop: 8,
-  },
-  noAnalysisBtnText: {
-    color: "#fff",
-    fontSize: 16,
-    fontFamily: "Inter_600SemiBold",
-  },
+  inputBar: { flexDirection: "row", alignItems: "flex-end", paddingHorizontal: 16, paddingTop: 10, borderTopWidth: StyleSheet.hairlineWidth, gap: 10 },
+  input: { flex: 1, borderRadius: 22, borderWidth: StyleSheet.hairlineWidth, paddingHorizontal: 16, paddingVertical: Platform.OS === "ios" ? 10 : 8, fontSize: 15, fontFamily: "Inter_400Regular", maxHeight: 120, lineHeight: 20 },
+  sendBtn: { width: 38, height: 38, borderRadius: 19, alignItems: "center", justifyContent: "center", flexShrink: 0 },
+  noAnalysisRoot: { flex: 1, alignItems: "center", justifyContent: "center", padding: 36, gap: 16 },
+  noAnalysisIcon: { width: 80, height: 80, borderRadius: 40, alignItems: "center", justifyContent: "center", marginBottom: 8 },
+  noAnalysisTitle: { fontSize: 22, fontFamily: "Inter_600SemiBold", textAlign: "center" },
+  noAnalysisBody: { fontSize: 15, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 24 },
+  noAnalysisBtn: { paddingHorizontal: 28, paddingVertical: 14, borderRadius: 14, marginTop: 8 },
+  noAnalysisBtnText: { color: "#fff", fontSize: 16, fontFamily: "Inter_600SemiBold" },
 });
