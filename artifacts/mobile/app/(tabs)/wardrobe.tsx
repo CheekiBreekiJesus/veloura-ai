@@ -30,6 +30,7 @@ import {
   useBodyProfile,
   type BodyProfile,
 } from "@/context/BodyProfileContext";
+import { buildStylePrefsText, useStylePrefs } from "@/context/StylePrefsContext";
 import {
   SEASON_COLORS,
   SEASON_ICONS,
@@ -573,6 +574,7 @@ export default function WardrobeScreen() {
   const { analysis, setPendingChatInput } = useAnalysis();
   const { wardrobeItems, feedback, setFeedback, removeItem, updateItemSeasons, toggleStored } = useWardrobe();
   const { currentSeason } = useSeason();
+  const { stylePrefs } = useStylePrefs();
 
   const [section, setSection] = useState<WardrobeSection>("closet");
   const [autoTagging, setAutoTagging] = useState(false);
@@ -680,7 +682,8 @@ export default function WardrobeScreen() {
     const snippet = item.compatibilityNotes.length > 150
       ? item.compatibilityNotes.substring(0, 150) + "…"
       : item.compatibilityNotes;
-    const msg = `I have a ${item.name} (${item.category}, compatibility score ${item.compatibilityScore}/100). ${snippet} How should I style it? What outfits can I build around it?`;
+    const styleCtx = buildStylePrefsText(stylePrefs);
+    const msg = `I have a ${item.name} (${item.category}, compatibility score ${item.compatibilityScore}/100). ${snippet} How should I style it? What outfits can I build around it?${styleCtx ? ` My style preferences: ${styleCtx}.` : ""}`;
     setPendingChatInput(msg);
     setSelectedItem(null);
     router.push("/(tabs)/chat");
@@ -703,7 +706,8 @@ export default function WardrobeScreen() {
     const list = items
       .map((i) => `${i.name} (${i.category}, score ${i.compatibilityScore}/100)`)
       .join(", ");
-    const msg = `I'm trying to build an outfit from pieces I own: ${list}. Can you suggest how to combine them into a great look? Please give me specific styling tips for each piece and any additional items that would complete the outfit.`;
+    const styleCtx = buildStylePrefsText(stylePrefs);
+    const msg = `I'm trying to build an outfit from pieces I own: ${list}. Can you suggest how to combine them into a great look? Please give me specific styling tips for each piece and any additional items that would complete the outfit.${styleCtx ? ` My style preferences: ${styleCtx}.` : ""}`;
     setPendingChatInput(msg);
     setOutfitMode(false);
     setOutfitSelected([]);

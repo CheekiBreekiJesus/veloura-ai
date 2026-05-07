@@ -22,6 +22,7 @@ const AURA_AVATAR_FALLBACK = require("../../assets/images/aura-avatar.png");
 
 import { ChatMessage, useAnalysis } from "@/context/AnalysisContext";
 import { buildMeasurementsText, useBodyProfile } from "@/context/BodyProfileContext";
+import { buildStylePrefsText, useStylePrefs } from "@/context/StylePrefsContext";
 import { useWardrobe } from "@/context/WardrobeContext";
 import { useColors } from "@/hooks/useColors";
 
@@ -237,6 +238,7 @@ export default function StylistChatScreen() {
     : AURA_AVATAR_FALLBACK;
   const { feedback } = useWardrobe();
   const { bodyProfile } = useBodyProfile();
+  const { stylePrefs } = useStylePrefs();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -356,10 +358,13 @@ export default function StylistChatScreen() {
         // — the chat system prompt only needs companion_name, not the image.
         const { companion_avatar_url: _avatar, ...profileForChat } = analysis;
         const measurementsText = buildMeasurementsText(bodyProfile);
-        const profileWithMeasurements = measurementsText
-          ? { ...profileForChat, measurements: measurementsText }
-          : profileForChat;
-        const reply = await sendChat(history, profileWithMeasurements, feedback, healthConcerns.length ? healthConcerns : undefined);
+        const stylePrefsText = buildStylePrefsText(stylePrefs);
+        const profileWithExtras = {
+          ...profileForChat,
+          ...(measurementsText ? { measurements: measurementsText } : {}),
+          ...(stylePrefsText ? { stylePreferences: stylePrefsText } : {}),
+        };
+        const reply = await sendChat(history, profileWithExtras, feedback, healthConcerns.length ? healthConcerns : undefined);
         setMessages((prev) => [
           ...prev,
           { id: `a-${Date.now()}`, role: "assistant", content: reply, ts: Date.now() },

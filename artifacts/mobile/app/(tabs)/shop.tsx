@@ -19,6 +19,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAnalysis } from "@/context/AnalysisContext";
 import { useCountry } from "@/context/CountryContext";
+import { useStylePrefs } from "@/context/StylePrefsContext";
 import { useWishlistProducts } from "@/context/WishlistProductContext";
 import { useColors } from "@/hooks/useColors";
 import {
@@ -169,6 +170,13 @@ export default function ShopScreen() {
   const { analysis } = useAnalysis();
   const { country } = useCountry();
   const { isSaved, toggleSave, savedCount } = useWishlistProducts();
+  const { stylePrefs } = useStylePrefs();
+
+  const checkFavBrand = (product: Product): boolean => {
+    if (stylePrefs.favouriteBrands.length === 0) return false;
+    const nameLower = product.name.toLowerCase();
+    return stylePrefs.favouriteBrands.some((b) => nameLower.includes(b.toLowerCase()));
+  };
 
   const [activeCategory, setActiveCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
@@ -382,6 +390,7 @@ export default function ShopScreen() {
                   onPress={() => openProduct(product)}
                   onSave={() => handleSave(product)}
                   country={country}
+                  isFavBrand={checkFavBrand(product)}
                 />
               ))}
             </ScrollView>
@@ -410,6 +419,7 @@ export default function ShopScreen() {
                   onPress={() => openProduct(product)}
                   onSave={() => handleSave(product)}
                   country={country}
+                  isFavBrand={checkFavBrand(product)}
                 />
               ))}
             </View>
@@ -435,6 +445,7 @@ export default function ShopScreen() {
                   onPress={() => openProduct(product)}
                   onSave={() => handleSave(product)}
                   country={country}
+                  isFavBrand={checkFavBrand(product)}
                 />
               ))}
             </View>
@@ -481,6 +492,15 @@ export default function ShopScreen() {
   );
 }
 
+function FavBrandBadge() {
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 3, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 8, backgroundColor: "#C4956A22" }}>
+      <Ionicons name="heart" size={10} color="#C4956A" />
+      <Text style={{ fontSize: 10, fontFamily: "Inter_600SemiBold", color: "#C4956A" }}>Your Brand</Text>
+    </View>
+  );
+}
+
 function FeaturedCard({
   product,
   colors,
@@ -488,6 +508,7 @@ function FeaturedCard({
   onPress,
   onSave,
   country,
+  isFavBrand,
 }: {
   product: Product;
   colors: ReturnType<typeof useColors>;
@@ -495,6 +516,7 @@ function FeaturedCard({
   onPress: () => void;
   onSave: () => void;
   country: string;
+  isFavBrand?: boolean;
 }) {
   const { retailer } = getProductUrl(product, country);
   return (
@@ -530,6 +552,7 @@ function FeaturedCard({
           </View>
           <PriceTierBadge tier={product.priceTier} />
           {product.isNew && <NewBadge />}
+          {isFavBrand && <FavBrandBadge />}
         </View>
 
         <Text style={[styles.featName, { color: "#2D1F14" }]}>{product.name}</Text>
@@ -558,6 +581,7 @@ function ProductRow({
   onPress,
   onSave,
   country,
+  isFavBrand,
 }: {
   product: Product;
   colors: ReturnType<typeof useColors>;
@@ -565,6 +589,7 @@ function ProductRow({
   onPress: () => void;
   onSave: () => void;
   country: string;
+  isFavBrand?: boolean;
 }) {
   const { retailer } = getProductUrl(product, country);
   return (
@@ -585,6 +610,7 @@ function ProductRow({
             <Text style={[styles.catBadgeSmallText, { color: colors.primary }]}>{product.category}</Text>
           </View>
           {product.isNew && <NewBadge small />}
+          {isFavBrand && <FavBrandBadge />}
         </View>
         <Text style={[styles.productName, { color: colors.foreground }]}>{product.name}</Text>
         <Text style={[styles.productReason, { color: colors.mutedForeground }]} numberOfLines={1}>

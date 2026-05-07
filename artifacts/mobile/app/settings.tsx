@@ -23,9 +23,16 @@ import { useBodyProfile } from "@/context/BodyProfileContext";
 import { COUNTRIES, useCountry } from "@/context/CountryContext";
 import { usePortraitHistory } from "@/context/PortraitHistoryContext";
 import { useSeason, type Hemisphere } from "@/context/SeasonContext";
+import { useStylePrefs } from "@/context/StylePrefsContext";
 import { useTheme, type ThemePreference } from "@/context/ThemeContext";
 import { useWardrobe } from "@/context/WardrobeContext";
 import { useColors } from "@/hooks/useColors";
+
+const QUICK_BRANDS = [
+  "Zara", "Mango", "COS", "Uniqlo", "H&M", "ASOS",
+  "& Other Stories", "Arket", "Massimo Dutti", "Reformation",
+  "Free People", "Topshop", "River Island", "Reiss", "Revolve",
+];
 
 const QUICK_HEALTH_CONCERNS = [
   "Fragrance-free",
@@ -62,12 +69,18 @@ export default function SettingsScreen() {
   const { clearPortraits } = usePortraitHistory();
   const { clearBodyProfile } = useBodyProfile();
   const { clearAll: clearWardrobe } = useWardrobe();
+  const { stylePrefs, setAge, addBrand, removeBrand, addBrandSize, removeBrandSize, clearStylePrefs } = useStylePrefs();
   const companionName = analysis?.companion_name ?? "Aura";
   const [editingName, setEditingName] = useState(false);
   const [nameValue, setNameValue] = useState(userName ?? "");
   const [nameSaved, setNameSaved] = useState(false);
   const [countryPickerVisible, setCountryPickerVisible] = useState(false);
   const [customConcern, setCustomConcern] = useState("");
+  const [ageInput, setAgeInput] = useState(stylePrefs.age != null ? String(stylePrefs.age) : "");
+  const [ageSaved, setAgeSaved] = useState(false);
+  const [brandInput, setBrandInput] = useState("");
+  const [newSizeBrand, setNewSizeBrand] = useState("");
+  const [newSizeValue, setNewSizeValue] = useState("");
 
   const toggleConcern = async (concern: string) => {
     await Haptics.selectionAsync();
@@ -85,6 +98,33 @@ export default function SettingsScreen() {
     }
     await setHealthConcerns([...healthConcerns, trimmed]);
     setCustomConcern("");
+    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  };
+
+  const handleSaveAge = async () => {
+    Keyboard.dismiss();
+    const parsed = parseInt(ageInput, 10);
+    const age = !isNaN(parsed) && parsed > 0 && parsed < 120 ? parsed : null;
+    await setAge(age);
+    setAgeSaved(true);
+    setTimeout(() => setAgeSaved(false), 1800);
+  };
+
+  const addCustomBrand = async () => {
+    const trimmed = brandInput.trim();
+    if (!trimmed) return;
+    await addBrand(trimmed);
+    setBrandInput("");
+    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  };
+
+  const addSizeEntry = async () => {
+    const b = newSizeBrand.trim();
+    const s = newSizeValue.trim();
+    if (!b || !s) return;
+    await addBrandSize({ brand: b, size: s });
+    setNewSizeBrand("");
+    setNewSizeValue("");
     await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   };
 
@@ -140,7 +180,7 @@ export default function SettingsScreen() {
         "Clear all profile data? This cannot be undone."
       );
       if (confirmed) {
-        Promise.all([clearAnalysis(), clearPortraits(), clearBodyProfile(), clearWardrobe()]).then(() => {
+        Promise.all([clearAnalysis(), clearPortraits(), clearBodyProfile(), clearWardrobe(), clearStylePrefs()]).then(() => {
           router.replace("/(tabs)");
         });
       }
@@ -157,7 +197,7 @@ export default function SettingsScreen() {
           style: "destructive",
           onPress: async () => {
             await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-            await Promise.all([clearAnalysis(), clearPortraits(), clearBodyProfile(), clearWardrobe()]);
+            await Promise.all([clearAnalysis(), clearPortraits(), clearBodyProfile(), clearWardrobe(), clearStylePrefs()]);
             router.replace("/(tabs)");
           },
         },
@@ -366,6 +406,192 @@ export default function SettingsScreen() {
                 <Text style={[hStyles.disclaimer, { color: colors.mutedForeground }]}>
                   For product filtering only — not medical advice. Consult a healthcare provider for medical concerns.
                 </Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Style Preferences */}
+          <View style={styles.group}>
+            <Text style={[styles.groupLabel, { color: colors.mutedForeground }]}>
+              STYLE PREFERENCES
+            </Text>
+            <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              {/* Age */}
+              <View style={{ padding: 14, gap: 8 }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                  <View style={[styles.rowIcon, { backgroundColor: colors.secondary + "80" }]}>
+                    <Ionicons name="calendar-outline" size={18} color={colors.primary} />
+                  </View>
+                  <Text style={[styles.rowLabel, { color: colors.foreground }]}>Age</Text>
+                  {ageSaved && (
+                    <View style={[styles.savedBadge, { backgroundColor: colors.primary + "18" }]}>
+                      <Ionicons name="checkmark" size={12} color={colors.primary} />
+                      <Text style={[styles.savedText, { color: colors.primary }]}>Saved</Text>
+                    </View>
+                  )}
+                </View>
+                <Text style={[styles.rowValue, { color: colors.mutedForeground }]}>
+                  Helps Aura tailor suggestions to your stage of life
+                </Text>
+                <View style={[hStyles.customRow, { borderColor: colors.border, backgroundColor: colors.muted }]}>
+                  <TextInput
+                    value={ageInput}
+                    onChangeText={setAgeInput}
+                    placeholder="Your age (optional)"
+                    placeholderTextColor={colors.mutedForeground}
+                    style={[hStyles.customInput, { color: colors.foreground }]}
+                    keyboardType="number-pad"
+                    maxLength={3}
+                    returnKeyType="done"
+                    onSubmitEditing={() => { void handleSaveAge(); }}
+                  />
+                  <Pressable
+                    onPress={() => { void handleSaveAge(); }}
+                    style={({ pressed }) => [hStyles.addBtn, { backgroundColor: colors.primary, opacity: pressed ? 0.75 : 1 }]}
+                  >
+                    <Ionicons name="checkmark" size={18} color="#fff" />
+                  </Pressable>
+                </View>
+              </View>
+
+              <View style={[styles.divider, { backgroundColor: colors.border, marginLeft: 14 }]} />
+
+              {/* Favourite Brands */}
+              <View style={{ padding: 14, gap: 10 }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                  <View style={[styles.rowIcon, { backgroundColor: colors.secondary + "80" }]}>
+                    <Ionicons name="heart-outline" size={18} color={colors.primary} />
+                  </View>
+                  <Text style={[styles.rowLabel, { color: colors.foreground }]}>Favourite Brands</Text>
+                </View>
+                <Text style={[styles.rowValue, { color: colors.mutedForeground }]}>
+                  Aura references these brands when giving style advice and shopping suggestions
+                </Text>
+                <View style={hStyles.pillWrap}>
+                  {QUICK_BRANDS.map((brand) => {
+                    const active = stylePrefs.favouriteBrands.includes(brand);
+                    return (
+                      <Pressable
+                        key={brand}
+                        onPress={async () => {
+                          await Haptics.selectionAsync();
+                          if (active) { await removeBrand(brand); } else { await addBrand(brand); }
+                        }}
+                        style={[
+                          hStyles.chip,
+                          {
+                            backgroundColor: active ? colors.primary : colors.secondary,
+                            borderColor: active ? colors.primary : colors.border,
+                          },
+                        ]}
+                      >
+                        {active && <Ionicons name="checkmark" size={12} color="#fff" />}
+                        <Text style={[hStyles.chipText, { color: active ? "#fff" : colors.foreground }]}>
+                          {brand}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+                <View style={[hStyles.customRow, { borderColor: colors.border, backgroundColor: colors.muted }]}>
+                  <TextInput
+                    value={brandInput}
+                    onChangeText={setBrandInput}
+                    placeholder="Add another brand…"
+                    placeholderTextColor={colors.mutedForeground}
+                    style={[hStyles.customInput, { color: colors.foreground }]}
+                    returnKeyType="done"
+                    onSubmitEditing={() => { void addCustomBrand(); }}
+                    maxLength={40}
+                  />
+                  <Pressable
+                    onPress={() => { void addCustomBrand(); }}
+                    style={({ pressed }) => [hStyles.addBtn, { backgroundColor: colors.primary, opacity: pressed ? 0.75 : 1 }]}
+                  >
+                    <Ionicons name="add" size={18} color="#fff" />
+                  </Pressable>
+                </View>
+                {stylePrefs.favouriteBrands.filter((b) => !QUICK_BRANDS.includes(b)).length > 0 && (
+                  <View style={hStyles.pillWrap}>
+                    {stylePrefs.favouriteBrands
+                      .filter((b) => !QUICK_BRANDS.includes(b))
+                      .map((brand) => (
+                        <Pressable
+                          key={brand}
+                          onPress={async () => { await removeBrand(brand); }}
+                          style={[hStyles.customPill, { backgroundColor: colors.primary + "18", borderColor: colors.primary + "40" }]}
+                        >
+                          <Text style={[hStyles.customPillText, { color: colors.primary }]}>{brand}</Text>
+                          <Ionicons name="close" size={12} color={colors.primary} />
+                        </Pressable>
+                      ))}
+                  </View>
+                )}
+              </View>
+
+              <View style={[styles.divider, { backgroundColor: colors.border, marginLeft: 14 }]} />
+
+              {/* Brand Sizes */}
+              <View style={{ padding: 14, gap: 10 }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                  <View style={[styles.rowIcon, { backgroundColor: colors.secondary + "80" }]}>
+                    <Ionicons name="resize-outline" size={18} color={colors.primary} />
+                  </View>
+                  <Text style={[styles.rowLabel, { color: colors.foreground }]}>My Sizes by Brand</Text>
+                </View>
+                <Text style={[styles.rowValue, { color: colors.mutedForeground }]}>
+                  Add a size you know — Aura uses these to estimate sizing in other brands too
+                </Text>
+                {stylePrefs.brandSizes.length > 0 && (
+                  <View style={{ gap: 6 }}>
+                    {stylePrefs.brandSizes.map((entry, i) => (
+                      <View
+                        key={i}
+                        style={[spStyles.sizeRow, { backgroundColor: colors.secondary, borderColor: colors.border }]}
+                      >
+                        <Text style={[spStyles.sizeBrand, { color: colors.foreground }]}>{entry.brand}</Text>
+                        <View style={[spStyles.sizeBadge, { backgroundColor: colors.primary + "18" }]}>
+                          <Text style={[spStyles.sizeLabel, { color: colors.primary }]}>{entry.size}</Text>
+                        </View>
+                        <Pressable
+                          onPress={async () => { await removeBrandSize(i); }}
+                          hitSlop={8}
+                          style={{ padding: 4 }}
+                        >
+                          <Ionicons name="close-circle" size={18} color={colors.mutedForeground} />
+                        </Pressable>
+                      </View>
+                    ))}
+                  </View>
+                )}
+                <View style={spStyles.addSizeRow}>
+                  <View style={[spStyles.addSizeField, { borderColor: colors.border, backgroundColor: colors.muted }]}>
+                    <TextInput
+                      value={newSizeBrand}
+                      onChangeText={setNewSizeBrand}
+                      placeholder="Brand"
+                      placeholderTextColor={colors.mutedForeground}
+                      style={[spStyles.addSizeText, { color: colors.foreground }]}
+                      maxLength={30}
+                    />
+                  </View>
+                  <View style={[spStyles.addSizeFieldSmall, { borderColor: colors.border, backgroundColor: colors.muted }]}>
+                    <TextInput
+                      value={newSizeValue}
+                      onChangeText={setNewSizeValue}
+                      placeholder="Size"
+                      placeholderTextColor={colors.mutedForeground}
+                      style={[spStyles.addSizeText, { color: colors.foreground }]}
+                      maxLength={10}
+                    />
+                  </View>
+                  <Pressable
+                    onPress={() => { void addSizeEntry(); }}
+                    style={({ pressed }) => [spStyles.addSizeBtn, { backgroundColor: colors.primary, opacity: pressed ? 0.75 : 1 }]}
+                  >
+                    <Ionicons name="add" size={18} color="#fff" />
+                  </Pressable>
+                </View>
               </View>
             </View>
           </View>
@@ -840,6 +1066,55 @@ const hStyles = StyleSheet.create({
     fontFamily: "Inter_400Regular",
     lineHeight: 17,
     fontStyle: "italic",
+  },
+});
+
+const spStyles = StyleSheet.create({
+  sizeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  sizeBrand: { flex: 1, fontSize: 14, fontFamily: "Inter_500Medium" },
+  sizeBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  sizeLabel: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
+  addSizeRow: {
+    flexDirection: "row",
+    gap: 8,
+    alignItems: "center",
+  },
+  addSizeField: {
+    flex: 1,
+    borderRadius: 12,
+    borderWidth: 1,
+    overflow: "hidden",
+  },
+  addSizeFieldSmall: {
+    flex: 0.55,
+    borderRadius: 12,
+    borderWidth: 1,
+    overflow: "hidden",
+  },
+  addSizeText: {
+    fontSize: 14,
+    fontFamily: "Inter_400Regular",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  addSizeBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });
 
