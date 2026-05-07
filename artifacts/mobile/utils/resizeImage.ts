@@ -4,14 +4,18 @@ import { Image } from "react-native";
 const DEFAULT_MAX_SIDE = 512;
 const DEFAULT_QUALITY = 0.8;
 
-function getImageSize(uri: string): Promise<{ width: number; height: number }> {
-  return new Promise((resolve, reject) => {
-    if (uri.startsWith("data:")) {
-      resolve({ width: 0, height: 0 });
-      return;
-    }
-    Image.getSize(uri, (width, height) => resolve({ width, height }), reject);
+async function resolveImageDimensions(
+  uri: string
+): Promise<{ width: number; height: number }> {
+  if (!uri.startsWith("data:")) {
+    return new Promise<{ width: number; height: number }>((resolve, reject) => {
+      Image.getSize(uri, (width, height) => resolve({ width, height }), reject);
+    });
+  }
+  const info = await ImageManipulator.manipulateAsync(uri, [], {
+    format: ImageManipulator.SaveFormat.JPEG,
   });
+  return { width: info.width, height: info.height };
 }
 
 export async function resizeImageForUpload(
@@ -22,15 +26,13 @@ export async function resizeImageForUpload(
   const actions: ImageManipulator.Action[] = [];
 
   try {
-    const { width, height } = await getImageSize(uri);
+    const { width, height } = await resolveImageDimensions(uri);
     if (width > 0 && height > 0) {
       if (width >= height && width > maxSide) {
         actions.push({ resize: { width: maxSide } });
       } else if (height > width && height > maxSide) {
         actions.push({ resize: { height: maxSide } });
       }
-    } else if (uri.startsWith("data:")) {
-      actions.push({ resize: { width: maxSide } });
     }
   } catch {
     actions.push({ resize: { width: maxSide } });
