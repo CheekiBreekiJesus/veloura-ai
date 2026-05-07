@@ -594,6 +594,18 @@ export default function ProfileScreen() {
           >
             <Text style={[styles.resetBtnText, { color: colors.destructive }]}>Clear profile & start over</Text>
           </Pressable>
+          <Pressable
+            onPress={async () => {
+              await Haptics.selectionAsync();
+              router.push("/color-analysis");
+            }}
+            style={({ pressed }) => [{ opacity: pressed ? 0.75 : 1 }]}
+          >
+            <View style={[{ flexDirection: "row", alignItems: "center", gap: 3, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10, backgroundColor: colors.primary + "15", borderWidth: 1, borderColor: colors.primary + "30" }]}>
+              <Text style={[{ fontSize: 12, fontFamily: "Inter_600SemiBold", color: colors.primary }]}>Color Analysis</Text>
+              <Ionicons name="chevron-forward" size={12} color={colors.primary} />
+            </View>
+          </Pressable>
         </View>
       </Animated.ScrollView>
 

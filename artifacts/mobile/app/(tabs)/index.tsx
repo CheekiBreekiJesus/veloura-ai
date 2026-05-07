@@ -317,6 +317,27 @@ export default function HomeScreen() {
           seasonEmoji={seasonProfile.emoji}
           onShare={() => setShareVisible(true)}
         />
+        <Pressable
+          onPress={async () => {
+            await Haptics.selectionAsync();
+            router.push("/color-analysis");
+          }}
+          style={({ pressed }) => [
+            styles.colorAnalysisCard,
+            { backgroundColor: colors.card, borderColor: colors.border, opacity: pressed ? 0.88 : 1 },
+          ]}
+        >
+          <View style={[styles.colorAnalysisIcon, { backgroundColor: colors.primary + "15" }]}>
+            <Ionicons name="color-palette-outline" size={20} color={colors.primary} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.colorAnalysisTitle, { color: colors.foreground }]}>Personal Color Analysis</Text>
+            <Text style={[styles.colorAnalysisSub, { color: colors.mutedForeground }]}>
+              Open your seasonal palette, best neutrals, and clothing color matches
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={colors.mutedForeground} />
+        </Pressable>
         <PaletteStrip palette={analysis.color_palette} colors={colors} />
         <FeatureDNA analysis={analysis} colors={colors} />
         <SeasonCard seasonProfile={seasonProfile} colors={colors} />
@@ -844,6 +865,25 @@ const styles = StyleSheet.create({
   paletteRow: { flexDirection: "row", gap: 10, marginBottom: 6 },
   paletteDot: { width: 36, height: 36, borderRadius: 18 },
   paletteCaption: { fontSize: 12, fontFamily: "Inter_400Regular" },
+  colorAnalysisCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginHorizontal: 20,
+    marginBottom: 20,
+    padding: 16,
+    borderRadius: 18,
+    borderWidth: 1,
+  },
+  colorAnalysisIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  colorAnalysisTitle: { fontSize: 15, fontFamily: "Inter_700Bold", marginBottom: 3 },
+  colorAnalysisSub: { fontSize: 12, fontFamily: "Inter_400Regular", lineHeight: 18 },
   sectionHeader: { paddingHorizontal: 20, marginBottom: 12 },
   sectionTitle: { fontSize: 18, fontFamily: "Inter_700Bold" },
   categoryScroll: { paddingHorizontal: 20, gap: 12 },
