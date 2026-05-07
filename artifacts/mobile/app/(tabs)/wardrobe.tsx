@@ -168,9 +168,10 @@ function SeasonReadinessCard({
   gapNote: string | null;
   colors: ReturnType<typeof useColors>;
 }) {
-  const tagged = wardrobeItems.filter((i) => i.seasons && i.seasons.length > 0);
-  const inSeason = wardrobeItems.filter((i) => i.seasons?.includes(currentSeason));
-  const readinessPct = tagged.length > 0 ? Math.round((inSeason.length / tagged.length) * 100) : 0;
+  // Readiness = in-season non-stored / total non-stored
+  const nonStored = wardrobeItems.filter((i) => !i.stored);
+  const inSeasonNonStored = nonStored.filter((i) => i.seasons?.includes(currentSeason));
+  const readinessPct = nonStored.length > 0 ? Math.round((inSeasonNonStored.length / nonStored.length) * 100) : 0;
   const bgColor = SEASON_COLORS[currentSeason];
 
   return (
@@ -182,16 +183,16 @@ function SeasonReadinessCard({
           <Text style={[seStyles.readinessTitle, { color: colors.foreground }]}>{SEASON_LABELS[currentSeason]}</Text>
         </View>
         <View style={[seStyles.readinessBadge, { backgroundColor: bgColor }]}>
-          <Text style={seStyles.readinessBadgeText}>{inSeason.length} items</Text>
+          <Text style={seStyles.readinessBadgeText}>{inSeasonNonStored.length} items</Text>
         </View>
       </View>
-      {tagged.length > 0 ? (
+      {nonStored.length > 0 ? (
         <View style={{ paddingHorizontal: 16, paddingBottom: 14, paddingTop: 10, gap: 8 }}>
           <View style={[seStyles.readinessTrackBg, { backgroundColor: colors.secondary }]}>
             <View style={[seStyles.readinessTrackFill, { width: `${readinessPct}%` as `${number}%`, backgroundColor: bgColor }]} />
           </View>
           <Text style={[seStyles.readinessHint, { color: colors.mutedForeground }]}>
-            {readinessPct}% of tagged items are in-season — {inSeason.length} of {tagged.length} tagged
+            {readinessPct}% ready for {SEASON_LABELS[currentSeason]} — {inSeasonNonStored.length} of {nonStored.length} active items
           </Text>
           {gapNote && (
             <View style={[seStyles.gapNote, { backgroundColor: bgColor + "18", borderColor: bgColor + "40" }]}>
@@ -203,7 +204,7 @@ function SeasonReadinessCard({
       ) : (
         <View style={{ padding: 14 }}>
           <Text style={[seStyles.readinessHint, { color: colors.mutedForeground }]}>
-            Tag your items with seasons to see your readiness score.
+            Add items to your closet to see your season readiness score.
           </Text>
         </View>
       )}
@@ -264,32 +265,80 @@ function SeasonPlannerCard({
   season,
   count,
   suggestion,
+  matchingItems,
   colors,
 }: {
   season: Season;
   count: number;
   suggestion?: string;
+  matchingItems: WardrobeItem[];
   colors: ReturnType<typeof useColors>;
 }) {
+  const [expanded, setExpanded] = useState(false);
   const bg = SEASON_COLORS[season];
   return (
     <View style={[seStyles.plannerCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-      <View style={[seStyles.plannerColorBar, { backgroundColor: bg + "60" }]}>
-        <Text style={seStyles.plannerEmoji}>{SEASON_ICONS[season]}</Text>
-      </View>
-      <View style={seStyles.plannerBody}>
-        <Text style={[seStyles.plannerSeason, { color: colors.foreground }]}>{SEASON_LABELS[season]}</Text>
-        <Text style={[seStyles.plannerCount, { color: count > 0 ? colors.primary : colors.mutedForeground }]}>
-          {count > 0 ? `${count} item${count !== 1 ? "s" : ""}` : "No items yet"}
-        </Text>
-        {suggestion ? (
-          <Text style={[seStyles.plannerSuggestion, { color: colors.mutedForeground }]} numberOfLines={3}>
-            {suggestion}
-          </Text>
-        ) : (
-          <View style={[seStyles.plannerSuggestionSkeleton, { backgroundColor: colors.secondary }]} />
-        )}
-      </View>
+      <Pressable
+        onPress={async () => {
+          if (count === 0) return;
+          await Haptics.selectionAsync();
+          setExpanded((v) => !v);
+        }}
+        style={{ overflow: "hidden", borderRadius: 14 }}
+      >
+        <View style={[seStyles.plannerColorBar, { backgroundColor: bg + "60" }]}>
+          <Text style={seStyles.plannerEmoji}>{SEASON_ICONS[season]}</Text>
+        </View>
+        <View style={seStyles.plannerBody}>
+          <Text style={[seStyles.plannerSeason, { color: colors.foreground }]}>{SEASON_LABELS[season]}</Text>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+            <Text style={[seStyles.plannerCount, { color: count > 0 ? colors.primary : colors.mutedForeground }]}>
+              {count > 0 ? `${count} item${count !== 1 ? "s" : ""}` : "No items yet"}
+            </Text>
+            {count > 0 && (
+              <Ionicons
+                name={expanded ? "chevron-up" : "chevron-down"}
+                size={11}
+                color={colors.mutedForeground}
+              />
+            )}
+          </View>
+          {suggestion ? (
+            <Text style={[seStyles.plannerSuggestion, { color: colors.mutedForeground }]} numberOfLines={3}>
+              {suggestion}
+            </Text>
+          ) : (
+            <View style={[seStyles.plannerSuggestionSkeleton, { backgroundColor: colors.secondary }]} />
+          )}
+        </View>
+      </Pressable>
+      {expanded && matchingItems.length > 0 && (
+        <View style={[seStyles.plannerExpanded, { borderTopColor: colors.border }]}>
+          {matchingItems.slice(0, 5).map((item) => (
+            <View key={item.id} style={seStyles.plannerExpandedItem}>
+              {item.imageUri ? (
+                <Image
+                  source={{ uri: item.imageUri }}
+                  style={seStyles.plannerExpandedThumb}
+                  contentFit={item.backgroundRemoved ? "contain" : "cover"}
+                />
+              ) : (
+                <View style={[seStyles.plannerExpandedThumb, { backgroundColor: colors.secondary, alignItems: "center", justifyContent: "center" }]}>
+                  <Ionicons name="shirt-outline" size={14} color={colors.mutedForeground} />
+                </View>
+              )}
+              <Text style={[seStyles.plannerExpandedName, { color: colors.foreground }]} numberOfLines={2}>
+                {item.name}
+              </Text>
+            </View>
+          ))}
+          {matchingItems.length > 5 && (
+            <Text style={[seStyles.plannerExpandedMore, { color: colors.mutedForeground }]}>
+              +{matchingItems.length - 5} more
+            </Text>
+          )}
+        </View>
+      )}
     </View>
   );
 }
@@ -1082,13 +1131,14 @@ export default function WardrobeScreen() {
                 </Text>
                 <View style={seStyles.plannerRow}>
                   {getNextSeasons(currentSeason, 3).map((s) => {
-                    const count = wardrobeItems.filter((i) => i.seasons?.includes(s)).length;
+                    const matching = wardrobeItems.filter((i) => i.seasons?.includes(s) && !i.stored);
                     return (
                       <SeasonPlannerCard
                         key={s}
                         season={s}
-                        count={count}
+                        count={matching.length}
                         suggestion={plannerSuggestions[s]}
+                        matchingItems={matching}
                         colors={colors}
                       />
                     );
@@ -2230,6 +2280,11 @@ const seStyles = StyleSheet.create({
 
   plannerSuggestion: { fontSize: 10, fontFamily: "Inter_400Regular", lineHeight: 15, marginTop: 4 },
   plannerSuggestionSkeleton: { height: 28, borderRadius: 6, marginTop: 6 },
+  plannerExpanded: { borderTopWidth: StyleSheet.hairlineWidth, padding: 10, gap: 8 },
+  plannerExpandedItem: { flexDirection: "row", alignItems: "center", gap: 8 },
+  plannerExpandedThumb: { width: 36, height: 36, borderRadius: 8, overflow: "hidden", flexShrink: 0 },
+  plannerExpandedName: { flex: 1, fontSize: 11, fontFamily: "Inter_400Regular", lineHeight: 15 },
+  plannerExpandedMore: { fontSize: 11, fontFamily: "Inter_400Regular", textAlign: "center", paddingTop: 2 },
 
   autoTagDismiss: { fontSize: 11, fontFamily: "Inter_400Regular" },
 

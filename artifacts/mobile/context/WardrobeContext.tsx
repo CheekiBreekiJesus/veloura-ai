@@ -53,7 +53,15 @@ export function WardrobeProvider({ children }: { children: React.ReactNode }) {
         AsyncStorage.getItem(ITEMS_KEY),
         AsyncStorage.getItem(FEEDBACK_KEY),
       ]);
-      if (items) setWardrobeItems(JSON.parse(items) as WardrobeItem[]);
+      if (items) {
+        const parsed = JSON.parse(items) as WardrobeItem[];
+        // Normalize legacy items: ensure seasons and stored have explicit defaults
+        setWardrobeItems(parsed.map((i) => ({
+          ...i,
+          seasons: i.seasons ?? [],
+          stored: i.stored ?? false,
+        })));
+      }
       if (fb) setFeedbackState(JSON.parse(fb) as Record<string, FeedbackValue>);
     };
     void load();
@@ -61,7 +69,7 @@ export function WardrobeProvider({ children }: { children: React.ReactNode }) {
 
   const addItem = useCallback(async (item: WardrobeItem) => {
     setWardrobeItems((prev) => {
-      const next = [item, ...prev];
+      const next = [{ ...item, seasons: item.seasons ?? [], stored: item.stored ?? false }, ...prev];
       void AsyncStorage.setItem(ITEMS_KEY, JSON.stringify(next));
       return next;
     });
