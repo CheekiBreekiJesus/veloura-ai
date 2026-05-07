@@ -45,9 +45,28 @@ function buildKeywordUrl(keyword: string): string {
   return `https://www.amazon.com/s?k=${encodeURIComponent(keyword)}`;
 }
 
-function buildJewelryWatchKeywords(undertone: string, archetype: string): string[] {
+function buildJewelryWatchKeywords(
+  undertone: string,
+  archetype: string,
+  season?: string | null
+): string[] {
   const lower = undertone.toLowerCase();
   const arcLower = archetype.toLowerCase();
+  const seasonLower = season?.toLowerCase() ?? "";
+
+  // Season-specific overrides take priority
+  const seasonKeywords: string[] =
+    seasonLower.includes("soft summer") || seasonLower.includes("soft autumn")
+      ? ["delicate pearl necklace women", "silver fine jewelry women"]
+      : seasonLower.includes("deep winter") || seasonLower.includes("dark winter")
+      ? ["bold silver jewelry women", "sapphire drop earrings", "onyx ring"]
+      : seasonLower.includes("bright spring") || seasonLower.includes("clear spring")
+      ? ["colorful gemstone earrings", "gold jewelry bright stones"]
+      : seasonLower.includes("warm spring") || seasonLower.includes("true spring")
+      ? ["yellow gold dainty necklace", "coral gemstone jewelry"]
+      : seasonLower.includes("warm autumn") || seasonLower.includes("true autumn")
+      ? ["gold earthy jewelry women", "amber citrine necklace"]
+      : [];
 
   // Metal tone by undertone
   const metalKeywords: string[] = lower.includes("warm")
@@ -80,7 +99,13 @@ function buildJewelryWatchKeywords(undertone: string, archetype: string): string
     ? ["silver mesh watch women", "stainless steel watch women minimalist"]
     : ["women watch gold silver two-tone"];
 
-  return [...metalKeywords.slice(0, 2), ...styleKeywords.slice(0, 2), ...watchKeywords.slice(0, 1)];
+  const combined = [
+    ...seasonKeywords.slice(0, 2),
+    ...metalKeywords.slice(0, seasonKeywords.length > 0 ? 1 : 2),
+    ...styleKeywords.slice(0, 2),
+    ...watchKeywords.slice(0, 1),
+  ];
+  return combined.slice(0, 6);
 }
 
 function JewelryWatchKeywords({
@@ -93,7 +118,8 @@ function JewelryWatchKeywords({
   const archetypes =
     (analysis as { aesthetic_archetypes?: string[] }).aesthetic_archetypes?.join(", ") ??
     analysis.style_archetype;
-  const keywords = buildJewelryWatchKeywords(analysis.undertone, archetypes);
+  const season = (analysis as { color_season?: string }).color_season ?? null;
+  const keywords = buildJewelryWatchKeywords(analysis.undertone, archetypes, season);
   if (!keywords.length) return null;
   return (
     <View style={styles.jwSection}>
