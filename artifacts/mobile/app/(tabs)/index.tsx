@@ -80,28 +80,6 @@ function buildCategories(a: AnalysisResult): CategoryCard[] {
   ];
 }
 
-type Rec = {
-  title: string;
-  desc: string;
-  icon: React.ComponentProps<typeof Ionicons>["name"];
-  destination: Destination;
-};
-
-function buildRecs(a: AnalysisResult): Rec[] {
-  const recs: Rec[] = [];
-  if (a.beauty_recommendations[0])
-    recs.push({ title: "Glow Routine", desc: a.beauty_recommendations[0], icon: "sunny-outline", destination: "skin-analysis" });
-  if (a.beauty_recommendations[1])
-    recs.push({ title: "Makeup Look", desc: a.beauty_recommendations[1], icon: "color-palette-outline", destination: "profile" });
-  if (a.hairstyle_suggestions[0])
-    recs.push({ title: "Hairstyle Tip", desc: a.hairstyle_suggestions[0], icon: "cut-outline", destination: "hairstyle-analysis" });
-  if (a.fashion_recommendations[0])
-    recs.push({ title: "Style Direction", desc: a.fashion_recommendations[0], icon: "shirt-outline", destination: "wardrobe" });
-  if (a.glasses_suggestions[0])
-    recs.push({ title: "Eyewear Pick", desc: a.glasses_suggestions[0], icon: "glasses-outline", destination: "shop" });
-  return recs;
-}
-
 function useFadeIn(delay = 0) {
   const anim = useRef(new Animated.Value(0)).current;
   const translateY = useRef(new Animated.Value(18)).current;
@@ -297,7 +275,6 @@ export default function HomeScreen() {
   }
 
   const cats = buildCategories(analysis);
-  const recs = buildRecs(analysis);
   const tip = getDailyTip(analysis);
   const season = getColorSeason(analysis.undertone, analysis.skin_tone);
   const seasonProfile = getSeasonProfile(season);
@@ -371,7 +348,6 @@ export default function HomeScreen() {
         <TodayOutfitCard />
         <DailyTip tip={tip} colors={colors} />
         <TodayForYou cats={cats} colors={colors} />
-        <AIRecommendations recs={recs} colors={colors} />
       </ScrollView>
       <ShareModal
         visible={shareVisible}
@@ -630,107 +606,6 @@ function TodayForYou({
   );
 }
 
-function AIRecommendations({
-  recs,
-  colors,
-}: {
-  recs: Rec[];
-  colors: ReturnType<typeof useColors>;
-}) {
-  const anim = useFadeIn(320);
-
-  const handleRecPress = async (rec: Rec) => {
-    await Haptics.selectionAsync();
-    if (rec.destination === "profile") {
-      router.push("/profile");
-    } else if (rec.destination === "wardrobe") {
-      router.push("/(tabs)/wardrobe");
-    } else if (rec.destination === "shop") {
-      router.push("/(tabs)/shop");
-    } else if (rec.destination === "chat") {
-      router.push("/(tabs)/chat");
-    } else if (rec.destination === "hairstyle-analysis") {
-      router.push("/hairstyle-analysis");
-    } else if (rec.destination === "skin-analysis") {
-      router.push("/skin-analysis");
-    }
-  };
-
-  return (
-    <Animated.View style={[styles.sectionPad, anim]}>
-      <Text style={[styles.sectionTitle, { color: colors.foreground, marginBottom: 12 }]}>
-        AI Recommendations ✦
-      </Text>
-      {recs.map((rec, i) => (
-        <Pressable
-          key={i}
-          onPress={() => handleRecPress(rec)}
-          style={({ pressed }) => [
-            styles.recRow,
-            {
-              backgroundColor: colors.card,
-              borderColor: colors.border,
-              opacity: pressed ? 0.85 : 1,
-            },
-          ]}
-        >
-          <View style={[styles.recThumb, { backgroundColor: colors.secondary }]}>
-            <Ionicons name={rec.icon} size={20} color={colors.primary} />
-          </View>
-          <View style={styles.recContent}>
-            <Text style={[styles.recTitle, { color: colors.foreground }]}>
-              {rec.title}
-            </Text>
-            <Text
-              style={[styles.recDesc, { color: colors.mutedForeground }]}
-              numberOfLines={2}
-            >
-              {rec.desc}
-            </Text>
-          </View>
-          <View style={[styles.viewPill, { backgroundColor: colors.secondary }]}>
-            <Text style={[styles.viewPillText, { color: colors.primary }]}>
-              View
-            </Text>
-          </View>
-        </Pressable>
-      ))}
-
-      {/* Chat CTA */}
-      <Pressable
-        onPress={async () => {
-          await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          router.push("/(tabs)/chat");
-        }}
-        style={({ pressed }) => [
-          styles.chatCta,
-          {
-            backgroundColor: colors.primary + "12",
-            borderColor: colors.primary + "30",
-            opacity: pressed ? 0.8 : 1,
-          },
-        ]}
-      >
-        <LinearGradient
-          colors={["#F5EDE3", "#E8C4A0"]}
-          style={styles.chatCtaIcon}
-        >
-          <Ionicons name="sparkles" size={16} color={colors.primary} />
-        </LinearGradient>
-        <View style={{ flex: 1 }}>
-          <Text style={[styles.chatCtaTitle, { color: colors.foreground }]}>
-            Chat with your AI Stylist
-          </Text>
-          <Text style={[styles.chatCtaSub, { color: colors.mutedForeground }]}>
-            Ask questions about your look, get personalized advice
-          </Text>
-        </View>
-        <Ionicons name="chevron-forward" size={18} color={colors.primary} />
-      </Pressable>
-    </Animated.View>
-  );
-}
-
 function OnboardingView({
   colors,
   topPad,
@@ -942,46 +817,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginTop: 10,
   },
-  recRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 14,
-    borderRadius: 16,
-    borderWidth: 1,
-    gap: 12,
-    marginBottom: 10,
-  },
-  recThumb: {
-    width: 52,
-    height: 52,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  recContent: { flex: 1 },
-  recTitle: { fontSize: 14, fontFamily: "Inter_600SemiBold", marginBottom: 3 },
-  recDesc: { fontSize: 12, fontFamily: "Inter_400Regular", lineHeight: 18 },
-  viewPill: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20 },
-  viewPillText: { fontSize: 13, fontFamily: "Inter_500Medium" },
-  chatCta: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    padding: 16,
-    borderRadius: 18,
-    borderWidth: 1,
-    marginTop: 4,
-  },
-  chatCtaIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    flexShrink: 0,
-  },
-  chatCtaTitle: { fontSize: 14, fontFamily: "Inter_600SemiBold", marginBottom: 2 },
-  chatCtaSub: { fontSize: 12, fontFamily: "Inter_400Regular", lineHeight: 17 },
   dnaScroll: { paddingHorizontal: 20, gap: 10 },
   dnaCard: { width: 90, padding: 12, borderRadius: 16, borderWidth: 1, gap: 6 },
   dnaIconWrap: { width: 32, height: 32, borderRadius: 10, alignItems: "center", justifyContent: "center" },
