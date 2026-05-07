@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -231,6 +231,7 @@ export default function StylistChatScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { analysis, userName, chatHistory, saveChatHistory, pendingChatInput, setPendingChatInput, healthConcerns } = useAnalysis();
+  const { tipTitle, tipBody } = useLocalSearchParams<{ tipTitle?: string; tipBody?: string }>();
 
   const companionName = analysis?.companion_name ?? "Aura";
   // Use DALL-E avatar when available, fall back to the bundled static asset.
@@ -270,6 +271,18 @@ export default function StylistChatScreen() {
       setPendingChatInput(null);
     }
   }, [pendingChatInput, setPendingChatInput]);
+
+  // Auto-send tip context when navigated from Tip of the Day
+  const tipInjectedRef = useRef(false);
+  useEffect(() => {
+    if (!tipTitle || tipInjectedRef.current || !initialized || loading) return;
+    tipInjectedRef.current = true;
+    const msg = tipBody
+      ? `Let's talk about today's tip: ${tipTitle} — ${tipBody}`
+      : `Let's talk about today's tip: ${tipTitle}`;
+    router.setParams({ tipTitle: "", tipBody: "" });
+    void send(msg);
+  }, [initialized, loading, tipTitle, tipBody, send]);
 
   // Reset local state when analysis is cleared OR replaced with a new one.
   // prevAnalysisRef tracks the previous object reference so we can distinguish

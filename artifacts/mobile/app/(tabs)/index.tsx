@@ -37,12 +37,14 @@ function getGreeting() {
   return "Good evening";
 }
 
+type Destination = "profile" | "wardrobe" | "shop" | "chat" | "hairstyle-analysis" | "skin-analysis";
+
 type CategoryCard = {
   title: string;
   subtitle: string;
   icon: React.ComponentProps<typeof Ionicons>["name"];
   gradient: [string, string];
-  destination: "profile" | "wardrobe" | "shop" | "stylist";
+  destination: Destination;
 };
 
 function buildCategories(a: AnalysisResult): CategoryCard[] {
@@ -52,7 +54,7 @@ function buildCategories(a: AnalysisResult): CategoryCard[] {
       subtitle: a.beauty_recommendations[0] ?? "Routine for you",
       icon: "water-outline",
       gradient: ["#FDECD3", "#F5D5B0"],
-      destination: "profile",
+      destination: "skin-analysis",
     },
     {
       title: "Cosmetics",
@@ -66,7 +68,7 @@ function buildCategories(a: AnalysisResult): CategoryCard[] {
       subtitle: a.hairstyle_suggestions[0] ?? "Flatters your shape",
       icon: "cut-outline",
       gradient: ["#D9EEF5", "#B8DCEA"],
-      destination: "wardrobe",
+      destination: "hairstyle-analysis",
     },
     {
       title: "Outfit",
@@ -82,17 +84,17 @@ type Rec = {
   title: string;
   desc: string;
   icon: React.ComponentProps<typeof Ionicons>["name"];
-  destination: "profile" | "wardrobe" | "shop" | "stylist";
+  destination: Destination;
 };
 
 function buildRecs(a: AnalysisResult): Rec[] {
   const recs: Rec[] = [];
   if (a.beauty_recommendations[0])
-    recs.push({ title: "Glow Routine", desc: a.beauty_recommendations[0], icon: "sunny-outline", destination: "profile" });
+    recs.push({ title: "Glow Routine", desc: a.beauty_recommendations[0], icon: "sunny-outline", destination: "skin-analysis" });
   if (a.beauty_recommendations[1])
     recs.push({ title: "Makeup Look", desc: a.beauty_recommendations[1], icon: "color-palette-outline", destination: "profile" });
   if (a.hairstyle_suggestions[0])
-    recs.push({ title: "Hairstyle Tip", desc: a.hairstyle_suggestions[0], icon: "cut-outline", destination: "wardrobe" });
+    recs.push({ title: "Hairstyle Tip", desc: a.hairstyle_suggestions[0], icon: "cut-outline", destination: "hairstyle-analysis" });
   if (a.fashion_recommendations[0])
     recs.push({ title: "Style Direction", desc: a.fashion_recommendations[0], icon: "shirt-outline", destination: "wardrobe" });
   if (a.glasses_suggestions[0])
@@ -238,7 +240,10 @@ function DailyTip({
       <Pressable
         onPress={async () => {
           await Haptics.selectionAsync();
-          router.push("/stylist" as never);
+          router.push({
+            pathname: "/(tabs)/chat",
+            params: { tipTitle: tip.title, tipBody: tip.body },
+          } as never);
         }}
         style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
       >
@@ -567,8 +572,12 @@ function TodayForYou({
       router.push("/(tabs)/wardrobe");
     } else if (cat.destination === "shop") {
       router.push("/(tabs)/shop");
-    } else if (cat.destination === "stylist") {
-      router.push("/(tabs)/stylist" as never);
+    } else if (cat.destination === "chat") {
+      router.push("/(tabs)/chat");
+    } else if (cat.destination === "hairstyle-analysis") {
+      router.push("/hairstyle-analysis");
+    } else if (cat.destination === "skin-analysis") {
+      router.push("/skin-analysis");
     }
   };
 
@@ -638,8 +647,12 @@ function AIRecommendations({
       router.push("/(tabs)/wardrobe");
     } else if (rec.destination === "shop") {
       router.push("/(tabs)/shop");
-    } else if (rec.destination === "stylist") {
-      router.push("/(tabs)/stylist" as never);
+    } else if (rec.destination === "chat") {
+      router.push("/(tabs)/chat");
+    } else if (rec.destination === "hairstyle-analysis") {
+      router.push("/hairstyle-analysis");
+    } else if (rec.destination === "skin-analysis") {
+      router.push("/skin-analysis");
     }
   };
 
@@ -687,7 +700,7 @@ function AIRecommendations({
       <Pressable
         onPress={async () => {
           await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          router.push("/(tabs)/stylist" as never);
+          router.push("/(tabs)/chat");
         }}
         style={({ pressed }) => [
           styles.chatCta,
