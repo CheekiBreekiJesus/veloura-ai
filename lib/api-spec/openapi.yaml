@@ -2,7 +2,7 @@ openapi: 3.1.0
 info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
-  version: 0.1.0
+  version: 0.2.0
   description: API specification
 servers:
   - url: /api
@@ -10,54 +10,24 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Short-lived token issuance for caller identity verification
   - name: analysis
     description: AI face analysis operations
-paths:
-  /healthz:
-    get:
-      operationId: healthCheck
-      tags: [health]
-      summary: Health check
-      description: Returns server health status
-      responses:
-        "200":
-          description: Healthy
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/HealthStatus"
-  /analyze:
-    post:
-      operationId: analyzeFace
-      tags: [analysis]
-      summary: Analyze face from image
-      description: Analyzes a face image using AI and returns a full Aesthetic Identity Profile
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/AnalyzeFaceRequest"
-      responses:
-        "200":
-          description: Analysis result
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/AnalysisResult"
-        "400":
-          description: Invalid request
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "500":
-          description: Analysis failed
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
+
+# ── Security ────────────────────────────────────────────────────────────────
+# POST /api/analyze requires a Bearer token obtained from GET /api/auth/token.
+# Tokens are short-lived (10 min) HMAC-SHA256-signed blobs. Callers must
+# complete the two-step flow: fetch a token, then send it on the analyze call.
 components:
+  securitySchemes:
+    analyzeToken:
+      type: http
+      scheme: bearer
+      description: >
+        Short-lived token issued by GET /api/auth/token.
+        Expires in 10 minutes. Present as `Authorization: Bearer <token>`.
+
   schemas:
     HealthStatus:
       type: object
@@ -66,12 +36,27 @@ components:
           type: string
       required:
         - status
+    AuthTokenResponse:
+      type: object
+      properties:
+        token:
+          type: string
+          description: Short-lived HMAC-signed token (valid for 10 minutes)
+        expiresIn:
+          type: integer
+          description: Seconds until the token expires
+      required:
+        - token
+        - expiresIn
     AnalyzeFaceRequest:
       type: object
       properties:
         imageBase64:
           type: string
-          description: Base64-encoded image data
+          description: >
+            Base64-encoded image data. Maximum ~6 MB of base64 chars
+            (~4.5 MB binary). Accepted MIME types: image/jpeg, image/png,
+            image/webp, image/gif, image/heic, image/heif.
         mimeType:
           type: string
           description: MIME type of the image (e.g., image/jpeg)
@@ -97,13 +82,12 @@ components:
     AnalysisResult:
       type: object
       properties:
-        # ── Core features (original fields, always present) ──────────────────
+        # ── Core features (always present) ───────────────────────────────
         face_shape:
           type: string
           description: "oval, round, square, heart, diamond, oblong"
         skin_tone:
           type: string
-          description: Human-readable skin tone description
         undertone:
           type: string
           description: "warm, cool, neutral"
@@ -115,12 +99,11 @@ components:
           type: string
         style_archetype:
           type: string
-          description: Primary style identity label
         color_palette:
           type: array
           items:
             type: string
-          description: 5-8 hex color codes personalised to the person
+          description: 5-8 hex color codes
         beauty_recommendations:
           type: array
           items:
@@ -137,8 +120,7 @@ components:
           type: array
           items:
             type: string
-
-        # ── Extended face structure ───────────────────────────────────────────
+        # ── Extended face structure ───────────────────────────────────────
         jawline_definition:
           type: string
           enum: [soft, medium, sharp]
@@ -149,9 +131,7 @@ components:
           type: number
           minimum: 0
           maximum: 1
-          description: Estimated symmetry 0.0–1.0
-
-        # ── Extended skin analysis ────────────────────────────────────────────
+        # ── Extended skin analysis ────────────────────────────────────────
         skin_tone_category:
           type: string
           enum: [very_light, light, medium, tan, deep]
@@ -160,8 +140,7 @@ components:
           enum: [low, medium, high]
         skin_concerns:
           $ref: "#/components/schemas/SkinConcerns"
-
-        # ── Color profile ─────────────────────────────────────────────────────
+        # ── Color profile ─────────────────────────────────────────────────
         contrast_level:
           type: string
           enum: [low, medium, high]
@@ -169,19 +148,14 @@ components:
           type: array
           items:
             type: string
-          description: "3–6 best color family labels, e.g. earth tones, jewel tones"
-
-        # ── Hair profile ──────────────────────────────────────────────────────
+        # ── Hair profile ──────────────────────────────────────────────────
         hair_lengths:
           type: array
           items:
             type: string
-          description: Recommended hair lengths
         recommended_style_direction:
           type: string
-          description: "soft, structured, voluminous, minimalist, edgy, classic"
-
-        # ── Accessories ───────────────────────────────────────────────────────
+        # ── Accessories ───────────────────────────────────────────────────
         earring_styles:
           type: array
           items:
@@ -190,32 +164,24 @@ components:
           type: array
           items:
             type: string
-
-        # ── Aesthetic archetypes (rich, multiple) ─────────────────────────────
+        # ── Aesthetic archetypes ──────────────────────────────────────────
         aesthetic_archetypes:
           type: array
           items:
             type: string
-          description: "2–4 style identities, e.g. soft natural, classic elegant"
-
-        # ── Recommendation seeds ──────────────────────────────────────────────
+        # ── Recommendation seeds ──────────────────────────────────────────
         skincare_focus:
           type: array
           items:
             type: string
-          description: "e.g. hydration, glow, texture"
         makeup_direction:
           type: string
-          description: "natural, soft glam, glam, bold, editorial"
         fashion_direction:
           type: string
-          description: "casual, elegant, streetwear, minimalist luxury, etc."
         shopping_keywords:
           type: array
           items:
             type: string
-          description: SEO-style product search tags
-
       required:
         - face_shape
         - skin_tone
@@ -253,3 +219,97 @@ components:
           type: string
       required:
         - error
+
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /auth/token:
+    get:
+      operationId: getAnalyzeToken
+      tags: [auth]
+      summary: Issue a short-lived analyze token
+      description: >
+        Returns a 10-minute HMAC-signed token that authorizes a call to
+        POST /api/analyze. Clients must call this endpoint before each
+        analysis session and present the returned token as a Bearer credential.
+        Rate-limited to 20 requests per IP per 15-minute window.
+      responses:
+        "200":
+          description: Token issued
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthTokenResponse"
+        "429":
+          description: Too many token requests
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /analyze:
+    post:
+      operationId: analyzeFace
+      tags: [analysis]
+      summary: Analyze face from image
+      description: >
+        Analyzes a selfie using AI vision and returns a full Aesthetic Identity
+        Profile. Requires a valid Bearer token from GET /api/auth/token.
+        Rate-limited to 10 requests per IP per 15-minute window. Rejected if
+        the server has 3 or more concurrent analysis requests in flight.
+      security:
+        - analyzeToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AnalyzeFaceRequest"
+      responses:
+        "200":
+          description: Analysis result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnalysisResult"
+        "400":
+          description: Invalid request (missing/bad fields, disallowed MIME type, oversized payload)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Missing or invalid analyze token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Per-IP rate limit exceeded (10 requests / 15 min)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Analysis failed (upstream AI error or parse failure)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: Server busy — global concurrency cap reached
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"

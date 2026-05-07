@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { openai } from "@workspace/integrations-openai-ai-server";
 import { analyzeLimiter } from "../middlewares/rateLimiter";
+import { requireAnalyzeToken } from "../middlewares/requireAnalyzeToken";
 
 const router = Router();
 
@@ -105,7 +106,7 @@ makeup_direction: one of natural, soft glam, glam, bold, editorial
 fashion_direction: concise label e.g. "minimalist luxury", "romantic casual", "polished classic"
 shopping_keywords: 6–10 SEO-style search tags for product recommendations`;
 
-router.post("/analyze", analyzeLimiter, async (req, res): Promise<void> => {
+router.post("/analyze", analyzeLimiter, requireAnalyzeToken, async (req, res): Promise<void> => {
   // ── Input validation ─────────────────────────────────────────────────────
   const { imageBase64, mimeType } = req.body as {
     imageBase64: unknown;

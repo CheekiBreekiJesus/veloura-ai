@@ -3,7 +3,7 @@
  * Do not edit manually.
  * Api
  * API specification
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 0.2.0
  */
 import { useMutation, useQuery } from "@tanstack/react-query";
 import type {
@@ -19,6 +19,7 @@ import type {
 import type {
   AnalysisResult,
   AnalyzeFaceRequest,
+  AuthTokenResponse,
   ErrorResponse,
   HealthStatus,
 } from "./api.schemas";
@@ -33,7 +34,6 @@ type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
 /**
- * Returns server health status
  * @summary Health check
  */
 export const getHealthCheckUrl = () => {
@@ -109,7 +109,85 @@ export function useHealthCheck<
 }
 
 /**
- * Analyzes a face image using AI and returns a full Aesthetic Identity Profile
+ * Returns a 10-minute HMAC-signed token that authorizes a call to POST /api/analyze. Clients must call this endpoint before each analysis session and present the returned token as a Bearer credential. Rate-limited to 20 requests per IP per 15-minute window.
+
+ * @summary Issue a short-lived analyze token
+ */
+export const getGetAnalyzeTokenUrl = () => {
+  return `/api/auth/token`;
+};
+
+export const getAnalyzeToken = async (
+  options?: RequestInit,
+): Promise<AuthTokenResponse> => {
+  return customFetch<AuthTokenResponse>(getGetAnalyzeTokenUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetAnalyzeTokenQueryKey = () => {
+  return [`/api/auth/token`] as const;
+};
+
+export const getGetAnalyzeTokenQueryOptions = <
+  TData = Awaited<ReturnType<typeof getAnalyzeToken>>,
+  TError = ErrorType<ErrorResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getAnalyzeToken>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetAnalyzeTokenQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getAnalyzeToken>>> = ({
+    signal,
+  }) => getAnalyzeToken({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getAnalyzeToken>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetAnalyzeTokenQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getAnalyzeToken>>
+>;
+export type GetAnalyzeTokenQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Issue a short-lived analyze token
+ */
+
+export function useGetAnalyzeToken<
+  TData = Awaited<ReturnType<typeof getAnalyzeToken>>,
+  TError = ErrorType<ErrorResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getAnalyzeToken>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetAnalyzeTokenQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Analyzes a selfie using AI vision and returns a full Aesthetic Identity Profile. Requires a valid Bearer token from GET /api/auth/token. Rate-limited to 10 requests per IP per 15-minute window. Rejected if the server has 3 or more concurrent analysis requests in flight.
+
  * @summary Analyze face from image
  */
 export const getAnalyzeFaceUrl = () => {

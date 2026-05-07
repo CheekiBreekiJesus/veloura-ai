@@ -3,11 +3,12 @@
  * Do not edit manually.
  * Api
  * API specification
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 0.2.0
  */
 
 export interface AnalyzeFaceRequest {
-  /** Base64-encoded image data */
+  /** Base64-encoded image data. Maximum ~6 MB of base64 chars (~4.5 MB binary). Accepted MIME types: image/jpeg, image/png, image/webp, image/gif, image/heic, image/heif.
+   */
   imageBase64: string;
   /** MIME type of the image (e.g., image/jpeg) */
   mimeType: string;

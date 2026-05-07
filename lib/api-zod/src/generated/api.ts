@@ -3,12 +3,11 @@
  * Do not edit manually.
  * Api
  * API specification
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 0.2.0
  */
 import * as zod from "zod";
 
 /**
- * Returns server health status
  * @summary Health check
  */
 export const HealthCheckResponse = zod.object({
@@ -16,11 +15,28 @@ export const HealthCheckResponse = zod.object({
 });
 
 /**
- * Analyzes a face image using AI and returns a full Aesthetic Identity Profile
+ * Returns a 10-minute HMAC-signed token that authorizes a call to POST /api/analyze. Clients must call this endpoint before each analysis session and present the returned token as a Bearer credential. Rate-limited to 20 requests per IP per 15-minute window.
+
+ * @summary Issue a short-lived analyze token
+ */
+export const GetAnalyzeTokenResponse = zod.object({
+  token: zod
+    .string()
+    .describe("Short-lived HMAC-signed token (valid for 10 minutes)"),
+  expiresIn: zod.number().describe("Seconds until the token expires"),
+});
+
+/**
+ * Analyzes a selfie using AI vision and returns a full Aesthetic Identity Profile. Requires a valid Bearer token from GET /api/auth/token. Rate-limited to 10 requests per IP per 15-minute window. Rejected if the server has 3 or more concurrent analysis requests in flight.
+
  * @summary Analyze face from image
  */
 export const AnalyzeFaceBody = zod.object({
-  imageBase64: zod.string().describe("Base64-encoded image data"),
+  imageBase64: zod
+    .string()
+    .describe(
+      "Base64-encoded image data. Maximum ~6 MB of base64 chars (~4.5 MB binary). Accepted MIME types: image\/jpeg, image\/png, image\/webp, image\/gif, image\/heic, image\/heif.\n",
+    ),
   mimeType: zod.string().describe("MIME type of the image (e.g., image\/jpeg)"),
 });
 
@@ -31,15 +47,13 @@ export const AnalyzeFaceResponse = zod.object({
   face_shape: zod
     .string()
     .describe("oval, round, square, heart, diamond, oblong"),
-  skin_tone: zod.string().describe("Human-readable skin tone description"),
+  skin_tone: zod.string(),
   undertone: zod.string().describe("warm, cool, neutral"),
   eye_shape: zod.string(),
   lip_shape: zod.string(),
   hair_type: zod.string(),
-  style_archetype: zod.string().describe("Primary style identity label"),
-  color_palette: zod
-    .array(zod.string())
-    .describe("5-8 hex color codes personalised to the person"),
+  style_archetype: zod.string(),
+  color_palette: zod.array(zod.string()).describe("5-8 hex color codes"),
   beauty_recommendations: zod.array(zod.string()),
   fashion_recommendations: zod.array(zod.string()),
   hairstyle_suggestions: zod.array(zod.string()),
@@ -49,8 +63,7 @@ export const AnalyzeFaceResponse = zod.object({
   facial_symmetry_score: zod
     .number()
     .min(analyzeFaceResponseFacialSymmetryScoreMin)
-    .max(analyzeFaceResponseFacialSymmetryScoreMax)
-    .describe("Estimated symmetry 0.0–1.0"),
+    .max(analyzeFaceResponseFacialSymmetryScoreMax),
   skin_tone_category: zod.enum([
     "very_light",
     "light",
@@ -65,28 +78,14 @@ export const AnalyzeFaceResponse = zod.object({
     dryness: zod.enum(["none", "mild", "moderate", "severe"]),
   }),
   contrast_level: zod.enum(["low", "medium", "high"]),
-  color_families: zod
-    .array(zod.string())
-    .describe("3–6 best color family labels, e.g. earth tones, jewel tones"),
-  hair_lengths: zod.array(zod.string()).describe("Recommended hair lengths"),
-  recommended_style_direction: zod
-    .string()
-    .describe("soft, structured, voluminous, minimalist, edgy, classic"),
+  color_families: zod.array(zod.string()),
+  hair_lengths: zod.array(zod.string()),
+  recommended_style_direction: zod.string(),
   earring_styles: zod.array(zod.string()),
   necklace_lengths: zod.array(zod.string()),
-  aesthetic_archetypes: zod
-    .array(zod.string())
-    .describe("2–4 style identities, e.g. soft natural, classic elegant"),
-  skincare_focus: zod
-    .array(zod.string())
-    .describe("e.g. hydration, glow, texture"),
-  makeup_direction: zod
-    .string()
-    .describe("natural, soft glam, glam, bold, editorial"),
-  fashion_direction: zod
-    .string()
-    .describe("casual, elegant, streetwear, minimalist luxury, etc."),
-  shopping_keywords: zod
-    .array(zod.string())
-    .describe("SEO-style product search tags"),
+  aesthetic_archetypes: zod.array(zod.string()),
+  skincare_focus: zod.array(zod.string()),
+  makeup_direction: zod.string(),
+  fashion_direction: zod.string(),
+  shopping_keywords: zod.array(zod.string()),
 });

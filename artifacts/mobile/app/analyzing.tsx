@@ -175,7 +175,8 @@ export default function AnalyzingScreen() {
     return () => intervals.forEach(clearTimeout);
   }, [error]);
 
-  // Make the actual API call
+  // Make the actual API call — fetches a short-lived token first,
+  // then presents it as a Bearer credential on the analyze request.
   useEffect(() => {
     if (!pendingImage) {
       router.replace("/upload");
@@ -185,22 +186,37 @@ export default function AnalyzingScreen() {
     const domainEnv = process.env["EXPO_PUBLIC_DOMAIN"];
     const baseUrl = domainEnv ? `https://${domainEnv}` : "";
 
-    fetch(`${baseUrl}/api/analyze`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        imageBase64: pendingImage.base64,
-        mimeType: pendingImage.mimeType,
-      }),
-    })
-      .then((res) => {
-        if (!res.ok) {
-          return res.json().then((e: { error?: string }) => {
-            throw new Error(e.error ?? "Analysis failed");
-          });
-        }
-        return res.json() as Promise<AnalysisResult>;
-      })
+    const run = async () => {
+      // Step 1: obtain a short-lived signed token
+      const tokenRes = await fetch(`${baseUrl}/api/auth/token`);
+      if (!tokenRes.ok) {
+        const e = await tokenRes.json() as { error?: string };
+        throw new Error(e.error ?? "Could not obtain analysis token");
+      }
+      const { token } = await tokenRes.json() as { token: string };
+
+      // Step 2: call analyze with the token as a Bearer credential
+      const analyzeRes = await fetch(`${baseUrl}/api/analyze`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          imageBase64: pendingImage.base64,
+          mimeType: pendingImage.mimeType,
+        }),
+      });
+
+      if (!analyzeRes.ok) {
+        const e = await analyzeRes.json() as { error?: string };
+        throw new Error(e.error ?? "Analysis failed");
+      }
+
+      return analyzeRes.json() as Promise<AnalysisResult>;
+    };
+
+    run()
       .then((result) => {
         setApiResult(result);
         setApiDone(true);

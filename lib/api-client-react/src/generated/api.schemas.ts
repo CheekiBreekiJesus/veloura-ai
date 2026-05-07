@@ -3,14 +3,22 @@
  * Do not edit manually.
  * Api
  * API specification
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 0.2.0
  */
 export interface HealthStatus {
   status: string;
 }
 
+export interface AuthTokenResponse {
+  /** Short-lived HMAC-signed token (valid for 10 minutes) */
+  token: string;
+  /** Seconds until the token expires */
+  expiresIn: number;
+}
+
 export interface AnalyzeFaceRequest {
-  /** Base64-encoded image data */
+  /** Base64-encoded image data. Maximum ~6 MB of base64 chars (~4.5 MB binary). Accepted MIME types: image/jpeg, image/png, image/webp, image/gif, image/heic, image/heif.
+   */
   imageBase64: string;
   /** MIME type of the image (e.g., image/jpeg) */
   mimeType: string;
@@ -102,16 +110,14 @@ export const AnalysisResultContrastLevel = {
 export interface AnalysisResult {
   /** oval, round, square, heart, diamond, oblong */
   face_shape: string;
-  /** Human-readable skin tone description */
   skin_tone: string;
   /** warm, cool, neutral */
   undertone: string;
   eye_shape: string;
   lip_shape: string;
   hair_type: string;
-  /** Primary style identity label */
   style_archetype: string;
-  /** 5-8 hex color codes personalised to the person */
+  /** 5-8 hex color codes */
   color_palette: string[];
   beauty_recommendations: string[];
   fashion_recommendations: string[];
@@ -120,7 +126,6 @@ export interface AnalysisResult {
   jawline_definition: AnalysisResultJawlineDefinition;
   cheekbone_prominence: AnalysisResultCheekboneProminence;
   /**
-   * Estimated symmetry 0.0–1.0
    * @minimum 0
    * @maximum 1
    */
@@ -129,23 +134,15 @@ export interface AnalysisResult {
   skin_evenness: AnalysisResultSkinEvenness;
   skin_concerns: SkinConcerns;
   contrast_level: AnalysisResultContrastLevel;
-  /** 3–6 best color family labels, e.g. earth tones, jewel tones */
   color_families: string[];
-  /** Recommended hair lengths */
   hair_lengths: string[];
-  /** soft, structured, voluminous, minimalist, edgy, classic */
   recommended_style_direction: string;
   earring_styles: string[];
   necklace_lengths: string[];
-  /** 2–4 style identities, e.g. soft natural, classic elegant */
   aesthetic_archetypes: string[];
-  /** e.g. hydration, glow, texture */
   skincare_focus: string[];
-  /** natural, soft glam, glam, bold, editorial */
   makeup_direction: string;
-  /** casual, elegant, streetwear, minimalist luxury, etc. */
   fashion_direction: string;
-  /** SEO-style product search tags */
   shopping_keywords: string[];
 }
 
