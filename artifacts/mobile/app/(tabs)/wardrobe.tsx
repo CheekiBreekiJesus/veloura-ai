@@ -4,7 +4,7 @@ import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -160,10 +160,12 @@ function SeasonPill({
 function SeasonReadinessCard({
   wardrobeItems,
   currentSeason,
+  gapNote,
   colors,
 }: {
   wardrobeItems: WardrobeItem[];
   currentSeason: Season;
+  gapNote: string | null;
   colors: ReturnType<typeof useColors>;
 }) {
   const tagged = wardrobeItems.filter((i) => i.seasons && i.seasons.length > 0);
@@ -191,6 +193,12 @@ function SeasonReadinessCard({
           <Text style={[seStyles.readinessHint, { color: colors.mutedForeground }]}>
             {readinessPct}% of tagged items are in-season — {inSeason.length} of {tagged.length} tagged
           </Text>
+          {gapNote && (
+            <View style={[seStyles.gapNote, { backgroundColor: bgColor + "18", borderColor: bgColor + "40" }]}>
+              <Ionicons name="sparkles" size={13} color={colors.primary} style={{ marginTop: 1 }} />
+              <Text style={[seStyles.gapNoteText, { color: colors.foreground }]}>{gapNote}</Text>
+            </View>
+          )}
         </View>
       ) : (
         <View style={{ padding: 14 }}>
@@ -207,11 +215,13 @@ function AutoTagBanner({
   untaggedCount,
   tagging,
   onAutoTag,
+  onDismiss,
   colors,
 }: {
   untaggedCount: number;
   tagging: boolean;
   onAutoTag: () => void;
+  onDismiss: () => void;
   colors: ReturnType<typeof useColors>;
 }) {
   return (
@@ -225,20 +235,27 @@ function AutoTagBanner({
           Auto-tag them with seasons using AI
         </Text>
       </View>
-      <Pressable
-        onPress={onAutoTag}
-        disabled={tagging}
-        style={({ pressed }) => [
-          seStyles.autoTagBtn,
-          { backgroundColor: colors.primary, opacity: tagging ? 0.6 : pressed ? 0.85 : 1 },
-        ]}
-      >
-        {tagging ? (
-          <ActivityIndicator size="small" color="#fff" />
-        ) : (
-          <Text style={seStyles.autoTagBtnText}>Auto-tag</Text>
+      <View style={{ gap: 6 }}>
+        <Pressable
+          onPress={onAutoTag}
+          disabled={tagging}
+          style={({ pressed }) => [
+            seStyles.autoTagBtn,
+            { backgroundColor: colors.primary, opacity: tagging ? 0.6 : pressed ? 0.85 : 1 },
+          ]}
+        >
+          {tagging ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <Text style={seStyles.autoTagBtnText}>Auto-tag</Text>
+          )}
+        </Pressable>
+        {!tagging && (
+          <Pressable onPress={onDismiss} style={{ alignItems: "center" }}>
+            <Text style={[seStyles.autoTagDismiss, { color: colors.mutedForeground }]}>Dismiss</Text>
+          </Pressable>
         )}
-      </Pressable>
+      </View>
     </View>
   );
 }
@@ -246,10 +263,12 @@ function AutoTagBanner({
 function SeasonPlannerCard({
   season,
   count,
+  suggestion,
   colors,
 }: {
   season: Season;
   count: number;
+  suggestion?: string;
   colors: ReturnType<typeof useColors>;
 }) {
   const bg = SEASON_COLORS[season];
@@ -260,9 +279,16 @@ function SeasonPlannerCard({
       </View>
       <View style={seStyles.plannerBody}>
         <Text style={[seStyles.plannerSeason, { color: colors.foreground }]}>{SEASON_LABELS[season]}</Text>
-        <Text style={[seStyles.plannerCount, { color: count > 0 ? bg.replace("A8", "70") : colors.mutedForeground }]}>
+        <Text style={[seStyles.plannerCount, { color: count > 0 ? colors.primary : colors.mutedForeground }]}>
           {count > 0 ? `${count} item${count !== 1 ? "s" : ""}` : "No items yet"}
         </Text>
+        {suggestion ? (
+          <Text style={[seStyles.plannerSuggestion, { color: colors.mutedForeground }]} numberOfLines={3}>
+            {suggestion}
+          </Text>
+        ) : (
+          <View style={[seStyles.plannerSuggestionSkeleton, { backgroundColor: colors.secondary }]} />
+        )}
       </View>
     </View>
   );
@@ -339,6 +365,50 @@ function OffSeasonItemRow({
           <Text style={[seStyles.offSeasonBtnText, { color: colors.primary }]}>Sell</Text>
         </Pressable>
       </View>
+    </View>
+  );
+}
+
+function StoredOffSeasonGroup({
+  items,
+  colors,
+  onUnstore,
+  onSell,
+}: {
+  items: WardrobeItem[];
+  colors: ReturnType<typeof useColors>;
+  onUnstore: (id: string) => void;
+  onSell: (item: WardrobeItem) => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <View style={{ marginTop: 16 }}>
+      <Pressable
+        onPress={async () => {
+          await Haptics.selectionAsync();
+          setExpanded((v) => !v);
+        }}
+        style={[seStyles.storedGroupHeader, { backgroundColor: colors.card, borderColor: colors.border }]}
+      >
+        <Ionicons name="cube-outline" size={16} color="#4CAF50" />
+        <Text style={[seStyles.storedGroupTitle, { color: colors.foreground }]}>
+          Stored Away ({items.length})
+        </Text>
+        <Ionicons name={expanded ? "chevron-up" : "chevron-down"} size={16} color={colors.mutedForeground} style={{ marginLeft: "auto" }} />
+      </Pressable>
+      {expanded && (
+        <View style={{ gap: 8, marginTop: 8 }}>
+          {items.map((item) => (
+            <OffSeasonItemRow
+              key={item.id}
+              item={item}
+              colors={colors}
+              onStore={() => onUnstore(item.id)}
+              onSell={() => onSell(item)}
+            />
+          ))}
+        </View>
+      )}
     </View>
   );
 }
@@ -455,6 +525,10 @@ export default function WardrobeScreen() {
 
   const [section, setSection] = useState<WardrobeSection>("closet");
   const [autoTagging, setAutoTagging] = useState(false);
+  const [autoTagBannerDismissed, setAutoTagBannerDismissed] = useState(false);
+  const [gapNote, setGapNote] = useState<string | null>(null);
+  const [plannerSuggestions, setPlannerSuggestions] = useState<Partial<Record<Season, string>>>({});
+  const seasonInsightsFetched = useRef(false);
   const [activeFilter, setActiveFilter] = useState("All");
   const [closetFilter, setClosetFilter] = useState<ClothingCategory | "All">("All");
   const [sortBy, setSortBy] = useState<SortOption>("recent");
@@ -584,6 +658,64 @@ export default function WardrobeScreen() {
     setOutfitSelected([]);
   };
 
+  // Fetch AI season insights once per session when user opens the Seasons tab
+  useEffect(() => {
+    if (section !== "seasons" || seasonInsightsFetched.current || wardrobeItems.length === 0) return;
+    seasonInsightsFetched.current = true;
+    const inSeasonNames = wardrobeItems
+      .filter((i) => i.seasons?.includes(currentSeason))
+      .map((i) => i.name)
+      .slice(0, 6)
+      .join(", ");
+    const totalTagged = wardrobeItems.filter((i) => i.seasons && i.seasons.length > 0).length;
+
+    // Fetch gap note
+    void (async () => {
+      try {
+        const res = await fetch(`${BASE_URL}/api/chat`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            messages: [{
+              role: "user" as const,
+              content: `My wardrobe for ${SEASON_LABELS[currentSeason]}: ${inSeasonNames || "no items tagged yet"} (${totalTagged} of ${wardrobeItems.length} items tagged with seasons). In one sentence, give me a specific tip on what type of piece I should add to complete my ${SEASON_LABELS[currentSeason]} wardrobe. Be direct and specific.`,
+            }],
+          }),
+        });
+        if (res.ok) {
+          const data = (await res.json()) as { reply: string };
+          if (data.reply) setGapNote(data.reply);
+        }
+      } catch { /* silent */ }
+    })();
+
+    // Fetch planner suggestions for upcoming seasons
+    const upcomingSeasons = getNextSeasons(currentSeason, 3);
+    for (const s of upcomingSeasons) {
+      const seasonItems = wardrobeItems.filter((i) => i.seasons?.includes(s)).map((i) => i.name).slice(0, 4).join(", ");
+      void (async () => {
+        try {
+          const res = await fetch(`${BASE_URL}/api/chat`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              messages: [{
+                role: "user" as const,
+                content: `For ${SEASON_LABELS[s]} planning, I have these items: ${seasonItems || "none yet"}. In one short sentence, what's the single most important piece to add or prep for ${SEASON_LABELS[s]}? Be specific.`,
+              }],
+            }),
+          });
+          if (res.ok) {
+            const data = (await res.json()) as { reply: string };
+            if (data.reply) {
+              setPlannerSuggestions((prev) => ({ ...prev, [s]: data.reply }));
+            }
+          }
+        } catch { /* silent */ }
+      })();
+    }
+  }, [section, wardrobeItems.length, currentSeason]);
+
   const untaggedItems = useMemo(
     () => wardrobeItems.filter((i) => !i.seasons || i.seasons.length === 0),
     [wardrobeItems]
@@ -614,8 +746,8 @@ export default function WardrobeScreen() {
           }),
         });
         if (res.ok) {
-          const data = (await res.json()) as { message: string };
-          const match = data.message.match(/\[[\s\S]*?\]/);
+          const data = (await res.json()) as { reply: string };
+          const match = data.reply.match(/\[[\s\S]*?\]/);
           if (match) {
             const parsed = JSON.parse(match[0]) as unknown[];
             const seasons = parsed.filter(
@@ -924,14 +1056,20 @@ export default function WardrobeScreen() {
         {/* ── SEASONS ── */}
         {section === "seasons" && (
           <View style={styles.sectionPad}>
-            <SeasonReadinessCard wardrobeItems={wardrobeItems} currentSeason={currentSeason} colors={colors} />
+            <SeasonReadinessCard
+              wardrobeItems={wardrobeItems}
+              currentSeason={currentSeason}
+              gapNote={gapNote}
+              colors={colors}
+            />
 
-            {/* Auto-tag banner */}
-            {untaggedItems.length > 0 && wardrobeItems.length > 0 && (
+            {/* Auto-tag banner — one-time first-entry prompt */}
+            {untaggedItems.length > 0 && wardrobeItems.length > 0 && !autoTagBannerDismissed && (
               <AutoTagBanner
                 untaggedCount={untaggedItems.length}
                 tagging={autoTagging}
                 onAutoTag={() => { void handleAutoTagAll(); }}
+                onDismiss={() => setAutoTagBannerDismissed(true)}
                 colors={colors}
               />
             )}
@@ -946,15 +1084,21 @@ export default function WardrobeScreen() {
                   {getNextSeasons(currentSeason, 3).map((s) => {
                     const count = wardrobeItems.filter((i) => i.seasons?.includes(s)).length;
                     return (
-                      <SeasonPlannerCard key={s} season={s} count={count} colors={colors} />
+                      <SeasonPlannerCard
+                        key={s}
+                        season={s}
+                        count={count}
+                        suggestion={plannerSuggestions[s]}
+                        colors={colors}
+                      />
                     );
                   })}
                 </View>
               </>
             )}
 
-            {/* Off-season items */}
-            {offSeasonItems.length > 0 && (
+            {/* Off-season items — active (not stored) */}
+            {offSeasonItems.filter((i) => !i.stored).length > 0 && (
               <>
                 <Text style={[styles.sectionTitle, { color: colors.foreground, marginTop: 16, marginBottom: 4 }]}>
                   Off-Season Items
@@ -963,7 +1107,7 @@ export default function WardrobeScreen() {
                   Store or sell pieces you won't need this {SEASON_LABELS[currentSeason].toLowerCase()}
                 </Text>
                 <View style={{ gap: 10, marginTop: 10 }}>
-                  {offSeasonItems.map((item) => (
+                  {offSeasonItems.filter((i) => !i.stored).map((item) => (
                     <OffSeasonItemRow
                       key={item.id}
                       item={item}
@@ -977,6 +1121,19 @@ export default function WardrobeScreen() {
                   ))}
                 </View>
               </>
+            )}
+
+            {/* Stored off-season items — collapsed group */}
+            {offSeasonItems.filter((i) => i.stored).length > 0 && (
+              <StoredOffSeasonGroup
+                items={offSeasonItems.filter((i) => i.stored)}
+                colors={colors}
+                onUnstore={async (id) => {
+                  await Haptics.selectionAsync();
+                  await toggleStored(id);
+                }}
+                onSell={(item) => { void handleSellItem(item); }}
+              />
             )}
 
             {/* Empty state when no items at all */}
@@ -1584,7 +1741,7 @@ function ClosetItemCard({
           backgroundColor: colors.card,
           borderColor: selected ? colors.primary : colors.border,
           borderWidth: selected ? 2.5 : StyleSheet.hairlineWidth,
-          opacity: outfitMode && !selected ? 0.75 : pressed ? 0.88 : 1,
+          opacity: outfitMode && !selected ? 0.75 : item.stored ? 0.45 : pressed ? 0.88 : 1,
         },
       ]}
     >
@@ -2064,4 +2221,21 @@ const seStyles = StyleSheet.create({
   emptySeasonsDesc: { fontSize: 14, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 22 },
   emptySeasonsBtn: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 22, paddingVertical: 12, borderRadius: 14, marginTop: 4 },
   emptySeasonsBtnText: { fontSize: 15, fontFamily: "Inter_600SemiBold", color: "#fff" },
+
+  gapNote: {
+    flexDirection: "row", alignItems: "flex-start", gap: 6,
+    padding: 10, borderRadius: 10, borderWidth: 1,
+  },
+  gapNoteText: { flex: 1, fontSize: 12, fontFamily: "Inter_400Regular", lineHeight: 18 },
+
+  plannerSuggestion: { fontSize: 10, fontFamily: "Inter_400Regular", lineHeight: 15, marginTop: 4 },
+  plannerSuggestionSkeleton: { height: 28, borderRadius: 6, marginTop: 6 },
+
+  autoTagDismiss: { fontSize: 11, fontFamily: "Inter_400Regular" },
+
+  storedGroupHeader: {
+    flexDirection: "row", alignItems: "center", gap: 8,
+    padding: 12, borderRadius: 14, borderWidth: StyleSheet.hairlineWidth,
+  },
+  storedGroupTitle: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
 });
