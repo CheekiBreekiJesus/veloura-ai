@@ -48,6 +48,57 @@ async function sendChat(
   return data.reply;
 }
 
+// ── Timestamp helpers ─────────────────────────────────────────────────────────
+
+function formatTime(ts: number): string {
+  return new Date(ts).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+}
+
+function formatDateSeparator(ts: number): string {
+  const now = new Date();
+  const date = new Date(ts);
+  const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const msgMidnight = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+  const diffDays = Math.round((todayMidnight - msgMidnight) / 86_400_000);
+  if (diffDays === 0) return "Today";
+  if (diffDays === 1) return "Yesterday";
+  if (diffDays < 7) return date.toLocaleDateString([], { weekday: "long" });
+  if (date.getFullYear() === now.getFullYear()) {
+    return date.toLocaleDateString([], { month: "long", day: "numeric" });
+  }
+  return date.toLocaleDateString([], { month: "long", day: "numeric", year: "numeric" });
+}
+
+function isSameCalendarDay(ts1: number, ts2: number): boolean {
+  const a = new Date(ts1);
+  const b = new Date(ts2);
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
+}
+
+// ── DateSeparator ─────────────────────────────────────────────────────────────
+
+function DateSeparator({
+  label,
+  colors,
+}: {
+  label: string;
+  colors: ReturnType<typeof useColors>;
+}) {
+  return (
+    <View style={styles.separatorRow}>
+      <View style={[styles.separatorLine, { backgroundColor: colors.border }]} />
+      <Text style={[styles.separatorLabel, { color: colors.mutedForeground, backgroundColor: colors.background }]}>
+        {label}
+      </Text>
+      <View style={[styles.separatorLine, { backgroundColor: colors.border }]} />
+    </View>
+  );
+}
+
 const QUICK_PROMPTS = [
   "💄 Makeup for me?",
   "👗 Best outfits?",
@@ -64,21 +115,30 @@ function MessageBubble({
   colors: ReturnType<typeof useColors>;
 }) {
   const isUser = message.role === "user";
+  const timeLabel = message.ts ? formatTime(message.ts) : null;
+
   return (
     <View style={[styles.bubbleRow, isUser ? styles.bubbleRowUser : styles.bubbleRowAI]}>
       {!isUser && <Image source={AURA_AVATAR} style={styles.avatar} contentFit="cover" />}
-      <View
-        style={[
-          styles.bubble,
-          isUser
-            ? [styles.bubbleUser, { backgroundColor: colors.primary }]
-            : [styles.bubbleAI, { backgroundColor: colors.card, borderColor: colors.border }],
-          { maxWidth: "80%" },
-        ]}
-      >
-        <Text style={[styles.bubbleText, { color: isUser ? "#fff" : colors.foreground }]}>
-          {message.content}
-        </Text>
+      <View style={[styles.bubbleCol, isUser ? styles.bubbleColUser : styles.bubbleColAI]}>
+        <View
+          style={[
+            styles.bubble,
+            isUser
+              ? [styles.bubbleUser, { backgroundColor: colors.primary }]
+              : [styles.bubbleAI, { backgroundColor: colors.card, borderColor: colors.border }],
+            { maxWidth: "100%" },
+          ]}
+        >
+          <Text style={[styles.bubbleText, { color: isUser ? "#fff" : colors.foreground }]}>
+            {message.content}
+          </Text>
+        </View>
+        {timeLabel && (
+          <Text style={[styles.timestamp, { color: colors.mutedForeground }]}>
+            {timeLabel}
+          </Text>
+        )}
       </View>
     </View>
   );
@@ -294,9 +354,20 @@ export default function StylistChatScreen() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        {messages.map((m) => (
-          <MessageBubble key={m.id} message={m} colors={colors} />
-        ))}
+        {messages.map((m, i) => {
+          const prevTs = i > 0 ? messages[i - 1]!.ts : null;
+          const showSeparator =
+            m.ts != null &&
+            (prevTs == null || !isSameCalendarDay(prevTs, m.ts));
+          return (
+            <React.Fragment key={m.id}>
+              {showSeparator && m.ts != null && (
+                <DateSeparator label={formatDateSeparator(m.ts)} colors={colors} />
+              )}
+              <MessageBubble message={m} colors={colors} />
+            </React.Fragment>
+          );
+        })}
         {loading && <TypingIndicator colors={colors} />}
         {showSuggestions && <SuggestionChips colors={colors} onSelect={(s) => { void send(s); }} />}
         {error && (
@@ -390,11 +461,18 @@ const styles = StyleSheet.create({
   bubbleRow: { flexDirection: "row", alignItems: "flex-end", gap: 8, marginBottom: 4 },
   bubbleRowUser: { justifyContent: "flex-end" },
   bubbleRowAI: { justifyContent: "flex-start" },
+  bubbleCol: { flexShrink: 1, maxWidth: "80%", gap: 3 },
+  bubbleColUser: { alignItems: "flex-end" },
+  bubbleColAI: { alignItems: "flex-start" },
   avatar: { width: 30, height: 30, borderRadius: 15, flexShrink: 0 },
-  bubble: { borderRadius: 18, paddingHorizontal: 14, paddingVertical: 10, flexShrink: 1 },
+  bubble: { borderRadius: 18, paddingHorizontal: 14, paddingVertical: 10 },
   bubbleUser: { borderBottomRightRadius: 4 },
   bubbleAI: { borderBottomLeftRadius: 4, borderWidth: StyleSheet.hairlineWidth },
   bubbleText: { fontSize: 15, fontFamily: "Inter_400Regular", lineHeight: 22 },
+  timestamp: { fontSize: 11, fontFamily: "Inter_400Regular", marginHorizontal: 4 },
+  separatorRow: { flexDirection: "row", alignItems: "center", gap: 8, marginVertical: 12 },
+  separatorLine: { flex: 1, height: StyleSheet.hairlineWidth },
+  separatorLabel: { fontSize: 11, fontFamily: "Inter_500Medium", paddingHorizontal: 6 },
   typingDots: { flexDirection: "row", gap: 5, alignItems: "center", paddingVertical: 2 },
   typingDot: { width: 7, height: 7, borderRadius: 4 },
   suggestions: { marginTop: 8, marginBottom: 4 },
