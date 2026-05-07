@@ -40,7 +40,8 @@ function selectPersonalityTone(archetypes: string): string {
 function buildSystemPrompt(
   profile: Record<string, unknown>,
   userName: string | null,
-  feedback?: Record<string, string>
+  feedback?: Record<string, string>,
+  healthConcerns?: string[]
 ): string {
   const name = userName ? userName : "the user";
 
@@ -107,6 +108,11 @@ function buildSystemPrompt(
       ? `\nUser preferences from feedback:${likedItems.length ? `\n- Liked: ${likedItems.join("; ")}` : ""}${dislikedItems.length ? `\n- Disliked: ${dislikedItems.join("; ")}` : ""}`
       : "";
 
+  const healthSection =
+    healthConcerns && healthConcerns.length > 0
+      ? `\nHealth & product concerns (MUST respect when recommending any beauty, skincare, haircare, or fashion products): ${healthConcerns.join(", ")}. Never recommend products that conflict with these. If a concern is an allergy, treat it as a hard constraint.`
+      : "";
+
   const measurementsText =
     typeof profile.measurements === "string" && profile.measurements.trim()
       ? profile.measurements.trim()
@@ -150,7 +156,7 @@ Profile:
 - Personal color palette: ${colorPalette}
 - Active skin concerns: ${skinConcerns}
 - Skincare priorities: ${skincareF}
-- Style keywords: ${keywords}${measurementsSection}${skinHealthSection}${feedbackSection}
+- Style keywords: ${keywords}${measurementsSection}${skinHealthSection}${feedbackSection}${healthSection}
 
 Jewelry & watches guidance for ${name}: ${
   undertone
@@ -196,11 +202,12 @@ Give direct, helpful advice. Don't recite the whole profile back. End with a sho
 }
 
 router.post("/chat", chatLimiter, async (req, res): Promise<void> => {
-  const { messages, profile, userName, feedback } = req.body as {
+  const { messages, profile, userName, feedback, healthConcerns } = req.body as {
     messages?: unknown;
     profile?: unknown;
     userName?: unknown;
     feedback?: unknown;
+    healthConcerns?: unknown;
   };
 
   if (!Array.isArray(messages) || messages.length === 0) {
@@ -239,7 +246,12 @@ router.post("/chat", chatLimiter, async (req, res): Promise<void> => {
       ? (feedback as Record<string, string>)
       : undefined;
 
-  const systemPrompt = buildSystemPrompt(safeProfile, safeUserName, safeFeedback);
+  const safeHealthConcerns =
+    Array.isArray(healthConcerns) && healthConcerns.every((c) => typeof c === "string")
+      ? (healthConcerns as string[]).slice(0, 20)
+      : undefined;
+
+  const systemPrompt = buildSystemPrompt(safeProfile, safeUserName, safeFeedback, safeHealthConcerns);
 
   const chatMessages = (messages as Array<{ role: string; content: string }>).map((m) => ({
     role: m.role as "user" | "assistant",

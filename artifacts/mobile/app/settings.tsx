@@ -23,6 +23,18 @@ import { COUNTRIES, useCountry } from "@/context/CountryContext";
 import { useTheme, type ThemePreference } from "@/context/ThemeContext";
 import { useColors } from "@/hooks/useColors";
 
+const QUICK_HEALTH_CONCERNS = [
+  "Fragrance-free",
+  "Nut allergy",
+  "Latex allergy",
+  "Gluten / Wheat",
+  "Hormonal sensitivity",
+  "Sensitive skin",
+  "Vegan only",
+  "Alcohol-free",
+  "Paraben-free",
+];
+
 const APP_VERSION = "1.0.0";
 
 const THEME_OPTIONS: { label: string; value: ThemePreference; icon: React.ComponentProps<typeof Ionicons>["name"] }[] = [
@@ -36,12 +48,32 @@ export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const { preference, setTheme } = useTheme();
   const { country, countryFlag, countryLabel, setCountry } = useCountry();
-  const { userName, setUserName, clearAnalysis, clearChatHistory, chatHistory, analysis } = useAnalysis();
+  const { userName, setUserName, clearAnalysis, clearChatHistory, chatHistory, analysis, healthConcerns, setHealthConcerns } = useAnalysis();
   const companionName = analysis?.companion_name ?? "Aura";
   const [editingName, setEditingName] = useState(false);
   const [nameValue, setNameValue] = useState(userName ?? "");
   const [nameSaved, setNameSaved] = useState(false);
   const [countryPickerVisible, setCountryPickerVisible] = useState(false);
+  const [customConcern, setCustomConcern] = useState("");
+
+  const toggleConcern = async (concern: string) => {
+    await Haptics.selectionAsync();
+    const next = healthConcerns.includes(concern)
+      ? healthConcerns.filter((c) => c !== concern)
+      : [...healthConcerns, concern];
+    await setHealthConcerns(next);
+  };
+
+  const addCustomConcern = async () => {
+    const trimmed = customConcern.trim();
+    if (!trimmed || healthConcerns.includes(trimmed)) {
+      setCustomConcern("");
+      return;
+    }
+    await setHealthConcerns([...healthConcerns, trimmed]);
+    setCustomConcern("");
+    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  };
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const botPad = Platform.OS === "web" ? 34 : insets.bottom + 20;
@@ -238,6 +270,89 @@ export default function SettingsScreen() {
                     {analysis ? "Re-run" : "Start"}
                   </Text>
                 </Pressable>
+              </View>
+            </View>
+          </View>
+
+          {/* Health & Sensitivities */}
+          <View style={styles.group}>
+            <Text style={[styles.groupLabel, { color: colors.mutedForeground }]}>
+              HEALTH & SENSITIVITIES
+            </Text>
+            <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <View style={{ padding: 14, gap: 12 }}>
+                <Text style={[styles.rowLabel, { color: colors.foreground }]}>
+                  Allergies & Product Preferences
+                </Text>
+                <Text style={[styles.rowValue, { color: colors.mutedForeground }]}>
+                  Aura will avoid recommending products that conflict with your selected concerns.
+                </Text>
+                {/* Quick-add chips */}
+                <View style={hStyles.pillWrap}>
+                  {QUICK_HEALTH_CONCERNS.map((concern) => {
+                    const active = healthConcerns.includes(concern);
+                    return (
+                      <Pressable
+                        key={concern}
+                        onPress={() => { void toggleConcern(concern); }}
+                        style={[
+                          hStyles.chip,
+                          {
+                            backgroundColor: active ? colors.primary : colors.secondary,
+                            borderColor: active ? colors.primary : colors.border,
+                          },
+                        ]}
+                      >
+                        {active && <Ionicons name="checkmark" size={12} color="#fff" />}
+                        <Text style={[hStyles.chipText, { color: active ? "#fff" : colors.foreground }]}>
+                          {concern}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+                {/* Custom concern input */}
+                <View style={[hStyles.customRow, { borderColor: colors.border, backgroundColor: colors.muted }]}>
+                  <TextInput
+                    value={customConcern}
+                    onChangeText={setCustomConcern}
+                    placeholder="Add custom concern…"
+                    placeholderTextColor={colors.mutedForeground}
+                    style={[hStyles.customInput, { color: colors.foreground }]}
+                    returnKeyType="done"
+                    onSubmitEditing={addCustomConcern}
+                    maxLength={40}
+                  />
+                  <Pressable
+                    onPress={addCustomConcern}
+                    style={({ pressed }) => [
+                      hStyles.addBtn,
+                      { backgroundColor: colors.primary, opacity: pressed ? 0.75 : 1 },
+                    ]}
+                  >
+                    <Ionicons name="add" size={18} color="#fff" />
+                  </Pressable>
+                </View>
+                {/* Active custom concerns (non-quick-add) */}
+                {healthConcerns.filter((c) => !QUICK_HEALTH_CONCERNS.includes(c)).length > 0 && (
+                  <View style={hStyles.pillWrap}>
+                    {healthConcerns
+                      .filter((c) => !QUICK_HEALTH_CONCERNS.includes(c))
+                      .map((concern) => (
+                        <Pressable
+                          key={concern}
+                          onPress={() => { void toggleConcern(concern); }}
+                          style={[hStyles.customPill, { backgroundColor: colors.primary + "18", borderColor: colors.primary + "40" }]}
+                        >
+                          <Text style={[hStyles.customPillText, { color: colors.primary }]}>{concern}</Text>
+                          <Ionicons name="close" size={12} color={colors.primary} />
+                        </Pressable>
+                      ))}
+                  </View>
+                )}
+                <Text style={[hStyles.disclaimer, { color: colors.mutedForeground }]}>
+                  For product filtering only — not medical advice. Consult a healthcare provider for medical concerns.
+                </Text>
               </View>
             </View>
           </View>
@@ -606,6 +721,56 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   themeOptionText: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
+});
+
+const hStyles = StyleSheet.create({
+  pillWrap: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  chip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  chipText: { fontSize: 13, fontFamily: "Inter_500Medium" },
+  customRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 12,
+    borderWidth: 1,
+    overflow: "hidden",
+  },
+  customInput: {
+    flex: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    fontSize: 14,
+    fontFamily: "Inter_400Regular",
+  },
+  addBtn: {
+    width: 40,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  customPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  customPillText: { fontSize: 12, fontFamily: "Inter_500Medium" },
+  disclaimer: {
+    fontSize: 11,
+    fontFamily: "Inter_400Regular",
+    lineHeight: 17,
+    fontStyle: "italic",
+  },
 });
 
 const cpStyles = StyleSheet.create({

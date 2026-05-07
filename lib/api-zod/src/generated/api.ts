@@ -121,6 +121,12 @@ export const ChatWithStylistBody = zod.object({
     .string()
     .optional()
     .describe("User's first name for personalization"),
+  healthConcerns: zod
+    .array(zod.string())
+    .optional()
+    .describe(
+      'User-declared allergies and product preferences (e.g. \"Fragrance-free\", \"Nut allergy\", \"Vegan only\"). Aura avoids recommending products that conflict with these concerns.\n',
+    ),
 });
 
 export const ChatWithStylistResponse = zod.object({

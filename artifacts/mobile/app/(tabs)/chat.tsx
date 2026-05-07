@@ -34,12 +34,13 @@ const BASE_URL = process.env["EXPO_PUBLIC_DOMAIN"]
 async function sendChat(
   messages: { role: string; content: string }[],
   profile: object | null,
-  feedback?: Record<string, string>
+  feedback?: Record<string, string>,
+  healthConcerns?: string[]
 ): Promise<string> {
   const res = await fetch(`${BASE_URL}/api/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ messages, profile, feedback }),
+    body: JSON.stringify({ messages, profile, feedback, healthConcerns }),
   });
   if (!res.ok) {
     const err = (await res.json().catch(() => ({}))) as { error?: string };
@@ -227,7 +228,7 @@ function SuggestionChips({
 export default function StylistChatScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { analysis, userName, chatHistory, saveChatHistory, pendingChatInput, setPendingChatInput } = useAnalysis();
+  const { analysis, userName, chatHistory, saveChatHistory, pendingChatInput, setPendingChatInput, healthConcerns } = useAnalysis();
 
   const companionName = analysis?.companion_name ?? "Aura";
   // Use DALL-E avatar when available, fall back to the bundled static asset.
@@ -358,7 +359,7 @@ export default function StylistChatScreen() {
         const profileWithMeasurements = measurementsText
           ? { ...profileForChat, measurements: measurementsText }
           : profileForChat;
-        const reply = await sendChat(history, profileWithMeasurements, feedback);
+        const reply = await sendChat(history, profileWithMeasurements, feedback, healthConcerns.length ? healthConcerns : undefined);
         setMessages((prev) => [
           ...prev,
           { id: `a-${Date.now()}`, role: "assistant", content: reply, ts: Date.now() },

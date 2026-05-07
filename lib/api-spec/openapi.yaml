@@ -308,6 +308,14 @@ components:
         userName:
           type: string
           description: User's first name for personalization
+        healthConcerns:
+          type: array
+          items:
+            type: string
+          description: >
+            User-declared allergies and product preferences (e.g. "Fragrance-free",
+            "Nut allergy", "Vegan only"). Aura avoids recommending products that
+            conflict with these concerns.
       required:
         - messages
     ChatResponse:

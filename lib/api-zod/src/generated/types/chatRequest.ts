@@ -15,4 +15,7 @@ export interface ChatRequest {
   profile?: AnalysisResult;
   /** User's first name for personalization */
   userName?: string;
+  /** User-declared allergies and product preferences (e.g. "Fragrance-free", "Nut allergy", "Vegan only"). Aura avoids recommending products that conflict with these concerns.
+   */
+  healthConcerns?: string[];
 }

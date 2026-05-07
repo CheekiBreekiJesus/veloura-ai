@@ -90,6 +90,7 @@ interface AnalysisContextValue {
   analysis: AnalysisResult | null;
   imageUri: string | null;
   userName: string | null;
+  healthConcerns: string[];
   pendingImage: PendingImage | null;
   pendingChatInput: string | null;
   chatHistory: ChatMessage[];
@@ -97,6 +98,7 @@ interface AnalysisContextValue {
   clearAnalysis: () => Promise<void>;
   clearChatHistory: () => Promise<void>;
   setUserName: (name: string) => Promise<void>;
+  setHealthConcerns: (concerns: string[]) => Promise<void>;
   setPendingImage: (img: PendingImage | null) => void;
   setPendingChatInput: (msg: string | null) => void;
   saveChatHistory: (messages: ChatMessage[]) => Promise<void>;
@@ -108,6 +110,7 @@ const STORAGE_KEY = "ai_stylist_analysis";
 const IMAGE_URI_KEY = "ai_stylist_image_uri";
 const NAME_KEY = "ai_stylist_user_name";
 const CHAT_HISTORY_KEY = "ai_stylist_chat_history";
+const HEALTH_CONCERNS_KEY = "veloura_health_concerns_v1";
 // companion_avatar_url is a large data URI (~800 KB) — stored separately so
 // the main analysis JSON stays small and fast to parse.
 const COMPANION_AVATAR_KEY = "ai_stylist_companion_avatar";
@@ -116,6 +119,7 @@ export function AnalysisProvider({ children }: { children: React.ReactNode }) {
   const [analysis, setAnalysisState] = useState<AnalysisResult | null>(null);
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [userName, setUserNameState] = useState<string | null>(null);
+  const [healthConcerns, setHealthConcernsState] = useState<string[]>([]);
   const [pendingImage, setPendingImageState] = useState<PendingImage | null>(
     null
   );
@@ -124,13 +128,14 @@ export function AnalysisProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const load = async () => {
-      const [storedAnalysis, storedUri, storedName, storedChat, storedAvatar] =
+      const [storedAnalysis, storedUri, storedName, storedChat, storedAvatar, storedHealth] =
         await Promise.all([
           AsyncStorage.getItem(STORAGE_KEY),
           AsyncStorage.getItem(IMAGE_URI_KEY),
           AsyncStorage.getItem(NAME_KEY),
           AsyncStorage.getItem(CHAT_HISTORY_KEY),
           AsyncStorage.getItem(COMPANION_AVATAR_KEY),
+          AsyncStorage.getItem(HEALTH_CONCERNS_KEY),
         ]);
       if (storedAnalysis) {
         const parsed = JSON.parse(storedAnalysis) as AnalysisResult;
@@ -142,6 +147,9 @@ export function AnalysisProvider({ children }: { children: React.ReactNode }) {
       if (storedName) setUserNameState(storedName);
       if (storedChat) {
         setChatHistoryState(JSON.parse(storedChat) as ChatMessage[]);
+      }
+      if (storedHealth) {
+        setHealthConcernsState(JSON.parse(storedHealth) as string[]);
       }
     };
     load();
@@ -202,6 +210,11 @@ export function AnalysisProvider({ children }: { children: React.ReactNode }) {
     await AsyncStorage.setItem(NAME_KEY, name);
   }, []);
 
+  const setHealthConcerns = useCallback(async (concerns: string[]) => {
+    setHealthConcernsState(concerns);
+    await AsyncStorage.setItem(HEALTH_CONCERNS_KEY, JSON.stringify(concerns));
+  }, []);
+
   const setPendingImage = useCallback((img: PendingImage | null) => {
     setPendingImageState(img);
   }, []);
@@ -216,6 +229,7 @@ export function AnalysisProvider({ children }: { children: React.ReactNode }) {
         analysis,
         imageUri,
         userName,
+        healthConcerns,
         pendingImage,
         pendingChatInput,
         chatHistory,
@@ -223,6 +237,7 @@ export function AnalysisProvider({ children }: { children: React.ReactNode }) {
         clearAnalysis,
         clearChatHistory,
         setUserName,
+        setHealthConcerns,
         setPendingImage,
         setPendingChatInput,
         saveChatHistory,
