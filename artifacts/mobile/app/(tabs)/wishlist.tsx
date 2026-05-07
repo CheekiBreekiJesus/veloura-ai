@@ -16,7 +16,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAnalysis } from "@/context/AnalysisContext";
-import { CURRENCY_CONFIG, formatPrice, useCountry, type CountryCode } from "@/context/CountryContext";
+import { formatPrice, useCountry, type CountryCode } from "@/context/CountryContext";
 import { useWishlistProducts } from "@/context/WishlistProductContext";
 import { useColors } from "@/hooks/useColors";
 import {
@@ -281,7 +281,7 @@ function SavedProductCard({
 }: {
   product: Product;
   colors: ReturnType<typeof useColors>;
-  country: string;
+  country: CountryCode;
   onRemove: () => void;
   onShop: () => void;
 }) {
@@ -317,7 +317,7 @@ function SavedProductCard({
             <Ionicons name={retailerIcon} size={11} color={colors.mutedForeground} />
             <Text style={[styles.savedRetailer, { color: colors.mutedForeground }]}>{retailer}</Text>
           </View>
-          <Text style={[styles.savedPrice, { color: colors.primary }]}>{formatPrice(product.priceNumeric, country as CountryCode)}</Text>
+          <Text style={[styles.savedPrice, { color: colors.primary }]}>{formatPrice(product.priceNumeric, country)}</Text>
         </View>
       </View>
 

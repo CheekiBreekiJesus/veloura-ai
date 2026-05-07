@@ -298,7 +298,7 @@ export default function ShopScreen() {
             <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
               <Ionicons name="information-circle-outline" size={13} color={colors.mutedForeground} />
               <Text style={{ fontSize: 12, fontFamily: "Inter_400Regular", color: colors.mutedForeground }}>
-                Prices shown in {CURRENCY_CONFIG[country as CountryCode].code}
+                Prices shown in {CURRENCY_CONFIG[country].code}
               </Text>
             </View>
           )}
@@ -530,7 +530,7 @@ function FeaturedCard({
   saved: boolean;
   onPress: () => void;
   onSave: () => void;
-  country: string;
+  country: CountryCode;
   isFavBrand?: boolean;
 }) {
   const { retailer } = getProductUrl(product, country);
@@ -577,7 +577,7 @@ function FeaturedCard({
 
         <View style={styles.featFooter}>
           <View>
-            <Text style={[styles.featPrice, { color: "#2D1F14" }]}>{formatPrice(product.priceNumeric, country as CountryCode)}</Text>
+            <Text style={[styles.featPrice, { color: "#2D1F14" }]}>{formatPrice(product.priceNumeric, country)}</Text>
             <Text style={[styles.featRetailer, { color: "#6B4C35" }]}>{retailer}</Text>
           </View>
           <View style={[styles.featBtn, { backgroundColor: "#C4956A" }]}>
@@ -603,7 +603,7 @@ function ProductRow({
   saved: boolean;
   onPress: () => void;
   onSave: () => void;
-  country: string;
+  country: CountryCode;
   isFavBrand?: boolean;
 }) {
   const { retailer } = getProductUrl(product, country);
@@ -634,7 +634,7 @@ function ProductRow({
       </View>
 
       <View style={styles.productRight}>
-        <Text style={[styles.productPrice, { color: colors.foreground }]}>{formatPrice(product.priceNumeric, country as CountryCode)}</Text>
+        <Text style={[styles.productPrice, { color: colors.foreground }]}>{formatPrice(product.priceNumeric, country)}</Text>
         <Text style={[styles.productRetailerText, { color: colors.mutedForeground }]}>{retailer}</Text>
         <View style={styles.productActions}>
           <Pressable
@@ -728,7 +728,7 @@ function ProductDetailModal({
   onClose: () => void;
   onSave: () => void;
   colors: ReturnType<typeof useColors>;
-  country: string;
+  country: CountryCode;
 }) {
   const insets = useSafeAreaInsets();
   if (!product) return null;
@@ -777,7 +777,7 @@ function ProductDetailModal({
             </View>
 
             <Text style={[styles.modalName, { color: colors.foreground }]}>{product.name}</Text>
-            <Text style={[styles.modalPrice, { color: colors.primary }]}>{formatPrice(product.priceNumeric, country as CountryCode)}</Text>
+            <Text style={[styles.modalPrice, { color: colors.primary }]}>{formatPrice(product.priceNumeric, country)}</Text>
 
             {/* Why it matches */}
             <View style={[styles.matchBanner, { backgroundColor: colors.primary + "12", borderColor: colors.primary + "28" }]}>
