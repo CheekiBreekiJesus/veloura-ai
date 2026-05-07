@@ -686,7 +686,7 @@ export default function WardrobeScreen() {
                 ]}
               >
                 <Ionicons name="sparkles" size={16} color="#fff" />
-                <Text style={styles.styleBtnText}>Style with Aura</Text>
+                <Text style={styles.styleBtnText}>Style with {analysis?.companion_name ?? "Aura"}</Text>
               </Pressable>
             </View>
           )}
@@ -867,6 +867,8 @@ function ItemDetailModal({
   onAskAura: (item: WardrobeItem) => void;
 }) {
   const insets = useSafeAreaInsets();
+  const { analysis: modalAnalysis } = useAnalysis();
+  const companionName = modalAnalysis?.companion_name ?? "Aura";
   if (!item) return null;
 
   const sc = item.compatibilityScore;
@@ -961,7 +963,7 @@ function ItemDetailModal({
               <View style={styles.modalNotesHeader}>
                 <Ionicons name="sparkles" size={16} color={colors.primary} />
                 <Text style={[styles.modalSectionTitle, { color: colors.foreground }]}>
-                  Aura's Assessment
+                  {companionName}'s Assessment
                 </Text>
               </View>
               <Text style={[styles.modalNotes, { color: colors.foreground }]}>
@@ -979,7 +981,7 @@ function ItemDetailModal({
             ]}
           >
             <Ionicons name="sparkles" size={18} color="#fff" />
-            <Text style={styles.askAuraBtnText}>Ask Aura how to style this</Text>
+            <Text style={styles.askAuraBtnText}>Ask {companionName} how to style this</Text>
             <Ionicons name="arrow-forward" size={16} color="rgba(255,255,255,0.7)" />
           </Pressable>
 

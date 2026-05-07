@@ -33,6 +33,7 @@ export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const { preference, setTheme } = useTheme();
   const { userName, setUserName, clearAnalysis, clearChatHistory, chatHistory, analysis } = useAnalysis();
+  const companionName = analysis?.companion_name ?? "Aura";
   const [editingName, setEditingName] = useState(false);
   const [nameValue, setNameValue] = useState(userName ?? "");
   const [nameSaved, setNameSaved] = useState(false);
@@ -60,7 +61,7 @@ export default function SettingsScreen() {
 
     if (Platform.OS === "web") {
       const confirmed = window.confirm(
-        "Clear all chat messages with Aura? Your style profile will stay intact."
+        `Clear all chat messages with ${companionName}? Your style profile will stay intact.`
       );
       if (confirmed) void clearChatHistory();
       return;
@@ -68,7 +69,7 @@ export default function SettingsScreen() {
 
     Alert.alert(
       "Clear Chat History",
-      "This will delete all messages with Aura. Your style profile and wardrobe will stay intact.",
+      `This will delete all messages with ${companionName}. Your style profile and wardrobe will stay intact.`,
       [
         { text: "Cancel", style: "cancel" },
         {

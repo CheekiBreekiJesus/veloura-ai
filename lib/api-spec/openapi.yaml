@@ -182,6 +182,13 @@ components:
           type: array
           items:
             type: string
+        # ── Companion identity ────────────────────────────────────────────────
+        companion_name:
+          type: string
+          description: "AI-generated companion name (4–8 letters, aesthetic-matched)"
+        companion_avatar_url:
+          type: string
+          description: "DALL-E illustrated avatar as a data URI (persists across restarts)"
       required:
         - face_shape
         - skin_tone

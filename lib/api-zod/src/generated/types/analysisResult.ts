@@ -49,4 +49,8 @@ export interface AnalysisResult {
   makeup_direction: string;
   fashion_direction: string;
   shopping_keywords: string[];
+  /** AI-generated companion name (4–8 letters, aesthetic-matched) */
+  companion_name?: string;
+  /** DALL-E illustrated avatar as a data URI (persists across restarts) */
+  companion_avatar_url?: string;
 }

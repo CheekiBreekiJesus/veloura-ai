@@ -89,6 +89,18 @@ export const ChatWithStylistBody = zod.object({
       makeup_direction: zod.string(),
       fashion_direction: zod.string(),
       shopping_keywords: zod.array(zod.string()),
+      companion_name: zod
+        .string()
+        .optional()
+        .describe(
+          "AI-generated companion name (4–8 letters, aesthetic-matched)",
+        ),
+      companion_avatar_url: zod
+        .string()
+        .optional()
+        .describe(
+          "DALL-E illustrated avatar as a data URI (persists across restarts)",
+        ),
     })
     .optional()
     .describe("The user's Aesthetic Identity Profile for context"),
@@ -164,4 +176,14 @@ export const AnalyzeFaceResponse = zod.object({
   makeup_direction: zod.string(),
   fashion_direction: zod.string(),
   shopping_keywords: zod.array(zod.string()),
+  companion_name: zod
+    .string()
+    .optional()
+    .describe("AI-generated companion name (4–8 letters, aesthetic-matched)"),
+  companion_avatar_url: zod
+    .string()
+    .optional()
+    .describe(
+      "DALL-E illustrated avatar as a data URI (persists across restarts)",
+    ),
 });

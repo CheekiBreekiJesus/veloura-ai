@@ -18,7 +18,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const AURA_AVATAR = require("../../assets/images/aura-avatar.png");
+const AURA_AVATAR_FALLBACK = require("../../assets/images/aura-avatar.png");
 
 import { ChatMessage, useAnalysis } from "@/context/AnalysisContext";
 import { useWardrobe } from "@/context/WardrobeContext";
@@ -107,19 +107,23 @@ const QUICK_PROMPTS = [
   "👓 Glasses that suit me?",
 ];
 
+type AvatarSource = number | { uri: string };
+
 function MessageBubble({
   message,
   colors,
+  avatarSource,
 }: {
   message: Message;
   colors: ReturnType<typeof useColors>;
+  avatarSource: AvatarSource;
 }) {
   const isUser = message.role === "user";
   const timeLabel = message.ts ? formatTime(message.ts) : null;
 
   return (
     <View style={[styles.bubbleRow, isUser ? styles.bubbleRowUser : styles.bubbleRowAI]}>
-      {!isUser && <Image source={AURA_AVATAR} style={styles.avatar} contentFit="cover" />}
+      {!isUser && <Image source={avatarSource} style={styles.avatar} contentFit="cover" />}
       <View style={[styles.bubbleCol, isUser ? styles.bubbleColUser : styles.bubbleColAI]}>
         <View
           style={[
@@ -144,7 +148,13 @@ function MessageBubble({
   );
 }
 
-function TypingIndicator({ colors }: { colors: ReturnType<typeof useColors> }) {
+function TypingIndicator({
+  colors,
+  avatarSource,
+}: {
+  colors: ReturnType<typeof useColors>;
+  avatarSource: AvatarSource;
+}) {
   const d1 = useRef(new Animated.Value(0.3)).current;
   const d2 = useRef(new Animated.Value(0.3)).current;
   const d3 = useRef(new Animated.Value(0.3)).current;
@@ -168,7 +178,7 @@ function TypingIndicator({ colors }: { colors: ReturnType<typeof useColors> }) {
 
   return (
     <View style={styles.bubbleRow}>
-      <Image source={AURA_AVATAR} style={styles.avatar} contentFit="cover" />
+      <Image source={avatarSource} style={styles.avatar} contentFit="cover" />
       <View style={[styles.bubble, styles.bubbleAI, { backgroundColor: colors.card, borderColor: colors.border }]}>
         <View style={styles.typingDots}>
           {[d1, d2, d3].map((d, i) => (
@@ -217,6 +227,12 @@ export default function StylistChatScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { analysis, userName, chatHistory, saveChatHistory, pendingChatInput, setPendingChatInput } = useAnalysis();
+
+  const companionName = analysis?.companion_name ?? "Aura";
+  // Use DALL-E avatar when available, fall back to the bundled static asset.
+  const avatarSource: AvatarSource = analysis?.companion_avatar_url
+    ? { uri: analysis.companion_avatar_url }
+    : AURA_AVATAR_FALLBACK;
   const { feedback } = useWardrobe();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -289,7 +305,7 @@ export default function StylistChatScreen() {
     const season = (analysis as unknown as Record<string, unknown>).color_season as string | undefined;
     const greeting = [
       firstName ? `Hi ${firstName}! ` : "Hi there! ",
-      `I'm Aura, your personal AI stylist. I've read your full Aesthetic Identity Profile — `,
+      `I'm ${companionName}, your personal AI stylist. I've read your full Aesthetic Identity Profile — `,
       `you're a beautiful ${archetypes}`,
       season ? ` with a ${season} color palette. ` : ". ",
       `I'm here whenever you want advice on style, beauty, skincare, hair, or shopping. What would you like to explore today?`,
@@ -333,7 +349,10 @@ export default function StylistChatScreen() {
 
       try {
         const history = nextMessages.map((m) => ({ role: m.role, content: m.content }));
-        const reply = await sendChat(history, analysis, feedback);
+        // Strip companion_avatar_url (large data URI, ~800 KB) before sending
+        // — the chat system prompt only needs companion_name, not the image.
+        const { companion_avatar_url: _avatar, ...profileForChat } = analysis;
+        const reply = await sendChat(history, profileForChat, feedback);
         setMessages((prev) => [
           ...prev,
           { id: `a-${Date.now()}`, role: "assistant", content: reply, ts: Date.now() },
@@ -372,9 +391,9 @@ export default function StylistChatScreen() {
           },
         ]}
       >
-        <Image source={AURA_AVATAR} style={styles.headerAvatar} contentFit="cover" />
+        <Image source={avatarSource} style={styles.headerAvatar} contentFit="cover" />
         <View style={styles.headerText}>
-          <Text style={[styles.headerName, { color: colors.foreground }]}>Aura</Text>
+          <Text style={[styles.headerName, { color: colors.foreground }]}>{companionName}</Text>
           <Text style={[styles.headerSub, { color: colors.mutedForeground }]}>Your personal AI stylist</Text>
         </View>
         <View style={[styles.onlineDot, { backgroundColor: "#4CAF50" }]} />
@@ -397,11 +416,11 @@ export default function StylistChatScreen() {
               {showSeparator && m.ts != null && (
                 <DateSeparator label={formatDateSeparator(m.ts)} colors={colors} />
               )}
-              <MessageBubble message={m} colors={colors} />
+              <MessageBubble message={m} colors={colors} avatarSource={avatarSource} />
             </React.Fragment>
           );
         })}
-        {loading && <TypingIndicator colors={colors} />}
+        {loading && <TypingIndicator colors={colors} avatarSource={avatarSource} />}
         {showSuggestions && <SuggestionChips colors={colors} onSelect={(s) => { void send(s); }} />}
         {error && (
           <View style={[styles.errorBanner, { backgroundColor: colors.card, borderColor: colors.border }]}>
@@ -415,7 +434,7 @@ export default function StylistChatScreen() {
         <TextInput
           value={input}
           onChangeText={setInput}
-          placeholder="Ask Aura anything…"
+          placeholder={`Ask ${companionName} anything…`}
           placeholderTextColor={colors.mutedForeground}
           style={[
             styles.input,
@@ -463,8 +482,8 @@ function NoAnalysis({ colors }: { colors: ReturnType<typeof useColors> }) {
       <View style={[styles.noAnalysisIcon, { backgroundColor: colors.secondary }]}>
         <Ionicons name="sparkles" size={34} color={colors.primary} />
       </View>
-      <Text style={[styles.noAnalysisTitle, { color: colors.foreground }]}>Meet Aura, Your AI Stylist</Text>
-      <Text style={[styles.noAnalysisBody, { color: colors.mutedForeground }]}>Complete a style analysis first. Aura will read your full Aesthetic Identity Profile and be ready to advise you on everything — makeup, outfits, skincare, and more.</Text>
+      <Text style={[styles.noAnalysisTitle, { color: colors.foreground }]}>Meet Your AI Stylist</Text>
+      <Text style={[styles.noAnalysisBody, { color: colors.mutedForeground }]}>Complete a style analysis first. Your personal companion will read your full Aesthetic Identity Profile and be ready to advise you on everything — makeup, outfits, skincare, and more.</Text>
       <Pressable
         onPress={async () => {
           await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
