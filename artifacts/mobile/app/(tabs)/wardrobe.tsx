@@ -732,6 +732,9 @@ export default function WardrobeScreen() {
       .join(", ");
     const totalTagged = wardrobeItems.filter((i) => i.seasons && i.seasons.length > 0).length;
 
+    const styleCtxNote = buildStylePrefsText(stylePrefs);
+    const brandNote = styleCtxNote ? ` My style preferences: ${styleCtxNote}.` : "";
+
     // Fetch gap note
     void (async () => {
       try {
@@ -741,7 +744,7 @@ export default function WardrobeScreen() {
           body: JSON.stringify({
             messages: [{
               role: "user" as const,
-              content: `My wardrobe for ${SEASON_LABELS[currentSeason]}: ${inSeasonNames || "no items tagged yet"} (${totalTagged} of ${wardrobeItems.length} items tagged with seasons). In one sentence, give me a specific tip on what type of piece I should add to complete my ${SEASON_LABELS[currentSeason]} wardrobe. Be direct and specific.`,
+              content: `My wardrobe for ${SEASON_LABELS[currentSeason]}: ${inSeasonNames || "no items tagged yet"} (${totalTagged} of ${wardrobeItems.length} items tagged with seasons). In one sentence, give me a specific tip on what type of piece I should add to complete my ${SEASON_LABELS[currentSeason]} wardrobe. Be direct and specific.${brandNote}`,
             }],
           }),
         });
@@ -764,7 +767,7 @@ export default function WardrobeScreen() {
             body: JSON.stringify({
               messages: [{
                 role: "user" as const,
-                content: `For ${SEASON_LABELS[s]} planning, I have these items: ${seasonItems || "none yet"}. In one short sentence, what's the single most important piece to add or prep for ${SEASON_LABELS[s]}? Be specific.`,
+                content: `For ${SEASON_LABELS[s]} planning, I have these items: ${seasonItems || "none yet"}. In one short sentence, what's the single most important piece to add or prep for ${SEASON_LABELS[s]}? Be specific.${brandNote}`,
               }],
             }),
           });
@@ -1230,7 +1233,7 @@ export default function WardrobeScreen() {
         {section === "picks" && (
           <>
             {analysis && (
-              <View style={{ paddingHorizontal: 20, marginBottom: 20 }}>
+              <View style={{ paddingHorizontal: 20, marginBottom: 20, gap: 10 }}>
                 <LinearGradient
                   colors={["#C4956A", "#E8C4A0"]}
                   style={styles.archetypeBanner}
@@ -1243,6 +1246,18 @@ export default function WardrobeScreen() {
                   </View>
                   <Ionicons name="sparkles" size={32} color="rgba(255,255,255,0.5)" />
                 </LinearGradient>
+                {stylePrefs.favouriteBrands.length > 0 && (
+                  <View style={[styles.brandBanner, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                    <Ionicons name="heart" size={13} color={colors.primary} />
+                    <Text style={[styles.brandBannerText, { color: colors.mutedForeground }]}>
+                      Picks influenced by your brands:{" "}
+                      <Text style={{ color: colors.foreground, fontFamily: "Inter_500Medium" }}>
+                        {stylePrefs.favouriteBrands.slice(0, 4).join(", ")}
+                        {stylePrefs.favouriteBrands.length > 4 ? ` +${stylePrefs.favouriteBrands.length - 4}` : ""}
+                      </Text>
+                    </Text>
+                  </View>
+                )}
               </View>
             )}
 
@@ -2068,6 +2083,8 @@ const styles = StyleSheet.create({
   archetypeBanner: { borderRadius: 18, padding: 20, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   archetypeLabel: { fontSize: 12, fontFamily: "Inter_400Regular", color: "rgba(255,255,255,0.8)", marginBottom: 4 },
   archetypeValue: { fontSize: 20, fontFamily: "Inter_700Bold", color: "#fff" },
+  brandBanner: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, borderWidth: 1 },
+  brandBannerText: { flex: 1, fontSize: 12, fontFamily: "Inter_400Regular", lineHeight: 17 },
 
   filterScroll: { paddingHorizontal: 20, gap: 8, marginBottom: 20 },
   filterPill: { paddingHorizontal: 18, paddingVertical: 9, borderRadius: 20, borderWidth: 1 },

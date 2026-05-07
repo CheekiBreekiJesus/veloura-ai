@@ -25,6 +25,7 @@ interface StylePrefsContextValue {
   removeBrand: (brand: string) => Promise<void>;
   addBrandSize: (entry: BrandSize) => Promise<void>;
   removeBrandSize: (index: number) => Promise<void>;
+  updateBrandSize: (index: number, entry: BrandSize) => Promise<void>;
   clearStylePrefs: () => Promise<void>;
 }
 
@@ -80,6 +81,14 @@ export function StylePrefsProvider({ children }: { children: React.ReactNode }) 
     await save({ ...stylePrefs, brandSizes: next });
   }, [stylePrefs, save]);
 
+  const updateBrandSize = useCallback(async (index: number, entry: BrandSize) => {
+    const b = entry.brand.trim();
+    const s = entry.size.trim();
+    if (!b || !s) return;
+    const next = stylePrefs.brandSizes.map((e, i) => i === index ? { brand: b, size: s } : e);
+    await save({ ...stylePrefs, brandSizes: next });
+  }, [stylePrefs, save]);
+
   const clearStylePrefs = useCallback(async () => {
     setStylePrefsState(DEFAULT_PREFS);
     await AsyncStorage.removeItem(STORAGE_KEY);
@@ -87,7 +96,7 @@ export function StylePrefsProvider({ children }: { children: React.ReactNode }) 
 
   return (
     <StylePrefsContext.Provider
-      value={{ stylePrefs, setAge, addBrand, removeBrand, addBrandSize, removeBrandSize, clearStylePrefs }}
+      value={{ stylePrefs, setAge, addBrand, removeBrand, addBrandSize, removeBrandSize, updateBrandSize, clearStylePrefs }}
     >
       {children}
     </StylePrefsContext.Provider>

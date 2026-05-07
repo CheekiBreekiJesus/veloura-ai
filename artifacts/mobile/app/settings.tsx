@@ -69,7 +69,7 @@ export default function SettingsScreen() {
   const { clearPortraits } = usePortraitHistory();
   const { clearBodyProfile } = useBodyProfile();
   const { clearAll: clearWardrobe } = useWardrobe();
-  const { stylePrefs, setAge, addBrand, removeBrand, addBrandSize, removeBrandSize, clearStylePrefs } = useStylePrefs();
+  const { stylePrefs, setAge, addBrand, removeBrand, addBrandSize, removeBrandSize, updateBrandSize, clearStylePrefs } = useStylePrefs();
   const companionName = analysis?.companion_name ?? "Aura";
   const [editingName, setEditingName] = useState(false);
   const [nameValue, setNameValue] = useState(userName ?? "");
@@ -85,6 +85,9 @@ export default function SettingsScreen() {
   const [brandInput, setBrandInput] = useState("");
   const [newSizeBrand, setNewSizeBrand] = useState("");
   const [newSizeValue, setNewSizeValue] = useState("");
+  const [editingSizeIndex, setEditingSizeIndex] = useState<number | null>(null);
+  const [editSizeBrand, setEditSizeBrand] = useState("");
+  const [editSizeValue, setEditSizeValue] = useState("");
 
   const toggleConcern = async (concern: string) => {
     await Haptics.selectionAsync();
@@ -549,22 +552,65 @@ export default function SettingsScreen() {
                 {stylePrefs.brandSizes.length > 0 && (
                   <View style={{ gap: 6 }}>
                     {stylePrefs.brandSizes.map((entry, i) => (
-                      <View
-                        key={i}
-                        style={[spStyles.sizeRow, { backgroundColor: colors.secondary, borderColor: colors.border }]}
-                      >
-                        <Text style={[spStyles.sizeBrand, { color: colors.foreground }]}>{entry.brand}</Text>
-                        <View style={[spStyles.sizeBadge, { backgroundColor: colors.primary + "18" }]}>
-                          <Text style={[spStyles.sizeLabel, { color: colors.primary }]}>{entry.size}</Text>
+                      editingSizeIndex === i ? (
+                        <View key={i} style={spStyles.addSizeRow}>
+                          <View style={[spStyles.addSizeField, { borderColor: colors.primary, backgroundColor: colors.muted }]}>
+                            <TextInput
+                              value={editSizeBrand}
+                              onChangeText={setEditSizeBrand}
+                              style={[spStyles.addSizeText, { color: colors.foreground }]}
+                              maxLength={30}
+                              autoFocus
+                            />
+                          </View>
+                          <View style={[spStyles.addSizeFieldSmall, { borderColor: colors.primary, backgroundColor: colors.muted }]}>
+                            <TextInput
+                              value={editSizeValue}
+                              onChangeText={setEditSizeValue}
+                              style={[spStyles.addSizeText, { color: colors.foreground }]}
+                              maxLength={10}
+                            />
+                          </View>
+                          <Pressable
+                            onPress={async () => {
+                              await updateBrandSize(i, { brand: editSizeBrand, size: editSizeValue });
+                              setEditingSizeIndex(null);
+                            }}
+                            style={({ pressed }) => [spStyles.addSizeBtn, { backgroundColor: colors.primary, opacity: pressed ? 0.75 : 1 }]}
+                          >
+                            <Ionicons name="checkmark" size={18} color="#fff" />
+                          </Pressable>
+                          <Pressable
+                            onPress={() => setEditingSizeIndex(null)}
+                            style={({ pressed }) => [spStyles.addSizeBtn, { backgroundColor: colors.secondary, borderWidth: 1, borderColor: colors.border, opacity: pressed ? 0.75 : 1 }]}
+                          >
+                            <Ionicons name="close" size={18} color={colors.mutedForeground} />
+                          </Pressable>
                         </View>
+                      ) : (
                         <Pressable
-                          onPress={async () => { await removeBrandSize(i); }}
-                          hitSlop={8}
-                          style={{ padding: 4 }}
+                          key={i}
+                          onPress={() => {
+                            setEditingSizeIndex(i);
+                            setEditSizeBrand(entry.brand);
+                            setEditSizeValue(entry.size);
+                          }}
+                          style={[spStyles.sizeRow, { backgroundColor: colors.secondary, borderColor: colors.border }]}
                         >
-                          <Ionicons name="close-circle" size={18} color={colors.mutedForeground} />
+                          <Text style={[spStyles.sizeBrand, { color: colors.foreground }]}>{entry.brand}</Text>
+                          <View style={[spStyles.sizeBadge, { backgroundColor: colors.primary + "18" }]}>
+                            <Text style={[spStyles.sizeLabel, { color: colors.primary }]}>{entry.size}</Text>
+                          </View>
+                          <Ionicons name="pencil-outline" size={14} color={colors.mutedForeground} style={{ marginRight: 2 }} />
+                          <Pressable
+                            onPress={async () => { await removeBrandSize(i); }}
+                            hitSlop={8}
+                            style={{ padding: 4 }}
+                          >
+                            <Ionicons name="close-circle" size={18} color={colors.mutedForeground} />
+                          </Pressable>
                         </Pressable>
-                      </View>
+                      )
                     ))}
                   </View>
                 )}

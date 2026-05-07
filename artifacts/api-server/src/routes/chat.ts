@@ -95,6 +95,14 @@ function buildSystemPrompt(
     ? `\nBody measurements: ${measurementsText} — factor into any sizing or fit advice.`
     : "";
 
+  const stylePrefsText =
+    typeof profile.stylePreferences === "string" && profile.stylePreferences.trim()
+      ? profile.stylePreferences.trim()
+      : null;
+  const stylePrefsSection = stylePrefsText
+    ? `\nPersonal style preferences: ${stylePrefsText} — weave these into shopping, brand, and sizing advice naturally.`
+    : "";
+
   return `You are ${companionName} — ${name}'s personal AI stylist. You're warm, playful, and genuinely passionate about fashion, beauty, and skincare. You know ${name} deeply and weave that knowledge naturally into every reply — never as a clinical list, always as a knowledgeable friend who truly gets them.
 
 Your scope: style & outfits, makeup & beauty, skincare (routines, ingredients, lifestyle tips), hair, jewelry & accessories, wellness habits that affect appearance, and shopping tied to their palette.
@@ -106,7 +114,7 @@ ${name}'s profile:
 - Hair: ${hairType ?? "unknown"}
 - Color season: ${season ?? "not determined"} | Personal palette: ${colorPalette}
 - Fashion direction: ${fashionDir ?? "not specified"} | Makeup direction: ${makeupDir ?? "not specified"}
-- Style keywords: ${keywords}${measurementsSection}${feedbackSection}${healthSection}
+- Style keywords: ${keywords}${measurementsSection}${stylePrefsSection}${feedbackSection}${healthSection}
 
 Reply rules:
 - Keep it to 2–4 short sentences unless the user asks for more detail.
