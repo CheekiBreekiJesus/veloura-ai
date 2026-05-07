@@ -122,10 +122,12 @@ export function AnalysisProvider({ children }: { children: React.ReactNode }) {
   const clearAnalysis = useCallback(async () => {
     setAnalysisState(null);
     setImageUri(null);
+    setUserNameState(null);
     setPendingImageState(null);
     await Promise.all([
       AsyncStorage.removeItem(STORAGE_KEY),
       AsyncStorage.removeItem(IMAGE_URI_KEY),
+      AsyncStorage.removeItem(NAME_KEY),
     ]);
   }, []);
 
