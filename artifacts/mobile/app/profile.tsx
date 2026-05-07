@@ -258,6 +258,28 @@ export default function ProfileScreen() {
           </View>
         )}
 
+        {/* ── Health & Sensitivities ───────────────────────────────────────── */}
+        {healthConcerns.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="heart-outline" size={18} color={colors.primary} />
+              <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Health & Sensitivities</Text>
+            </View>
+            <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <Text style={[styles.keywordsHint, { color: colors.mutedForeground, marginBottom: 10 }]}>
+                Aura avoids recommending products that conflict with these concerns.
+              </Text>
+              <View style={styles.pillWrap}>
+                {healthConcerns.map((c, i) => (
+                  <View key={i} style={[styles.tagPill, { backgroundColor: colors.primary + "12", borderColor: colors.primary + "30" }]}>
+                    <Text style={[styles.tagPillText, { color: colors.primary }]}>{c}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          </View>
+        )}
+
         {/* ── Color Story ───────────────────────────────────────────────────── */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
@@ -544,28 +566,6 @@ export default function ProfileScreen() {
             ))}
           </View>
         ))}
-
-        {/* ── Health & Sensitivities ───────────────────────────────────────── */}
-        {healthConcerns.length > 0 && (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Ionicons name="heart-outline" size={18} color={colors.primary} />
-              <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Health & Sensitivities</Text>
-            </View>
-            <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-              <Text style={[styles.keywordsHint, { color: colors.mutedForeground, marginBottom: 10 }]}>
-                Aura avoids recommending products that conflict with these concerns.
-              </Text>
-              <View style={styles.pillWrap}>
-                {healthConcerns.map((c, i) => (
-                  <View key={i} style={[styles.tagPill, { backgroundColor: colors.primary + "12", borderColor: colors.primary + "30" }]}>
-                    <Text style={[styles.tagPillText, { color: colors.primary }]}>{c}</Text>
-                  </View>
-                ))}
-              </View>
-            </View>
-          </View>
-        )}
 
         {/* ── Shopping Keywords ────────────────────────────────────────────── */}
         {analysis.shopping_keywords && analysis.shopping_keywords.length > 0 && (

@@ -191,12 +191,14 @@ export function AnalysisProvider({ children }: { children: React.ReactNode }) {
     setUserNameState(null);
     setPendingImageState(null);
     setChatHistoryState([]);
+    setHealthConcernsState([]);
     await Promise.all([
       AsyncStorage.removeItem(STORAGE_KEY),
       AsyncStorage.removeItem(IMAGE_URI_KEY),
       AsyncStorage.removeItem(NAME_KEY),
       AsyncStorage.removeItem(CHAT_HISTORY_KEY),
       AsyncStorage.removeItem(COMPANION_AVATAR_KEY),
+      AsyncStorage.removeItem(HEALTH_CONCERNS_KEY),
     ]);
   }, []);
 
