@@ -133,9 +133,13 @@ export function AnalysisProvider({ children }: { children: React.ReactNode }) {
     async (result: AnalysisResult, uri: string) => {
       setAnalysisState(result);
       setImageUri(uri);
+      // Clear stale chat history whenever a new analysis replaces the previous
+      // one so Aura's greeting reflects the updated profile on the next visit.
+      setChatHistoryState([]);
       await Promise.all([
         AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(result)),
         AsyncStorage.setItem(IMAGE_URI_KEY, uri),
+        AsyncStorage.removeItem(CHAT_HISTORY_KEY),
       ]);
     },
     []

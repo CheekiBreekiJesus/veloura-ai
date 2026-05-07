@@ -226,6 +226,9 @@ export default function StylistChatScreen() {
 
   const scrollRef = useRef<ScrollView>(null);
   const tokenCache = useRef<{ token: string; exp: number } | null>(null);
+  // Track the previous analysis object reference so we can detect a fresh
+  // analysis replacing the old one (analysis !== null → different analysis).
+  const prevAnalysisRef = useRef<typeof analysis | undefined>(undefined);
 
   const baseUrl = (() => {
     const d = process.env["EXPO_PUBLIC_DOMAIN"];
@@ -240,9 +243,23 @@ export default function StylistChatScreen() {
     }
   }, [pendingChatInput, setPendingChatInput]);
 
-  // Reset local state whenever analysis is cleared (clearAnalysis called)
+  // Reset local state when analysis is cleared OR replaced with a new one.
+  // prevAnalysisRef tracks the previous object reference so we can distinguish
+  // a re-analysis (old → new) from the initial mount (undefined → loaded).
   useEffect(() => {
-    if (!analysis) {
+    const prev = prevAnalysisRef.current;
+    prevAnalysisRef.current = analysis;
+
+    if (analysis === null) {
+      // Profile cleared entirely
+      setMessages([]);
+      setInitialized(false);
+      return;
+    }
+
+    if (prev !== undefined && prev !== null && prev !== analysis) {
+      // A brand-new analysis replaced the previous one — wipe stale messages
+      // so Aura generates a fresh greeting on next render.
       setMessages([]);
       setInitialized(false);
     }
