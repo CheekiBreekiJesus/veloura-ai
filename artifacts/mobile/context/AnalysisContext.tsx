@@ -83,6 +83,7 @@ interface AnalysisContextValue {
   chatHistory: ChatMessage[];
   setAnalysis: (result: AnalysisResult, uri: string) => Promise<void>;
   clearAnalysis: () => Promise<void>;
+  clearChatHistory: () => Promise<void>;
   setUserName: (name: string) => Promise<void>;
   setPendingImage: (img: PendingImage | null) => void;
   saveChatHistory: (messages: ChatMessage[]) => Promise<void>;
@@ -157,6 +158,11 @@ export function AnalysisProvider({ children }: { children: React.ReactNode }) {
     ]);
   }, []);
 
+  const clearChatHistory = useCallback(async () => {
+    setChatHistoryState([]);
+    await AsyncStorage.removeItem(CHAT_HISTORY_KEY);
+  }, []);
+
   const setUserName = useCallback(async (name: string) => {
     setUserNameState(name);
     await AsyncStorage.setItem(NAME_KEY, name);
@@ -176,6 +182,7 @@ export function AnalysisProvider({ children }: { children: React.ReactNode }) {
         chatHistory,
         setAnalysis,
         clearAnalysis,
+        clearChatHistory,
         setUserName,
         setPendingImage,
         saveChatHistory,

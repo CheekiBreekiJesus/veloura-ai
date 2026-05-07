@@ -32,7 +32,7 @@ export default function SettingsScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { preference, setTheme } = useTheme();
-  const { userName, setUserName, clearAnalysis, analysis } = useAnalysis();
+  const { userName, setUserName, clearAnalysis, clearChatHistory, chatHistory, analysis } = useAnalysis();
   const [editingName, setEditingName] = useState(false);
   const [nameValue, setNameValue] = useState(userName ?? "");
   const [nameSaved, setNameSaved] = useState(false);
@@ -50,6 +50,37 @@ export default function SettingsScreen() {
     }
     setEditingName(false);
     await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  };
+
+  const handleClearChat = () => {
+    if (chatHistory.length === 0) {
+      Alert.alert("No Chat History", "There are no messages to clear.");
+      return;
+    }
+
+    if (Platform.OS === "web") {
+      const confirmed = window.confirm(
+        "Clear all chat messages with Aura? Your style profile will stay intact."
+      );
+      if (confirmed) void clearChatHistory();
+      return;
+    }
+
+    Alert.alert(
+      "Clear Chat History",
+      "This will delete all messages with Aura. Your style profile and wardrobe will stay intact.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Clear",
+          style: "destructive",
+          onPress: async () => {
+            await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+            await clearChatHistory();
+          },
+        },
+      ]
+    );
   };
 
   const handleClearData = () => {
@@ -303,6 +334,33 @@ export default function SettingsScreen() {
                 </View>
                 <Ionicons name="checkmark-circle" size={20} color={colors.primary} />
               </View>
+
+              <View style={[styles.divider, { backgroundColor: colors.border }]} />
+
+              <Pressable
+                onPress={handleClearChat}
+                style={({ pressed }) => [
+                  styles.row,
+                  { opacity: pressed ? 0.7 : 1 },
+                ]}
+              >
+                <View
+                  style={[styles.rowIcon, { backgroundColor: "#B06A1818" }]}
+                >
+                  <Ionicons name="chatbubble-ellipses-outline" size={18} color="#B06A18" />
+                </View>
+                <View style={styles.rowContent}>
+                  <Text style={[styles.rowLabel, { color: "#B06A18" }]}>
+                    Clear Chat History
+                  </Text>
+                  <Text style={[styles.rowValue, { color: colors.mutedForeground }]}>
+                    {chatHistory.length > 0
+                      ? `${chatHistory.length} message${chatHistory.length !== 1 ? "s" : ""} · profile stays intact`
+                      : "No messages to clear"}
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color={colors.mutedForeground} />
+              </Pressable>
 
               <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
