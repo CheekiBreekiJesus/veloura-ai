@@ -26,51 +26,15 @@ const MAX_BASE64_CHARS = 6 * 1024 * 1024;
 const MAX_CONCURRENT = 2;
 let activeRequests = 0;
 
-async function describeFace(
-  imageBase64: string,
-  mimeType: string,
-  profile: Record<string, unknown>
-): Promise<string> {
-  const undertone = typeof profile.undertone === "string" ? profile.undertone : "neutral";
-  const skinTone = typeof profile.skin_tone === "string" ? profile.skin_tone : "medium";
-  const eyeShape = typeof profile.eye_shape === "string" ? profile.eye_shape : "";
-  const faceShape = typeof profile.face_shape === "string" ? profile.face_shape : "";
-  const lipShape = typeof profile.lip_shape === "string" ? profile.lip_shape : "";
-  const hairType = typeof profile.hair_type === "string" ? profile.hair_type : "";
-
-  const completion = await openai.chat.completions.create({
-    model: "gpt-4o",
-    max_tokens: 400,
-    temperature: 0.1,
-    messages: [
-      {
-        role: "system",
-        content: `You are a professional portrait artist describing a face for image generation. 
-Profile context: skin_tone=${skinTone}, undertone=${undertone}, eye_shape=${eyeShape}, face_shape=${faceShape}, lip_shape=${lipShape}, hair_type=${hairType}.
-Describe the person's exact appearance in 3–4 concise sentences: skin color and tone, eye color and shape, hair color and length, distinctive facial features. 
-Be precise and neutral — no compliments. Output ONLY the description.`,
-      },
-      {
-        role: "user",
-        content: [
-          {
-            type: "image_url",
-            image_url: {
-              url: `data:${mimeType};base64,${imageBase64}`,
-              detail: "high",
-            },
-          },
-          { type: "text", text: "Describe this person's facial features and coloring." },
-        ],
-      },
-    ],
-  });
-
-  return completion.choices[0]?.message?.content?.trim() ?? `A person with ${skinTone} skin and ${undertone} undertones.`;
-}
-
-function buildDallePrompt(faceDescription: string, lookName: string, lookPromptFragment: string): string {
-  return `Photorealistic editorial beauty portrait of a real person. ${faceDescription} The subject is wearing ${lookPromptFragment}. Studio lighting, soft bokeh background, professional photography, 4K ultra-detailed skin texture, no text, no watermark. The makeup is the focal point — perfectly blended, high-fashion quality.`;
+function buildEditPrompt(productName: string, productDescription: string): string {
+  return (
+    `Apply ${productName} makeup to this person's face. ` +
+    `${productDescription} ` +
+    `Keep the person's face shape, skin tone, hair, and background identical — ` +
+    `only change the makeup application. ` +
+    `The result should look like a high-quality editorial portrait photograph with ` +
+    `the described makeup perfectly and professionally applied.`
+  );
 }
 
 router.post(
@@ -78,12 +42,12 @@ router.post(
   requireAnalyzeToken,
   makeupLimiter,
   async (req, res): Promise<void> => {
-    const { imageBase64, mimeType, lookName, lookPromptFragment, profile } = req.body as {
+    const { imageBase64, mimeType, productName, productCategory, productDescription } = req.body as {
       imageBase64?: unknown;
       mimeType?: unknown;
-      lookName?: unknown;
-      lookPromptFragment?: unknown;
-      profile?: unknown;
+      productName?: unknown;
+      productCategory?: unknown;
+      productDescription?: unknown;
     };
 
     if (typeof imageBase64 !== "string" || !imageBase64) {
@@ -98,12 +62,16 @@ router.post(
       res.status(400).json({ error: "Image too large (max 6 MB)" });
       return;
     }
-    if (typeof lookName !== "string" || !lookName.trim()) {
-      res.status(400).json({ error: "lookName is required" });
+    if (typeof productName !== "string" || !productName.trim()) {
+      res.status(400).json({ error: "productName is required" });
       return;
     }
-    if (typeof lookPromptFragment !== "string" || !lookPromptFragment.trim()) {
-      res.status(400).json({ error: "lookPromptFragment is required" });
+    if (typeof productCategory !== "string" || !productCategory.trim()) {
+      res.status(400).json({ error: "productCategory is required" });
+      return;
+    }
+    if (typeof productDescription !== "string" || !productDescription.trim()) {
+      res.status(400).json({ error: "productDescription is required" });
       return;
     }
 
@@ -112,32 +80,30 @@ router.post(
       return;
     }
 
-    const safeProfile =
-      profile && typeof profile === "object" ? (profile as Record<string, unknown>) : {};
-
     activeRequests++;
     try {
-      const faceDescription = await describeFace(imageBase64, mimeType, safeProfile);
-      const dallePrompt = buildDallePrompt(faceDescription, lookName.trim(), lookPromptFragment.trim());
+      const editPrompt = buildEditPrompt(productName.trim(), productDescription.trim());
+      req.log.info({ productName }, "Generating makeup try-on preview via image edit");
 
-      req.log.info({ lookName }, "Generating makeup try-on preview");
+      const imgBuffer = Buffer.from(imageBase64, "base64");
+      const imgFile = new File([imgBuffer], "selfie.png", { type: mimeType });
 
-      const imageResponse = await openai.images.generate({
+      const imageResponse = await openai.images.edit({
         model: "gpt-image-1",
-        prompt: dallePrompt,
+        image: imgFile,
+        prompt: editPrompt,
         n: 1,
         size: "1024x1024",
-        quality: "standard",
       });
 
       const b64 = imageResponse.data?.[0]?.b64_json;
       if (!b64) {
-        req.log.error("No image data returned from gpt-image-1");
+        req.log.error("No image data returned from gpt-image-1 edit");
         res.status(500).json({ error: "Preview generation failed — please try again" });
         return;
       }
 
-      res.json({ imageBase64: b64, mimeType: "image/png" });
+      res.json({ resultImageBase64: b64, mimeType: "image/png" });
     } catch (err) {
       req.log.error({ err }, "Makeup try-on generation failed");
       res.status(500).json({ error: "Preview generation failed — please try again" });
