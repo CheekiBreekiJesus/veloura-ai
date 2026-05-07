@@ -20,15 +20,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const AURA_AVATAR = require("../../assets/images/aura-avatar.png");
 
-import { useAnalysis } from "@/context/AnalysisContext";
+import { ChatMessage, useAnalysis } from "@/context/AnalysisContext";
 import { useWardrobe } from "@/context/WardrobeContext";
 import { useColors } from "@/hooks/useColors";
 
-type Message = {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-};
+type Message = ChatMessage;
 
 const BASE_URL = process.env["EXPO_PUBLIC_DOMAIN"]
   ? `https://${process.env["EXPO_PUBLIC_DOMAIN"]}`
@@ -50,13 +46,6 @@ async function sendChat(
   }
   const data = (await res.json()) as { reply: string };
   return data.reply;
-}
-
-function buildWelcome(analysis: ReturnType<typeof useAnalysis>["analysis"]): string {
-  if (!analysis) {
-    return "Hi! ✨ Upload a selfie first for full style advice.";
-  }
-  return `Hi! ✨ I see ${analysis.style_archetype} vibes. Ask me anything — makeup, outfits, skincare, hair. 💄👗`;
 }
 
 const QUICK_PROMPTS = [
@@ -167,12 +156,14 @@ function SuggestionChips({
 export default function StylistChatScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { analysis, userName } = useAnalysis();
+  const { analysis, userName, chatHistory, saveChatHistory } = useAnalysis();
   const { feedback } = useWardrobe();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [initialized, setInitialized] = useState(false);
+
   const scrollRef = useRef<ScrollView>(null);
   const tokenCache = useRef<{ token: string; exp: number } | null>(null);
 
@@ -181,30 +172,50 @@ export default function StylistChatScreen() {
     return d ? `https://${d}` : "";
   })();
 
+  // Reset local state whenever analysis is cleared (clearAnalysis called)
   useEffect(() => {
-    if (!analysis) return;
-    const firstName = userName?.split(" ")[0] ?? null;
-    const greeting = `${firstName ? `Hi ${firstName}! ` : "Hi! "}✨ Short and sweet — ask me anything. 💄👗`;
+    if (!analysis) {
+      setMessages([]);
+      setInitialized(false);
+    }
+  }, [analysis]);
 
-    setMessages([
-      {
-        id: "greeting",
-        role: "assistant",
-        content: greeting,
-      },
-    ]);
-  }, [analysis, userName]);
+  // Restore history or show greeting — runs once per analysis session
+  useEffect(() => {
+    if (!analysis || initialized) return;
+    setInitialized(true);
+
+    if (chatHistory.length > 0) {
+      setMessages(chatHistory);
+      return;
+    }
+
+    const firstName = userName?.split(" ")[0] ?? null;
+    const archetypes = analysis.aesthetic_archetypes?.slice(0, 2).join(" and ") ?? analysis.style_archetype;
+    const season = (analysis as unknown as Record<string, unknown>).color_season as string | undefined;
+    const greeting = [
+      firstName ? `Hi ${firstName}! ` : "Hi there! ",
+      `I'm Aura, your personal AI stylist. I've read your full Aesthetic Identity Profile — `,
+      `you're a beautiful ${archetypes}`,
+      season ? ` with a ${season} color palette. ` : ". ",
+      `I'm here whenever you want advice on style, beauty, skincare, hair, or shopping. What would you like to explore today?`,
+    ].join("");
+
+    const initial: Message[] = [
+      { id: "greeting", role: "assistant", content: greeting, ts: Date.now() },
+    ];
+    setMessages(initial);
+  }, [analysis, chatHistory, initialized, userName]);
+
+  // Auto-persist all message mutations (greeting, user optimistic, assistant reply, error rollback)
+  useEffect(() => {
+    if (!initialized || !analysis || messages.length === 0) return;
+    void saveChatHistory(messages);
+  }, [messages, initialized, analysis, saveChatHistory]);
 
   useEffect(() => {
     setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 80);
   }, [messages, loading]);
-
-  const getToken = useCallback(async (): Promise<string> => {
-    if (tokenCache.current && Date.now() < tokenCache.current.exp) return tokenCache.current.token;
-    const t = await fetch(`${baseUrl}/api/auth/token`).then((r) => r.json()).then((d) => d.token as string);
-    tokenCache.current = { token: t, exp: Date.now() + 8 * 60 * 1000 };
-    return t;
-  }, [baseUrl]);
 
   const send = useCallback(
     async (text?: string) => {
@@ -214,16 +225,18 @@ export default function StylistChatScreen() {
       setInput("");
       setError(null);
 
-      const userMsg: Message = { id: `u-${Date.now()}`, role: "user", content };
+      const userMsg: Message = { id: `u-${Date.now()}`, role: "user", content, ts: Date.now() };
       const nextMessages = [...messages, userMsg];
       setMessages(nextMessages);
       setLoading(true);
 
       try {
-        const token = await getToken();
         const history = nextMessages.map((m) => ({ role: m.role, content: m.content }));
         const reply = await sendChat(history, analysis, feedback);
-        setMessages((prev) => [...prev, { id: `a-${Date.now()}`, role: "assistant", content: reply, ts: Date.now() } as Message]);
+        setMessages((prev) => [
+          ...prev,
+          { id: `a-${Date.now()}`, role: "assistant", content: reply, ts: Date.now() },
+        ]);
       } catch (err) {
         const msg = err instanceof Error ? err.message : "Something went wrong";
         setError(msg);
@@ -232,7 +245,7 @@ export default function StylistChatScreen() {
         setLoading(false);
       }
     },
-    [input, loading, analysis, messages, getToken, baseUrl, userName]
+    [input, loading, analysis, messages]
   );
 
   if (!analysis) {
@@ -277,16 +290,16 @@ export default function StylistChatScreen() {
           <MessageBubble key={m.id} message={m} colors={colors} />
         ))}
         {loading && <TypingIndicator colors={colors} />}
-        {showSuggestions && <SuggestionChips colors={colors} onSelect={(s) => { send(s); }} />}
+        {showSuggestions && <SuggestionChips colors={colors} onSelect={(s) => { void send(s); }} />}
         {error && (
-          <View style={[styles.errorBanner, { backgroundColor: colors.card, borderColor: colors.border }]}> 
-            <Ionicons name="alert-circle-outline" size={18} color={colors.primary} />
-            <Text style={[styles.errorText, { color: colors.foreground }]}>{error}</Text>
+          <View style={[styles.errorBanner, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <Ionicons name="alert-circle-outline" size={16} color="#FF5252" />
+            <Text style={[styles.errorText, { color: "#FF5252" }]}>{error}</Text>
           </View>
         )}
       </ScrollView>
 
-      <View style={[styles.inputBar, { borderTopColor: colors.border, paddingBottom: insets.bottom + 10, backgroundColor: colors.background }]}> 
+      <View style={[styles.inputBar, { borderTopColor: colors.border, paddingBottom: insets.bottom + 10, backgroundColor: colors.background }]}>
         <TextInput
           value={input}
           onChangeText={setInput}
@@ -334,7 +347,7 @@ export default function StylistChatScreen() {
 
 function NoAnalysis({ colors }: { colors: ReturnType<typeof useColors> }) {
   return (
-    <View style={[styles.noAnalysisRoot, { backgroundColor: colors.background }] }>
+    <View style={[styles.noAnalysisRoot, { backgroundColor: colors.background }]}>
       <View style={[styles.noAnalysisIcon, { backgroundColor: colors.secondary }]}>
         <Ionicons name="sparkles" size={34} color={colors.primary} />
       </View>

@@ -7,6 +7,15 @@ import React, {
   useState,
 } from "react";
 
+export interface ChatMessage {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  ts: number;
+}
+
+const MAX_CHAT_MESSAGES = 100;
+
 export interface SkinConcerns {
   acne: "none" | "mild" | "moderate" | "severe";
   redness: "none" | "mild" | "moderate" | "severe";
@@ -71,10 +80,12 @@ interface AnalysisContextValue {
   imageUri: string | null;
   userName: string | null;
   pendingImage: PendingImage | null;
+  chatHistory: ChatMessage[];
   setAnalysis: (result: AnalysisResult, uri: string) => Promise<void>;
   clearAnalysis: () => Promise<void>;
   setUserName: (name: string) => Promise<void>;
   setPendingImage: (img: PendingImage | null) => void;
+  saveChatHistory: (messages: ChatMessage[]) => Promise<void>;
 }
 
 const AnalysisContext = createContext<AnalysisContextValue | null>(null);
@@ -82,6 +93,7 @@ const AnalysisContext = createContext<AnalysisContextValue | null>(null);
 const STORAGE_KEY = "ai_stylist_analysis";
 const IMAGE_URI_KEY = "ai_stylist_image_uri";
 const NAME_KEY = "ai_stylist_user_name";
+const CHAT_HISTORY_KEY = "ai_stylist_chat_history";
 
 export function AnalysisProvider({ children }: { children: React.ReactNode }) {
   const [analysis, setAnalysisState] = useState<AnalysisResult | null>(null);
@@ -90,19 +102,25 @@ export function AnalysisProvider({ children }: { children: React.ReactNode }) {
   const [pendingImage, setPendingImageState] = useState<PendingImage | null>(
     null
   );
+  const [chatHistory, setChatHistoryState] = useState<ChatMessage[]>([]);
 
   useEffect(() => {
     const load = async () => {
-      const [storedAnalysis, storedUri, storedName] = await Promise.all([
-        AsyncStorage.getItem(STORAGE_KEY),
-        AsyncStorage.getItem(IMAGE_URI_KEY),
-        AsyncStorage.getItem(NAME_KEY),
-      ]);
+      const [storedAnalysis, storedUri, storedName, storedChat] =
+        await Promise.all([
+          AsyncStorage.getItem(STORAGE_KEY),
+          AsyncStorage.getItem(IMAGE_URI_KEY),
+          AsyncStorage.getItem(NAME_KEY),
+          AsyncStorage.getItem(CHAT_HISTORY_KEY),
+        ]);
       if (storedAnalysis) {
         setAnalysisState(JSON.parse(storedAnalysis) as AnalysisResult);
       }
       if (storedUri) setImageUri(storedUri);
       if (storedName) setUserNameState(storedName);
+      if (storedChat) {
+        setChatHistoryState(JSON.parse(storedChat) as ChatMessage[]);
+      }
     };
     load();
   }, []);
@@ -119,15 +137,23 @@ export function AnalysisProvider({ children }: { children: React.ReactNode }) {
     []
   );
 
+  const saveChatHistory = useCallback(async (messages: ChatMessage[]) => {
+    const capped = messages.slice(-MAX_CHAT_MESSAGES);
+    setChatHistoryState(capped);
+    await AsyncStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(capped));
+  }, []);
+
   const clearAnalysis = useCallback(async () => {
     setAnalysisState(null);
     setImageUri(null);
     setUserNameState(null);
     setPendingImageState(null);
+    setChatHistoryState([]);
     await Promise.all([
       AsyncStorage.removeItem(STORAGE_KEY),
       AsyncStorage.removeItem(IMAGE_URI_KEY),
       AsyncStorage.removeItem(NAME_KEY),
+      AsyncStorage.removeItem(CHAT_HISTORY_KEY),
     ]);
   }, []);
 
@@ -147,10 +173,12 @@ export function AnalysisProvider({ children }: { children: React.ReactNode }) {
         imageUri,
         userName,
         pendingImage,
+        chatHistory,
         setAnalysis,
         clearAnalysis,
         setUserName,
         setPendingImage,
+        saveChatHistory,
       }}
     >
       {children}
