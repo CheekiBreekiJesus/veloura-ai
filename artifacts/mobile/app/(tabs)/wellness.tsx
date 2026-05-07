@@ -22,18 +22,32 @@ import {
   type WellnessCategory,
 } from "@/data/wellness-content";
 
+const ARCHETYPE_TAGS = ["romantic", "athletic", "bohemian", "minimalist", "classic"] as const;
+
 function isRecommended(
   article: WellnessArticle,
   analysis: NonNullable<ReturnType<typeof useAnalysis>["analysis"]>
 ): boolean {
   const tags = article.skinConcernTags;
+
   if (analysis.skin_concerns?.acne !== "none" && tags.includes("acne")) return true;
   if (analysis.skin_concerns?.redness !== "none" && tags.includes("redness")) return true;
   if (analysis.skin_concerns?.dryness !== "none" && tags.includes("dryness")) return true;
+
   const ut = (analysis.undertone ?? "").toLowerCase();
   if (ut.includes("warm") && tags.includes("warm")) return true;
   if (ut.includes("cool") && tags.includes("cool")) return true;
   if (ut.includes("neutral") && tags.includes("neutral")) return true;
+
+  const archetypeStr = (analysis.style_archetype ?? "").toLowerCase();
+  const archetypeArr = (analysis.aesthetic_archetypes ?? []).map((a: string) => a.toLowerCase());
+  const allArchetypes = [archetypeStr, ...archetypeArr];
+  if (
+    ARCHETYPE_TAGS.some(
+      (tag) => tags.includes(tag) && allArchetypes.some((a) => a.includes(tag))
+    )
+  ) return true;
+
   return false;
 }
 
@@ -189,8 +203,9 @@ export default function WellnessScreen() {
       <ScrollView
         contentContainerStyle={{ paddingBottom: botPad }}
         showsVerticalScrollIndicator={false}
+        stickyHeaderIndices={[1]}
       >
-        {/* Header */}
+        {/* Index 0 — Header (scrolls away) */}
         <LinearGradient
           colors={["#D9EEF5", colors.background]}
           style={[styles.headerGrad, { paddingTop: topPad + 16 }]}
@@ -203,13 +218,53 @@ export default function WellnessScreen() {
           </Text>
         </LinearGradient>
 
-        {/* Recommended for You */}
+        {/* Index 1 — Category Filter (STICKY) */}
+        <View style={[styles.filterSticky, { backgroundColor: colors.background }]}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.filterScroll}
+          >
+            {(["All", ...WELLNESS_CATEGORIES] as const).map((cat) => (
+              <Pressable
+                key={cat}
+                onPress={async () => {
+                  await Haptics.selectionAsync();
+                  setActiveFilter(cat);
+                }}
+                style={[
+                  styles.filterPill,
+                  {
+                    backgroundColor: activeFilter === cat ? colors.primary : colors.secondary,
+                    borderColor: activeFilter === cat ? colors.primary : colors.border,
+                },
+              ]}
+            >
+              <Ionicons
+                name={CATEGORY_ICONS[cat]}
+                size={13}
+                color={activeFilter === cat ? colors.primaryForeground : colors.mutedForeground}
+              />
+              <Text
+                style={[
+                  styles.filterText,
+                  { color: activeFilter === cat ? colors.primaryForeground : colors.foreground },
+                ]}
+              >
+                {cat}
+              </Text>
+            </Pressable>
+          ))}
+          </ScrollView>
+        </View>
+
+        {/* Index 2 — Recommended for You (scrolls with content) */}
         {analysis && recommendedArticles.length > 0 && activeFilter === "All" && (
           <View style={styles.section}>
             <View style={[styles.recBanner, { backgroundColor: colors.primary + "14", borderColor: colors.primary + "28" }]}>
               <Ionicons name="sparkles" size={14} color={colors.primary} />
               <Text style={[styles.recBannerText, { color: colors.primary }]}>
-                Picked for you based on your skin profile
+                Picked for you based on your style & skin profile
               </Text>
             </View>
             <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
@@ -259,44 +314,6 @@ export default function WellnessScreen() {
             </ScrollView>
           </View>
         )}
-
-        {/* Category Filter */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filterScroll}
-        >
-          {(["All", ...WELLNESS_CATEGORIES] as const).map((cat) => (
-            <Pressable
-              key={cat}
-              onPress={async () => {
-                await Haptics.selectionAsync();
-                setActiveFilter(cat);
-              }}
-              style={[
-                styles.filterPill,
-                {
-                  backgroundColor: activeFilter === cat ? colors.primary : colors.secondary,
-                  borderColor: activeFilter === cat ? colors.primary : colors.border,
-                },
-              ]}
-            >
-              <Ionicons
-                name={CATEGORY_ICONS[cat]}
-                size={13}
-                color={activeFilter === cat ? colors.primaryForeground : colors.mutedForeground}
-              />
-              <Text
-                style={[
-                  styles.filterText,
-                  { color: activeFilter === cat ? colors.primaryForeground : colors.foreground },
-                ]}
-              >
-                {cat}
-              </Text>
-            </Pressable>
-          ))}
-        </ScrollView>
 
         {/* Featured article */}
         {featuredArticle && (
@@ -368,7 +385,8 @@ const styles = StyleSheet.create({
   recCardTitle: { fontSize: 13, fontFamily: "Inter_600SemiBold", lineHeight: 18 },
   recCardTime: { fontSize: 11, fontFamily: "Inter_400Regular" },
 
-  filterScroll: { paddingHorizontal: 20, gap: 8, marginBottom: 20 },
+  filterSticky: { paddingBottom: 4, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: "transparent" },
+  filterScroll: { paddingHorizontal: 20, gap: 8, paddingVertical: 10 },
   filterPill: {
     flexDirection: "row",
     alignItems: "center",

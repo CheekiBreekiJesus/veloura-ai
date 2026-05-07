@@ -35,7 +35,13 @@ async function openUrl(url: string) {
   });
 }
 
-function ProductChip({
+const RETAILER_GRADIENTS: Record<string, [string, string]> = {
+  Sephora: ["#FCE4EC", "#F8BBD9"],
+  Amazon: ["#FFF3E0", "#FFE082"],
+  iHerb: ["#E8F5E9", "#A5D6A7"],
+};
+
+function ProductCard({
   product,
   colors,
 }: {
@@ -43,29 +49,35 @@ function ProductChip({
   colors: ReturnType<typeof useColors>;
 }) {
   const icon = RETAILER_ICONS[product.retailer] ?? "open-outline";
+  const grad = RETAILER_GRADIENTS[product.retailer] ?? ["#F5EDE3", "#EDE3D9"];
   return (
     <Pressable
       onPress={() => openUrl(product.url)}
       style={({ pressed }) => [
-        styles.productChip,
+        styles.productCard,
         { backgroundColor: colors.card, borderColor: colors.border, opacity: pressed ? 0.8 : 1 },
       ]}
     >
-      <View style={[styles.productIconWrap, { backgroundColor: colors.secondary }]}>
-        <Ionicons name={icon} size={16} color={colors.primary} />
-      </View>
-      <View style={styles.productInfo}>
-        <Text style={[styles.productName, { color: colors.foreground }]} numberOfLines={2}>
+      <LinearGradient colors={grad} style={styles.productCardTop} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+        <Ionicons name={icon} size={24} color="#C4956A" />
+      </LinearGradient>
+      <View style={styles.productCardBody}>
+        <Text style={[styles.productCardName, { color: colors.foreground }]} numberOfLines={2}>
           {product.name}
         </Text>
-        <View style={styles.productMeta}>
-          <Text style={[styles.productPrice, { color: colors.primary }]}>{product.price}</Text>
-          <Text style={[styles.productRetailer, { color: colors.mutedForeground }]}>
-            {product.retailer}
-          </Text>
+        <View style={styles.productCardMeta}>
+          <Text style={[styles.productCardPrice, { color: colors.primary }]}>{product.price}</Text>
+          <View style={[styles.productCardRetailerChip, { backgroundColor: colors.secondary }]}>
+            <Text style={[styles.productCardRetailerText, { color: colors.mutedForeground }]}>
+              {product.retailer}
+            </Text>
+          </View>
+        </View>
+        <View style={styles.productCardFooter}>
+          <Ionicons name="open-outline" size={11} color={colors.mutedForeground} />
+          <Text style={[styles.productCardShop, { color: colors.mutedForeground }]}>Shop now</Text>
         </View>
       </View>
-      <Ionicons name="open-outline" size={13} color={colors.mutedForeground} />
     </Pressable>
   );
 }
@@ -218,9 +230,15 @@ export default function ArticleScreen() {
             <Text style={[styles.sectionSub, { color: colors.mutedForeground }]}>
               Tap to shop — opens retailer in browser
             </Text>
-            {article.products.map((product, i) => (
-              <ProductChip key={i} product={product} colors={colors} />
-            ))}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.productScroll}
+            >
+              {article.products.map((product, i) => (
+                <ProductCard key={i} product={product} colors={colors} />
+              ))}
+            </ScrollView>
           </View>
         )}
 
@@ -277,20 +295,17 @@ const styles = StyleSheet.create({
   tipNumText: { fontSize: 13, fontFamily: "Inter_700Bold" },
   tipText: { flex: 1, fontSize: 14, fontFamily: "Inter_400Regular", lineHeight: 22 },
 
-  productChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    padding: 14,
-    borderRadius: 16,
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  productIconWrap: { width: 42, height: 42, borderRadius: 12, alignItems: "center", justifyContent: "center", flexShrink: 0 },
-  productInfo: { flex: 1, gap: 4 },
-  productName: { fontSize: 13, fontFamily: "Inter_600SemiBold", lineHeight: 18 },
-  productMeta: { flexDirection: "row", alignItems: "center", gap: 8 },
-  productPrice: { fontSize: 12, fontFamily: "Inter_700Bold" },
-  productRetailer: { fontSize: 11, fontFamily: "Inter_400Regular" },
+  productScroll: { gap: 12, paddingBottom: 4 },
+  productCard: { width: 155, borderRadius: 18, overflow: "hidden", borderWidth: StyleSheet.hairlineWidth },
+  productCardTop: { height: 70, alignItems: "center", justifyContent: "center" },
+  productCardBody: { padding: 12, gap: 6 },
+  productCardName: { fontSize: 12, fontFamily: "Inter_600SemiBold", lineHeight: 17 },
+  productCardMeta: { flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap" },
+  productCardPrice: { fontSize: 12, fontFamily: "Inter_700Bold" },
+  productCardRetailerChip: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
+  productCardRetailerText: { fontSize: 10, fontFamily: "Inter_500Medium" },
+  productCardFooter: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 },
+  productCardShop: { fontSize: 10, fontFamily: "Inter_400Regular" },
 
   videoCard: {
     flexDirection: "row",
