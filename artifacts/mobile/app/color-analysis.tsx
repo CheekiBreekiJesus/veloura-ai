@@ -2,8 +2,10 @@ import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import {
+  Animated,
+  Easing,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -12,6 +14,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { getSeasonProfile } from "@/constants/seasons";
 import { useAnalysis } from "@/context/AnalysisContext";
 import { useColors } from "@/hooks/useColors";
 import {
@@ -19,9 +22,6 @@ import {
   deriveColorSwatches,
   deriveSeasonLabel,
 } from "@/utils/colorAnalysis";
-import { getSeasonProfile } from "@/constants/seasons";
-import { useEffect, useRef } from "react";
-import { Animated, Easing } from "react-native";
 
 function ToneRow({
   tones,
@@ -35,20 +35,29 @@ function ToneRow({
   return (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.toneScroll}>
       {tones.map((tone) => (
-        <View key={tone.label} style={[styles.toneCard, { borderColor: colors.border, opacity: tone.compatibility === "avoid" ? 0.68 : 1 }]}>
-          <View style={[styles.tonePreview, { backgroundColor: tone.hex }]}>
-            {imageUri ? <Image source={{ uri: imageUri }} style={styles.tonePortrait} contentFit="cover" /> : <View style={[styles.tonePortrait, { backgroundColor: colors.secondary }]} />}
+        <View
+          key={tone.label}
+          style={[
+            styles.toneCard,
+            {
+              borderColor: colors.border,
+              opacity: tone.compatibility === "avoid" ? 0.68 : 1,
+              shadowColor: tone.compatibility === "best" ? tone.hex : "#000",
+            },
+          ]}
+        >
+          <View style={[styles.tonePreview, { backgroundColor: colors.card }]}>
+            {imageUri ? (
+              <Image source={{ uri: imageUri }} style={styles.tonePortrait} contentFit="cover" />
+            ) : (
+              <View style={[styles.tonePortrait, { backgroundColor: colors.secondary }]} />
+            )}
+            <View style={[styles.toneOverlay, { backgroundColor: tone.hex, opacity: tone.compatibility === "best" ? 0.42 : tone.compatibility === "neutral" ? 0.28 : 0.18 }]} />
+            <View style={[styles.toneOverlay, { backgroundColor: tone.compatibility === "best" ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.02)" }]} />
             <View
               style={[
-                styles.toneOverlay,
-                {
-                  backgroundColor:
-                    tone.compatibility === "best"
-                      ? "rgba(255,255,255,0.12)"
-                      : tone.compatibility === "neutral"
-                        ? "rgba(255,255,255,0.26)"
-                        : "rgba(0,0,0,0.12)",
-                },
+                styles.toneOutline,
+                tone.compatibility === "best" && { borderColor: tone.hex, shadowColor: tone.hex, shadowOpacity: 0.3, shadowRadius: 14, shadowOffset: { width: 0, height: 0 } },
               ]}
             />
             {tone.compatibility === "best" && (
@@ -70,7 +79,6 @@ export default function ColorAnalysisScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { analysis, imageUri } = useAnalysis();
-  const seasonProfile = getSeasonProfile((analysis ? deriveSeasonLabel(analysis.undertone, analysis.contrast_level) : "Neutral Summer") as never);
   const fade = useRef(new Animated.Value(0)).current;
   const lift = useRef(new Animated.Value(18)).current;
 
@@ -100,6 +108,7 @@ export default function ColorAnalysisScreen() {
   }
 
   const season = deriveSeasonLabel(analysis.undertone, analysis.contrast_level);
+  const seasonProfile = getSeasonProfile((season.startsWith("Soft") || season.startsWith("Light") ? "Summer" : season.includes("Autumn") || season.includes("Spring") ? "Spring" : "Winter") as never);
   const swatches = deriveColorSwatches(analysis);
   const tones = deriveClothingTones(analysis);
 
@@ -226,6 +235,7 @@ const styles = StyleSheet.create({
   tonePreview: { height: 150, borderRadius: 18, overflow: "hidden", justifyContent: "flex-start", padding: 10 },
   tonePortrait: { ...StyleSheet.absoluteFillObject },
   toneOverlay: { ...StyleSheet.absoluteFillObject },
+  toneOutline: { ...StyleSheet.absoluteFillObject, borderRadius: 18, borderWidth: 1 },
   bestBadge: { flexDirection: "row", alignItems: "center", gap: 4, alignSelf: "flex-start", backgroundColor: "rgba(196,149,106,0.95)", paddingHorizontal: 8, paddingVertical: 5, borderRadius: 999 },
   bestBadgeText: { color: "#fff", fontSize: 10, fontFamily: "Inter_700Bold" },
   toneLabel: { marginTop: 10, fontSize: 13, fontFamily: "Inter_700Bold" },

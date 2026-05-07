@@ -26,12 +26,12 @@ export function deriveSeasonLabel(undertone: string, contrastLevel?: string) {
   const cool = /cool|pink|rose|blue|ash|silver/i.test(undertone);
   const high = /high/i.test(contrastLevel ?? "");
   const low = /low/i.test(contrastLevel ?? "");
-  if (warm && high) return "Bright Spring";
-  if (warm && low) return "Soft Autumn";
-  if (cool && high) return "Deep Winter";
+  if (warm && low) return "Soft Spring";
+  if (warm && high) return "Deep Autumn";
   if (cool && low) return "Soft Summer";
-  if (warm) return "True Autumn";
-  if (cool) return "True Summer";
+  if (cool && high) return "Deep Winter";
+  if (warm) return high ? "Bright Spring" : "Warm Autumn";
+  if (cool) return high ? "Cool Winter" : "Cool Summer";
   if (high) return "Clear Winter";
   if (low) return "Light Spring";
   return "Neutral Summer";
