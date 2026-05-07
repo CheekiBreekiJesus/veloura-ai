@@ -24,6 +24,10 @@ function NativeTabLayout() {
         <Icon sf={{ default: "wand.and.sparkles", selected: "wand.and.sparkles" }} />
         <Label>Studio</Label>
       </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="wellness">
+        <Icon sf={{ default: "heart", selected: "heart.fill" }} />
+        <Label>Wellness</Label>
+      </NativeTabs.Trigger>
       <NativeTabs.Trigger name="chat">
         <Icon sf={{ default: "sparkles", selected: "sparkles" }} />
         <Label>Stylist</Label>
@@ -113,6 +117,18 @@ function ClassicTabLayout() {
         }}
       />
       <Tabs.Screen
+        name="wellness"
+        options={{
+          title: "Wellness",
+          tabBarIcon: ({ color }) =>
+            isIOS ? (
+              <SymbolView name="heart.fill" tintColor={color} size={24} />
+            ) : (
+              <Ionicons name="heart-outline" size={22} color={color} />
+            ),
+        }}
+      />
+      <Tabs.Screen
         name="chat"
         options={{
           title: "Stylist",
@@ -139,13 +155,6 @@ function ClassicTabLayout() {
       {/* Wishlist is accessible via the Shop tab header — hidden from tab bar */}
       <Tabs.Screen
         name="wishlist"
-        options={{
-          href: null,
-        }}
-      />
-      {/* Wellness is accessible via the Home screen — hidden from tab bar */}
-      <Tabs.Screen
-        name="wellness"
         options={{
           href: null,
         }}
