@@ -175,7 +175,12 @@ export default function ShopScreen() {
   const checkFavBrand = (product: Product): boolean => {
     if (stylePrefs.favouriteBrands.length === 0) return false;
     const nameLower = product.name.toLowerCase();
-    return stylePrefs.favouriteBrands.some((b) => nameLower.includes(b.toLowerCase()));
+    const { retailer } = getProductUrl(product, country);
+    const retailerLower = retailer.toLowerCase();
+    return stylePrefs.favouriteBrands.some((b) => {
+      const bl = b.toLowerCase();
+      return nameLower.includes(bl) || retailerLower.includes(bl);
+    });
   };
 
   const [activeCategory, setActiveCategory] = useState("All");

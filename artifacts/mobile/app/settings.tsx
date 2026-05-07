@@ -77,6 +77,10 @@ export default function SettingsScreen() {
   const [countryPickerVisible, setCountryPickerVisible] = useState(false);
   const [customConcern, setCustomConcern] = useState("");
   const [ageInput, setAgeInput] = useState(stylePrefs.age != null ? String(stylePrefs.age) : "");
+
+  React.useEffect(() => {
+    setAgeInput(stylePrefs.age != null ? String(stylePrefs.age) : "");
+  }, [stylePrefs.age]);
   const [ageSaved, setAgeSaved] = useState(false);
   const [brandInput, setBrandInput] = useState("");
   const [newSizeBrand, setNewSizeBrand] = useState("");

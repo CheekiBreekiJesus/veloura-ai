@@ -377,7 +377,7 @@ export default function StylistChatScreen() {
         setLoading(false);
       }
     },
-    [input, loading, analysis, messages, bodyProfile, feedback, healthConcerns]
+    [input, loading, analysis, messages, bodyProfile, stylePrefs, feedback, healthConcerns]
   );
 
   if (!analysis) {
