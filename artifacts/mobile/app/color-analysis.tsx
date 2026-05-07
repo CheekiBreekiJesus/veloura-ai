@@ -42,6 +42,10 @@ function ToneRow({
               borderColor: colors.border,
               opacity: tone.compatibility === "avoid" ? 0.68 : 1,
               shadowColor: tone.compatibility === "best" ? tone.hex : "#000",
+              shadowOpacity: tone.compatibility === "best" ? 0.2 : 0,
+              shadowRadius: tone.compatibility === "best" ? 18 : 0,
+              shadowOffset: { width: 0, height: 8 },
+              elevation: tone.compatibility === "best" ? 6 : 0,
             },
           ]}
         >
@@ -51,12 +55,12 @@ function ToneRow({
             ) : (
               <View style={[styles.tonePortrait, { backgroundColor: colors.secondary }]} />
             )}
-            <View style={[styles.toneOverlay, { backgroundColor: tone.hex, opacity: tone.compatibility === "best" ? 0.42 : tone.compatibility === "neutral" ? 0.28 : 0.18 }]} />
-            <View style={[styles.toneOverlay, { backgroundColor: tone.compatibility === "best" ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.02)" }]} />
+            <View style={[styles.toneOverlay, { backgroundColor: tone.hex, opacity: tone.compatibility === "best" ? 0.34 : tone.compatibility === "neutral" ? 0.24 : 0.16 }]} />
+            <View style={[styles.toneOverlay, { backgroundColor: tone.compatibility === "best" ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.04)" }]} />
             <View
               style={[
                 styles.toneOutline,
-                tone.compatibility === "best" && { borderColor: tone.hex, shadowColor: tone.hex, shadowOpacity: 0.3, shadowRadius: 14, shadowOffset: { width: 0, height: 0 } },
+                tone.compatibility === "best" && { borderColor: tone.hex, shadowColor: tone.hex, shadowOpacity: 0.4, shadowRadius: 18, shadowOffset: { width: 0, height: 0 } },
               ]}
             />
             {tone.compatibility === "best" && (
@@ -233,7 +237,7 @@ const styles = StyleSheet.create({
   tonePreview: { height: 150, borderRadius: 18, overflow: "hidden", justifyContent: "flex-start", padding: 10 },
   tonePortrait: { ...StyleSheet.absoluteFillObject },
   toneOverlay: { ...StyleSheet.absoluteFillObject },
-  toneOutline: { ...StyleSheet.absoluteFillObject, borderRadius: 18, borderWidth: 1 },
+  toneOutline: { ...StyleSheet.absoluteFillObject, borderRadius: 18, borderWidth: 1.5 },
   bestBadge: { flexDirection: "row", alignItems: "center", gap: 4, alignSelf: "flex-start", backgroundColor: "rgba(196,149,106,0.95)", paddingHorizontal: 8, paddingVertical: 5, borderRadius: 999 },
   bestBadgeText: { color: "#fff", fontSize: 10, fontFamily: "Inter_700Bold" },
   toneLabel: { marginTop: 10, fontSize: 13, fontFamily: "Inter_700Bold" },
