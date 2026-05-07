@@ -9,7 +9,6 @@ import React, { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  Dimensions,
   Platform,
   Pressable,
   ScrollView,
@@ -22,8 +21,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAnalysis } from "@/context/AnalysisContext";
 import { useColors } from "@/hooks/useColors";
 import { PRODUCTS, type Product } from "@/data/products";
-
-const { width } = Dimensions.get("window");
 
 const BASE_URL = process.env["EXPO_PUBLIC_DOMAIN"]
   ? `https://${process.env["EXPO_PUBLIC_DOMAIN"]}`
@@ -481,7 +478,11 @@ export default function StudioScreen() {
                 Select a product to see it virtually applied to your selfie
               </Text>
 
-              <View style={styles.looksGrid}>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.looksRow}
+              >
                 {MAKEUP_PRODUCTS.map((product) => (
                   <ProductCard
                     key={product.id}
@@ -500,7 +501,7 @@ export default function StudioScreen() {
                     colors={colors}
                   />
                 ))}
-              </View>
+              </ScrollView>
             </View>
 
             {/* ── Hair — Coming Soon ── */}
@@ -718,15 +719,15 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
 
-  looksGrid: {
+  looksRow: {
     flexDirection: "row",
-    flexWrap: "wrap",
     paddingHorizontal: 18,
     gap: 12,
+    paddingBottom: 4,
   },
 
   lookCard: {
-    width: (width - 48) / 2,
+    width: 148,
     borderRadius: 20,
     overflow: "hidden",
   },
