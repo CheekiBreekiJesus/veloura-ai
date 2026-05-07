@@ -24,13 +24,13 @@ function NativeTabLayout() {
         <Icon sf={{ default: "sparkles", selected: "sparkles" }} />
         <Label>Stylist</Label>
       </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="wishlist">
-        <Icon sf={{ default: "star", selected: "star.fill" }} />
-        <Label>Wishlist</Label>
-      </NativeTabs.Trigger>
       <NativeTabs.Trigger name="shop">
         <Icon sf={{ default: "bag", selected: "bag.fill" }} />
         <Label>Shop</Label>
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="wellness">
+        <Icon sf={{ default: "leaf", selected: "leaf.fill" }} />
+        <Label>Wellness</Label>
       </NativeTabs.Trigger>
     </NativeTabs>
   );
@@ -113,18 +113,6 @@ function ClassicTabLayout() {
         }}
       />
       <Tabs.Screen
-        name="wishlist"
-        options={{
-          title: "Wishlist",
-          tabBarIcon: ({ color }) =>
-            isIOS ? (
-              <SymbolView name="star.fill" tintColor={color} size={24} />
-            ) : (
-              <Ionicons name="star-outline" size={22} color={color} />
-            ),
-        }}
-      />
-      <Tabs.Screen
         name="shop"
         options={{
           title: "Shop",
@@ -134,6 +122,25 @@ function ClassicTabLayout() {
             ) : (
               <Ionicons name="bag-outline" size={22} color={color} />
             ),
+        }}
+      />
+      <Tabs.Screen
+        name="wellness"
+        options={{
+          title: "Wellness",
+          tabBarIcon: ({ color }) =>
+            isIOS ? (
+              <SymbolView name="leaf.fill" tintColor={color} size={24} />
+            ) : (
+              <Ionicons name="leaf-outline" size={22} color={color} />
+            ),
+        }}
+      />
+      {/* Wishlist is accessible via the Shop tab header — hidden from tab bar */}
+      <Tabs.Screen
+        name="wishlist"
+        options={{
+          href: null,
         }}
       />
     </Tabs>

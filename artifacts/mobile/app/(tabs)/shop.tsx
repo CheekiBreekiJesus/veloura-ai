@@ -391,18 +391,35 @@ export default function ShopScreen() {
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
         >
-          <Text style={[styles.headerTitle, { color: colors.foreground }]}>
-            Shop
-          </Text>
-          {analysis ? (
-            <Text style={[styles.headerSub, { color: colors.mutedForeground }]}>
-              Curated for {analysis.style_archetype}
-            </Text>
-          ) : (
-            <Text style={[styles.headerSub, { color: colors.mutedForeground }]}>
-              Products for every style
-            </Text>
-          )}
+          <View style={styles.headerRow}>
+            <View>
+              <Text style={[styles.headerTitle, { color: colors.foreground }]}>
+                Shop
+              </Text>
+              {analysis ? (
+                <Text style={[styles.headerSub, { color: colors.mutedForeground }]}>
+                  Curated for {analysis.style_archetype}
+                </Text>
+              ) : (
+                <Text style={[styles.headerSub, { color: colors.mutedForeground }]}>
+                  Products for every style
+                </Text>
+              )}
+            </View>
+            <Pressable
+              onPress={async () => {
+                await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                router.push("/(tabs)/wishlist");
+              }}
+              style={({ pressed }) => [
+                styles.wishlistBtn,
+                { backgroundColor: colors.card, borderColor: colors.border, opacity: pressed ? 0.7 : 1 },
+              ]}
+            >
+              <Ionicons name="heart-outline" size={20} color={colors.primary} />
+              <Text style={[styles.wishlistBtnText, { color: colors.foreground }]}>Saved</Text>
+            </Pressable>
+          </View>
         </LinearGradient>
 
         {/* Personalized banner */}
@@ -683,6 +700,12 @@ const CARD_W = width * 0.55;
 const styles = StyleSheet.create({
   root: { flex: 1 },
   headerGrad: { paddingHorizontal: 20, paddingBottom: 20 },
+  headerRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  wishlistBtn: {
+    flexDirection: "row", alignItems: "center", gap: 6,
+    paddingHorizontal: 14, paddingVertical: 9, borderRadius: 14, borderWidth: StyleSheet.hairlineWidth,
+  },
+  wishlistBtnText: { fontSize: 13, fontFamily: "Inter_500Medium" },
   headerTitle: { fontSize: 28, fontFamily: "Inter_700Bold", marginBottom: 4 },
   headerSub: { fontSize: 14, fontFamily: "Inter_400Regular" },
   filterScroll: { paddingHorizontal: 20, gap: 8, paddingVertical: 16 },

@@ -57,6 +57,10 @@ function RootLayoutNav() {
         name="add-item"
         options={{ headerShown: false, presentation: "modal" }}
       />
+      <Stack.Screen
+        name="article"
+        options={{ headerShown: false, presentation: "modal" }}
+      />
     </Stack>
   );
 }
