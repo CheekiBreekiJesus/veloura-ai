@@ -1,4 +1,4 @@
-# AI Identity Stylist
+# Veloura
 
 A mobile app that analyzes a selfie using AI vision and generates a personalized beauty and fashion profile with color palette, style archetype, and curated recommendations — plus a live AI stylist chat.
 
@@ -26,15 +26,20 @@ A mobile app that analyzes a selfie using AI vision and generates a personalized
 
 - `artifacts/mobile/` — Expo mobile app
   - `app/(tabs)/index.tsx` — Home (season card, feature DNA, daily tip, recommendations)
-  - `app/(tabs)/wardrobe.tsx` — Wardrobe style guide (outfits, accessories, glasses)
-  - `app/(tabs)/chat.tsx` — AI Stylist Chat (Aura, personalized by full profile)
+  - `app/(tabs)/wardrobe.tsx` — Wardrobe style guide (outfits 👗, palette 🎨, glasses 👓)
+  - `app/(tabs)/chat.tsx` — AI Stylist Chat (Aura with real avatar, emoji suggestions)
   - `app/(tabs)/wishlist.tsx` — Saved recommendations
   - `app/(tabs)/shop.tsx` — Curated mock product browse
   - `app/upload.tsx` — Photo upload + analysis trigger
   - `app/analyzing.tsx` — Animated analysis screen (fetches token → calls /api/analyze)
   - `app/profile.tsx` — Deep profile: aesthetic identity, color story, skin health, accessories
+  - `app/settings.tsx` — Settings: name edit, 3-way theme toggle (System/Light/Dark), data clear
   - `context/AnalysisContext.tsx` — Shared analysis state (AsyncStorage backed)
+  - `context/ThemeContext.tsx` — ThemePreference (system/light/dark) stored in AsyncStorage; provides resolved theme
+  - `hooks/useColors.ts` — Reads from ThemeContext (not raw useColorScheme)
   - `constants/colors.ts` — Warm luxury palette (#FAF8F5 bg, #C4956A primary)
+  - `assets/images/icon.png` — AI-generated luxury gold line art face logo
+  - `assets/images/aura-avatar.png` — AI-generated Aura stylist portrait avatar
 - `artifacts/api-server/src/routes/analyze.ts` — POST /api/analyze (OpenAI vision)
 - `artifacts/api-server/src/routes/chat.ts` — POST /api/chat (OpenAI chat, profile-aware)
 - `artifacts/api-server/src/routes/auth.ts` — GET /api/auth/token (short-lived HMAC token)
@@ -47,7 +52,8 @@ A mobile app that analyzes a selfie using AI vision and generates a personalized
 
 - Image is base64-encoded on device and sent as JSON body (no multipart form handling needed)
 - Analysis results stored in AsyncStorage via AnalysisContext — no backend persistence
-- Stack navigation (no tabs) for a clean linear flow: Landing → Upload → Dashboard
+- ThemeContext wraps the entire app (inside KeyboardProvider, outside AnalysisProvider); preference saved to AsyncStorage key `veloura_theme`
+- OutfitCard in wardrobe always uses hardcoded dark text (#2D1F14) since gradients are always light pastels — avoids light-on-light in dark mode
 - OpenAI GPT vision used for face analysis; GPT-4.1-mini for chat (faster, cheaper)
 - Chat system prompt embeds the full Aesthetic Identity Profile so Aura knows the user deeply
 - Token-based caller identity: mobile must GET /api/auth/token (HMAC-signed, 10 min TTL) before calling /api/analyze or /api/chat — prevents unauthenticated proxy abuse
@@ -57,14 +63,14 @@ A mobile app that analyzes a selfie using AI vision and generates a personalized
 ## Product
 
 - Upload a selfie → AI analyzes face shape, skin tone, undertone, eye shape, hair type, style archetype
-- Full Aesthetic Identity Profile: jawline, cheekbone prominence, facial symmetry score, skin evenness, skin concerns (acne/redness/dryness), contrast level, color families
+- Full Aesthetic Identity Profile: jawline, cheekbone prominence, facial symmetry score, skin evenness, skin concerns, contrast level, color families
 - Accessories guide: earring styles + necklace lengths matched to face shape
 - Aesthetic archetypes (2-4 style identities), makeup direction, fashion direction
-- Skincare focus areas and shopping keywords for downstream product search
 - Color Season analysis (Spring/Summer/Autumn/Winter) with palette, best/avoid colors
 - Feature DNA horizontal scroll on home (face, skin, undertone, eyes, hair, lips as gradient cards)
-- Daily rotating tip card on home screen (personalized from analysis, falls back to generic tips)
-- **AI Stylist Chat (Aura)** — conversational AI tab that knows the user's full profile; suggests starter questions; supports multi-turn conversation; token auth + rate-limited
+- Daily rotating tip card on home screen (personalized from analysis)
+- **AI Stylist Chat (Aura)** — conversational AI tab with real portrait avatar; emoji suggestion chips; multi-turn; token auth + rate-limited
+- Light/Dark/System theme toggle in Settings
 - Browse curated mock product recommendations in the Shop tab
 - Results persisted locally (AsyncStorage) so they survive app restarts
 
@@ -80,6 +86,7 @@ _Populate as you build._
 - In Hermes/Metro, define helper components BEFORE the screen that uses them — hoisting is unreliable
 - Ionicons show as Chinese symbols on Android/web if not explicitly loaded: add `...Ionicons.font` to the `useFonts({})` call in `_layout.tsx`
 - Chat token is cached for 8 min client-side (token TTL is 10 min) to avoid fetching a new token on every message
+- OutfitCard gradients are always light pastels: hardcode text to #2D1F14 (never use colors.foreground there)
 
 ## Pointers
 

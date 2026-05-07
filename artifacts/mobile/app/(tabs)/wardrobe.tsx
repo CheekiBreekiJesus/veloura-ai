@@ -118,7 +118,7 @@ export default function WardrobeScreen() {
         {analysis ? (
           <View style={styles.sectionPad}>
             <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
-              Fashion Recommendations
+              👗 Fashion Recommendations
             </Text>
             {analysis.fashion_recommendations.map((rec, i) => (
               <OutfitCard
@@ -126,7 +126,6 @@ export default function WardrobeScreen() {
                 index={i}
                 text={rec}
                 gradient={OUTFIT_GRADIENTS[i % OUTFIT_GRADIENTS.length]}
-                colors={colors}
               />
             ))}
 
@@ -136,7 +135,7 @@ export default function WardrobeScreen() {
                 { color: colors.foreground, marginTop: 12 },
               ]}
             >
-              Color Palette for Outfits
+              🎨 Color Palette for Outfits
             </Text>
             <View
               style={[
@@ -170,7 +169,7 @@ export default function WardrobeScreen() {
                 { color: colors.foreground, marginTop: 12 },
               ]}
             >
-              Glasses Suggestions
+              👓 Glasses Suggestions
             </Text>
             {analysis.glasses_suggestions.map((g, i) => (
               <View
@@ -195,46 +194,45 @@ export default function WardrobeScreen() {
   );
 }
 
+// Outfit card always uses light pastel gradients — force dark text regardless of theme
+const OUTFIT_TEXT = "#2D1F14";
+const OUTFIT_TEXT_DIM = "#6B4C35";
+
 function OutfitCard({
   index,
   text,
   gradient,
-  colors,
 }: {
   index: number;
   text: string;
   gradient: [string, string];
-  colors: ReturnType<typeof useColors>;
 }) {
+  const OUTFIT_ICONS = [
+    "shirt-outline",
+    "bag-outline",
+    "watch-outline",
+    "umbrella-outline",
+    "glasses-outline",
+  ] as const;
+  const icon = OUTFIT_ICONS[index % OUTFIT_ICONS.length];
+
   return (
     <LinearGradient
       colors={gradient}
-      style={[styles.outfitCard, { borderColor: colors.border }]}
+      style={styles.outfitCard}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
     >
       <View style={styles.outfitContent}>
-        <View
-          style={[
-            styles.outfitNum,
-            { backgroundColor: "rgba(255,255,255,0.7)" },
-          ]}
-        >
-          <Text style={[styles.outfitNumText, { color: colors.primary }]}>
+        <View style={[styles.outfitNum, { backgroundColor: "rgba(255,255,255,0.75)" }]}>
+          <Text style={[styles.outfitNumText, { color: OUTFIT_TEXT_DIM }]}>
             {index + 1}
           </Text>
         </View>
-        <Text style={[styles.outfitText, { color: colors.foreground }]}>
-          {text}
-        </Text>
+        <Text style={[styles.outfitText, { color: OUTFIT_TEXT }]}>{text}</Text>
       </View>
-      <View
-        style={[
-          styles.outfitIcon,
-          { backgroundColor: "rgba(255,255,255,0.6)" },
-        ]}
-      >
-        <Ionicons name="shirt-outline" size={22} color={colors.primary} />
+      <View style={[styles.outfitIcon, { backgroundColor: "rgba(255,255,255,0.65)" }]}>
+        <Ionicons name={icon} size={22} color={OUTFIT_TEXT_DIM} />
       </View>
     </LinearGradient>
   );

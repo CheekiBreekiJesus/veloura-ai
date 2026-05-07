@@ -17,6 +17,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AnalysisProvider } from "@/context/AnalysisContext";
+import { ThemeProvider } from "@/context/ThemeContext";
 
 const domain = process.env["EXPO_PUBLIC_DOMAIN"];
 if (domain) {
@@ -74,9 +75,11 @@ export default function RootLayout() {
         <QueryClientProvider client={queryClient}>
           <GestureHandlerRootView>
             <KeyboardProvider>
-              <AnalysisProvider>
-                <RootLayoutNav />
-              </AnalysisProvider>
+              <ThemeProvider>
+                <AnalysisProvider>
+                  <RootLayoutNav />
+                </AnalysisProvider>
+              </ThemeProvider>
             </KeyboardProvider>
           </GestureHandlerRootView>
         </QueryClientProvider>

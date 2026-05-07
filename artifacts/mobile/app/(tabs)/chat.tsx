@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -16,6 +17,8 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+const AURA_AVATAR = require("../../assets/images/aura-avatar.png");
+
 import { useAnalysis } from "@/context/AnalysisContext";
 import { useColors } from "@/hooks/useColors";
 
@@ -31,12 +34,14 @@ interface Message {
 // ── Starter suggestions ──────────────────────────────────────────────────────
 
 const SUGGESTIONS = [
-  "What makeup look suits me best?",
-  "How should I style my hair?",
-  "Which colors should I wear this season?",
-  "What glasses frames flatter my face?",
-  "Build me a skincare routine",
-  "What outfits work for my archetype?",
+  "💄 What makeup look suits me?",
+  "💇 How should I style my hair?",
+  "🎨 My colors for this season?",
+  "👓 Glasses frames for my face?",
+  "✨ Build me a skincare routine",
+  "👗 Outfits for my archetype",
+  "💍 What jewelry suits me?",
+  "🛍️ Where should I shop?",
 ];
 
 // ── API helpers ───────────────────────────────────────────────────────────────
@@ -84,14 +89,11 @@ function Bubble({
   return (
     <View style={[styles.bubbleRow, isUser ? styles.bubbleRowUser : styles.bubbleRowAI]}>
       {!isUser && (
-        <LinearGradient
-          colors={[colors.primary, "#B07850"]}
+        <Image
+          source={AURA_AVATAR}
           style={styles.avatar}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-        >
-          <Text style={styles.avatarText}>A</Text>
-        </LinearGradient>
+          contentFit="cover"
+        />
       )}
       <View
         style={[
@@ -141,14 +143,7 @@ function TypingIndicator({ colors }: { colors: ReturnType<typeof useColors> }) {
 
   return (
     <View style={styles.bubbleRow}>
-      <LinearGradient
-        colors={[colors.primary, "#B07850"]}
-        style={styles.avatar}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-      >
-        <Text style={styles.avatarText}>A</Text>
-      </LinearGradient>
+      <Image source={AURA_AVATAR} style={styles.avatar} contentFit="cover" />
       <View style={[styles.bubble, styles.bubbleAI, { backgroundColor: colors.card, borderColor: colors.border }]}>
         <View style={styles.typingDots}>
           {[d1, d2, d3].map((d, i) => (
@@ -253,7 +248,7 @@ export default function ChatScreen() {
     if (!analysis) return;
     const firstName = userName?.split(" ")[0] ?? null;
     const archetypes = analysis.aesthetic_archetypes?.slice(0, 2).join(" and ") ?? analysis.style_archetype;
-    const season = (analysis as Record<string, unknown>).color_season as string | undefined;
+    const season = (analysis as unknown as Record<string, unknown>).color_season as string | undefined;
     const greeting = [
       firstName ? `Hi ${firstName}! ` : "Hi there! ",
       `I'm Aura, your personal AI stylist. I've read your full Aesthetic Identity Profile — `,
@@ -346,14 +341,11 @@ export default function ChatScreen() {
           },
         ]}
       >
-        <LinearGradient
-          colors={[colors.primary, "#B07850"]}
+        <Image
+          source={AURA_AVATAR}
           style={styles.headerAvatar}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-        >
-          <Text style={styles.headerAvatarText}>A</Text>
-        </LinearGradient>
+          contentFit="cover"
+        />
         <View style={styles.headerText}>
           <Text style={[styles.headerName, { color: colors.foreground }]}>Aura</Text>
           <Text style={[styles.headerSub, { color: colors.mutedForeground }]}>

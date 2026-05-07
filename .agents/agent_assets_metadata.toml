@@ -5,4 +5,10 @@ outputs = []
 id = "muZ-PIZKh6n3dAr72RMsS"
 uri = "file://artifacts/mobile/assets/images/icon.png"
 type = "image"
-title = "generated_image"
+title = "veloura app icon"
+
+[[generated]]
+id = "F5eetRq5iramUz76sMe-5"
+uri = "file://artifacts/mobile/assets/images/aura-avatar.png"
+type = "image"
+title = "aura AI stylist avatar"

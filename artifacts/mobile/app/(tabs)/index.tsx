@@ -583,16 +583,13 @@ function OnboardingView({
       showsVerticalScrollIndicator={false}
     >
       <Animated.View style={[{ alignItems: "center", marginBottom: 32 }, anim]}>
-        <LinearGradient
-          colors={["#F5EDE3", "#E8C4A0"]}
-          style={styles.logoGrad}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-        >
-          <Ionicons name="sparkles" size={32} color={colors.primary} />
-        </LinearGradient>
+        <Image
+          source={require("../../assets/images/icon.png")}
+          style={styles.logoImg}
+          contentFit="cover"
+        />
         <Text style={[styles.appLabel, { color: colors.mutedForeground }]}>
-          AI IDENTITY STYLIST
+          VELOURA
         </Text>
       </Animated.View>
 
@@ -775,12 +772,10 @@ const styles = StyleSheet.create({
   tipTitle: { fontSize: 15, fontFamily: "Inter_600SemiBold" },
   tipBody: { fontSize: 13, fontFamily: "Inter_400Regular", lineHeight: 20 },
   onboardContent: { paddingHorizontal: 24 },
-  logoGrad: {
+  logoImg: {
     width: 72,
     height: 72,
     borderRadius: 22,
-    alignItems: "center",
-    justifyContent: "center",
     marginBottom: 12,
   },
   appLabel: { fontSize: 11, fontFamily: "Inter_600SemiBold", letterSpacing: 2.5 },

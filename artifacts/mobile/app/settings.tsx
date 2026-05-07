@@ -12,20 +12,26 @@ import {
   Text,
   TextInput,
   TouchableWithoutFeedback,
-  useColorScheme,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAnalysis } from "@/context/AnalysisContext";
+import { useTheme, type ThemePreference } from "@/context/ThemeContext";
 import { useColors } from "@/hooks/useColors";
 
 const APP_VERSION = "1.0.0";
 
+const THEME_OPTIONS: { label: string; value: ThemePreference; icon: React.ComponentProps<typeof Ionicons>["name"] }[] = [
+  { label: "System", value: "system", icon: "phone-portrait-outline" },
+  { label: "Light", value: "light", icon: "sunny-outline" },
+  { label: "Dark", value: "dark", icon: "moon-outline" },
+];
+
 export default function SettingsScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const scheme = useColorScheme();
+  const { preference, setTheme } = useTheme();
   const { userName, setUserName, clearAnalysis, analysis } = useAnalysis();
   const [editingName, setEditingName] = useState(false);
   const [nameValue, setNameValue] = useState(userName ?? "");
@@ -207,7 +213,7 @@ export default function SettingsScreen() {
             </View>
           </View>
 
-          {/* Appearance */}
+          {/* Appearance — theme toggle */}
           <View style={styles.group}>
             <Text style={[styles.groupLabel, { color: colors.mutedForeground }]}>
               APPEARANCE
@@ -218,42 +224,56 @@ export default function SettingsScreen() {
                 { backgroundColor: colors.card, borderColor: colors.border },
               ]}
             >
-              <View style={styles.row}>
-                <View
-                  style={[
-                    styles.rowIcon,
-                    { backgroundColor: scheme === "dark" ? "#2E2218" : colors.secondary },
-                  ]}
-                >
-                  <Ionicons
-                    name={scheme === "dark" ? "moon" : "sunny-outline"}
-                    size={18}
-                    color={colors.primary}
-                  />
+              <View style={[styles.row, { paddingBottom: 8 }]}>
+                <View style={[styles.rowIcon, { backgroundColor: colors.secondary }]}>
+                  <Ionicons name="color-palette-outline" size={18} color={colors.primary} />
                 </View>
                 <View style={styles.rowContent}>
                   <Text style={[styles.rowLabel, { color: colors.foreground }]}>
                     Color Mode
                   </Text>
                   <Text style={[styles.rowValue, { color: colors.mutedForeground }]}>
-                    {scheme === "dark" ? "Dark" : "Light"} · Follows system
-                  </Text>
-                </View>
-                <View
-                  style={[
-                    styles.modeBadge,
-                    { backgroundColor: colors.primary + "18" },
-                  ]}
-                >
-                  <Text style={[styles.modeBadgeText, { color: colors.primary }]}>
-                    System
+                    Choose light, dark, or follow your device
                   </Text>
                 </View>
               </View>
+              {/* 3-way toggle */}
+              <View style={[styles.themeToggleRow, { paddingHorizontal: 14, paddingBottom: 14 }]}>
+                {THEME_OPTIONS.map((opt) => {
+                  const active = preference === opt.value;
+                  return (
+                    <Pressable
+                      key={opt.value}
+                      onPress={async () => {
+                        await Haptics.selectionAsync();
+                        await setTheme(opt.value);
+                      }}
+                      style={[
+                        styles.themeOption,
+                        {
+                          backgroundColor: active ? colors.primary : colors.secondary,
+                          borderColor: active ? colors.primary : colors.border,
+                        },
+                      ]}
+                    >
+                      <Ionicons
+                        name={opt.icon}
+                        size={16}
+                        color={active ? "#fff" : colors.foreground}
+                      />
+                      <Text
+                        style={[
+                          styles.themeOptionText,
+                          { color: active ? "#fff" : colors.foreground },
+                        ]}
+                      >
+                        {opt.label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
             </View>
-            <Text style={[styles.groupHint, { color: colors.mutedForeground }]}>
-              Change your device's appearance setting to switch between light and dark mode.
-            </Text>
           </View>
 
           {/* Data */}
@@ -269,9 +289,9 @@ export default function SettingsScreen() {
             >
               <View style={styles.row}>
                 <View
-                  style={[styles.rowIcon, { backgroundColor: "#FFF0F0" }]}
+                  style={[styles.rowIcon, { backgroundColor: colors.secondary + "80" }]}
                 >
-                  <Ionicons name="shield-checkmark-outline" size={18} color="#D45F5F" />
+                  <Ionicons name="shield-checkmark-outline" size={18} color={colors.primary} />
                 </View>
                 <View style={styles.rowContent}>
                   <Text style={[styles.rowLabel, { color: colors.foreground }]}>
@@ -294,7 +314,7 @@ export default function SettingsScreen() {
                 ]}
               >
                 <View
-                  style={[styles.rowIcon, { backgroundColor: "#FFF0F0" }]}
+                  style={[styles.rowIcon, { backgroundColor: "#D45F5F18" }]}
                 >
                   <Ionicons name="trash-outline" size={18} color="#D45F5F" />
                 </View>
@@ -330,7 +350,7 @@ export default function SettingsScreen() {
                 </View>
                 <View style={styles.rowContent}>
                   <Text style={[styles.rowLabel, { color: colors.foreground }]}>
-                    App Version
+                    Veloura · Version
                   </Text>
                   <Text style={[styles.rowValue, { color: colors.mutedForeground }]}>
                     {APP_VERSION}
@@ -390,13 +410,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     marginLeft: 4,
   },
-  groupHint: {
-    fontSize: 12,
-    fontFamily: "Inter_400Regular",
-    marginTop: 6,
-    marginLeft: 4,
-    lineHeight: 18,
-  },
   card: { borderRadius: 18, borderWidth: 1, overflow: "hidden" },
   row: {
     flexDirection: "row",
@@ -431,7 +444,21 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   savedText: { fontSize: 12, fontFamily: "Inter_500Medium" },
-  modeBadge: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8 },
-  modeBadgeText: { fontSize: 12, fontFamily: "Inter_600SemiBold" },
   divider: { height: 1, marginLeft: 62 },
+  // Theme toggle
+  themeToggleRow: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  themeOption: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  themeOptionText: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
 });
