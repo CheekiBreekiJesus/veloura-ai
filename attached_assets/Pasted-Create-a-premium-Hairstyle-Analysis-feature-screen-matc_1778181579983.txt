@@ -1,0 +1,126 @@
+Create a premium “Hairstyle Analysis” feature screen matching the existing aesthetic and visual identity of the app. Design must feel luxurious, editorial, feminine, modern, soft, and AI-powered. Use neutral/beige tones, rounded cards, subtle shadows, elegant typography, glassmorphism accents, and clean spacing.
+
+Use the uploaded portrait as the primary visual anchor.
+
+FEATURE GOAL:
+Automatically analyze facial structure, proportions, hair texture, volume, and aesthetic profile to generate personalized hairstyle recommendations.
+
+Do NOT use fixed hairstyles or hardcoded labels. All recommendations must adapt dynamically to the analyzed face.
+
+LAYOUT:
+
+SECTION 1 — HERO HAIR ANALYSIS
+
+Large centered portrait
+Elegant title:
+“Hairstyle Analysis”
+Add subtle facial contour guides
+Show detected:
+face shape
+hair texture
+volume type
+style direction
+
+Examples:
+
+Soft Oval
+Natural Waves
+Medium Density
+Romantic Soft
+
+SECTION 2 — SIDE-BY-SIDE HAIRSTYLE COMPARISON
+Generate hairstyle comparison cards using realistic hairstyle overlays/adaptations on the portrait.
+
+Include categories such as:
+
+long layered
+soft waves
+curtain bangs
+sleek straight
+textured bob
+voluminous curls
+tied back
+shoulder length
+
+Each comparison card must include:
+
+hairstyle preview
+short style label only
+compatibility indicator
+no paragraphs
+
+Highlight best matching hairstyles with:
+
+soft glow
+elegant outline
+“Best Match” badge
+
+SECTION 3 — STYLE COMPATIBILITY
+Generate minimalist visual cards for:
+
+volume balance
+face framing
+symmetry enhancement
+softness vs structure
+maintenance level
+
+Use:
+
+icons
+short labels only
+clean premium presentation
+
+SECTION 4 — HAIR COLOR DIRECTION
+Generate elegant color suggestion swatches based on undertone and contrast analysis.
+
+Examples:
+
+warm brunette
+soft black
+caramel highlights
+ash brown
+copper tones
+espresso
+
+Highlight most compatible shades visually.
+
+SECTION 5 — AESTHETIC STYLE TAGS
+Generate dynamic aesthetic tags:
+
+effortless chic
+soft romantic
+clean girl
+modern classic
+bold volume
+minimalist sleek
+natural elegance
+
+Generate from actual analysis results.
+
+DESIGN RULES:
+
+Visual-first UI
+No paragraphs
+Minimal text only
+Premium editorial feel
+Vogue + Pinterest + Apple inspired
+Smooth transitions and hover animations
+Rounded floating cards
+Thin elegant dividers
+Mobile-first responsive layout
+Maintain consistency with existing app branding
+
+TECHNICAL:
+
+Connect directly to existing face analysis pipeline
+Use detected:
+face shape
+proportions
+hair texture
+contrast level
+undertone
+Build reusable modular React components
+Prepare structure for future virtual hairstyle try-on functionality
+
+OUTPUT:
+Build production-ready UI components fully integrated into the existing app workflow and aesthetic intelligence system.

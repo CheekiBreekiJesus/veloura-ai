@@ -1,0 +1,111 @@
+Create a premium “Personal Color Analysis” feature screen matching the existing aesthetic of the app. Style must feel luxurious, editorial, minimal, feminine, modern, and AI-powered. Use soft neutral backgrounds, elegant typography, rounded cards, subtle shadows, pastel accents, and clean spacing.
+
+Use the uploaded portrait as the main visual anchor.
+
+FEATURE GOAL:
+Automatically generate a personal color analysis dashboard using the detected facial features, skin tone, undertone, contrast level, hair color, and eye color from the face analysis pipeline.
+
+Do NOT use fixed palettes or hardcoded labels. All recommendations must adapt dynamically to the analyzed face.
+
+LAYOUT:
+
+SECTION 1 — HERO COLOR ANALYSIS
+
+* Large centered portrait
+* Soft studio/editorial presentation
+* Elegant title:
+  “Personal Color Analysis”
+* Add subtle undertone and contrast indicators
+* Show detected season/style category dynamically:
+  examples:
+
+  * Soft Summer
+  * Deep Autumn
+  * Warm Spring
+  * Cool Winter
+
+SECTION 2 — BEST COLOR PALETTE
+Create premium color palette cards showing:
+
+* best neutrals
+* accent colors
+* statement colors
+* soft tones
+* dark tones
+
+Each swatch must include:
+
+* short color label only
+* no paragraphs
+* clean luxury presentation
+
+SECTION 3 — SIDE-BY-SIDE CLOTHING COLOR COMPARISON
+Generate comparison cards using the portrait wearing different clothing color overlays.
+
+Include:
+
+* flattering colors
+* neutral colors
+* less compatible colors
+
+Examples:
+
+* emerald
+* ivory
+* charcoal
+* dusty rose
+* warm beige
+* cool gray
+
+Highlight best matches with:
+
+* soft glow
+* “Best Match” indicator
+* elegant outline
+
+SECTION 4 — COLOR HARMONY INSIGHTS
+Small visual cards only:
+
+* skin harmony
+* eye enhancement
+* contrast balance
+* undertone compatibility
+
+Use icons + 1 short label each.
+
+SECTION 5 — RECOMMENDED STYLE DIRECTION
+Create minimalist tags:
+
+* monochrome
+* earthy
+* jewel tones
+* muted pastels
+* high contrast
+* warm minimal
+* cool elegant
+
+Generate dynamically from analysis results.
+
+DESIGN RULES:
+
+* Visual-first experience
+* No long text
+* No paragraphs
+* Premium beauty-tech aesthetic
+* Vogue + Pinterest + Apple inspired
+* Soft feminine UI
+* Rounded floating cards
+* Thin elegant dividers
+* Smooth animations
+* Mobile-first responsive layout
+* Maintain existing app branding consistency
+
+TECHNICAL:
+
+* Connect directly to existing face analysis pipeline
+* Use detected undertone, contrast, skin tone, eye color, and hair color dynamically
+* Generate reusable modular React components
+* Prepare architecture for future shopping recommendations and outfit generation
+
+OUTPUT:
+Build production-ready UI components integrated into the current app workflow and aesthetic system.
