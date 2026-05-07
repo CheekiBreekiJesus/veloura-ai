@@ -117,7 +117,7 @@ function RotationEditorModal({
   asset: PendingAsset | null;
   visible: boolean;
   onCancel: () => void;
-  onConfirm: (uri: string, base64: string, mimeType: string) => void;
+      onConfirm: (uri: string, base64: string, mimeType: string) => void;
 }) {
   const colors = useColors();
   const [stepRotation, setStepRotation] = useState(0);
@@ -188,7 +188,7 @@ function RotationEditorModal({
         [{ rotate: deg }],
         { compress: 0.75, format: SaveFormat.JPEG, base64: true }
       );
-      onConfirm(result.uri, result.base64 ?? asset.base64, asset.mimeType);
+      onConfirm(result.uri, result.base64 ?? asset.base64, "image/jpeg");
     } catch {
       onConfirm(asset.uri, asset.base64, asset.mimeType);
     } finally {
