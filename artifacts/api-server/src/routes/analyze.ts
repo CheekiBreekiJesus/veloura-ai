@@ -177,7 +177,7 @@ router.post("/analyze", analyzeLimiter, requireAnalyzeToken, async (req, res): P
               type: "image_url",
               image_url: {
                 url: `data:${mimeType};base64,${imageBase64}`,
-                detail: "high",
+                detail: "low",
               },
             },
             {

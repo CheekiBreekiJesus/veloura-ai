@@ -24,6 +24,7 @@ import { useAnalysis } from "@/context/AnalysisContext";
 import type { Season } from "@/context/SeasonContext";
 import { useWardrobe, type ClothingCategory, type WardrobeItem } from "@/context/WardrobeContext";
 import { useColors } from "@/hooks/useColors";
+import { resizeImageForUpload } from "@/utils/resizeImage";
 import { saveToGallery } from "@/utils/saveToGallery";
 
 const BASE_URL = process.env["EXPO_PUBLIC_DOMAIN"]
@@ -148,7 +149,10 @@ export default function AddItemScreen() {
     setResult(null);
 
     try {
-      const tokenRes = await fetch(`${BASE_URL}/api/auth/token`);
+      const [tokenRes, resized] = await Promise.all([
+        fetch(`${BASE_URL}/api/auth/token`),
+        resizeImageForUpload(imageUri),
+      ]);
       if (!tokenRes.ok) throw new Error("Could not obtain auth token");
       const { token } = (await tokenRes.json()) as { token: string };
 
@@ -159,8 +163,8 @@ export default function AddItemScreen() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          imageBase64,
-          mimeType,
+          imageBase64: resized.base64,
+          mimeType: resized.mimeType,
           profile: analysis ?? {},
         }),
       });

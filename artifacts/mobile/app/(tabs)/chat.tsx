@@ -428,7 +428,6 @@ export default function StylistChatScreen() {
           );
         })}
         {loading && <TypingIndicator colors={colors} avatarSource={avatarSource} />}
-        {showSuggestions && <SuggestionChips colors={colors} onSelect={(s) => { void send(s); }} />}
         {error && (
           <View style={[styles.errorBanner, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <Ionicons name="alert-circle-outline" size={16} color="#FF5252" />
@@ -436,6 +435,10 @@ export default function StylistChatScreen() {
           </View>
         )}
       </ScrollView>
+
+      {showSuggestions && (
+        <SuggestionChips colors={colors} onSelect={(s) => { void send(s); }} />
+      )}
 
       <View style={[styles.inputBar, { borderTopColor: colors.border, paddingBottom: insets.bottom + 10, backgroundColor: colors.background }]}>
         <TextInput

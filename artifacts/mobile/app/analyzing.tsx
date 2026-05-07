@@ -18,6 +18,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAnalysis, type AnalysisResult } from "@/context/AnalysisContext";
 import { usePortraitHistory } from "@/context/PortraitHistoryContext";
 import { useColors } from "@/hooks/useColors";
+import { resizeImageForUpload } from "@/utils/resizeImage";
 import { saveToGallery } from "@/utils/saveToGallery";
 
 const ND = Platform.OS !== "web";
@@ -198,7 +199,10 @@ export default function AnalyzingScreen() {
     const baseUrl = domainEnv ? `https://${domainEnv}` : "";
 
     const run = async () => {
-      const tokenRes = await fetch(`${baseUrl}/api/auth/token`);
+      const [tokenRes, resized] = await Promise.all([
+        fetch(`${baseUrl}/api/auth/token`),
+        resizeImageForUpload(pendingImage.uri),
+      ]);
       if (!tokenRes.ok) {
         throw new Error(await readJsonError(tokenRes, "Could not obtain analysis token"));
       }
@@ -211,8 +215,8 @@ export default function AnalyzingScreen() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          imageBase64: pendingImage.base64,
-          mimeType: pendingImage.mimeType,
+          imageBase64: resized.base64,
+          mimeType: resized.mimeType,
         }),
       });
 
