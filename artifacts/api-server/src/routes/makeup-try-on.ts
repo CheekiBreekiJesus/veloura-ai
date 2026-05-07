@@ -86,7 +86,8 @@ router.post(
       req.log.info({ productName }, "Generating makeup try-on preview via image edit");
 
       const imgBuffer = Buffer.from(imageBase64, "base64");
-      const imgFile = new File([imgBuffer], "selfie.png", { type: mimeType });
+      const blob = new Blob([imgBuffer], { type: mimeType });
+      const imgFile = Object.assign(blob, { name: "selfie.png", lastModified: Date.now() });
 
       const imageResponse = await openai.images.edit({
         model: "gpt-image-1",

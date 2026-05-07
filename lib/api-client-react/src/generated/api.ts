@@ -278,7 +278,7 @@ export const useChatWithStylist = <
 };
 
 /**
- * Accepts a selfie (base64) and a makeup look descriptor. Uses GPT-4o to extract face features, then DALL-E 3 to generate an editorial portrait with the requested makeup applied. Returns a base64-encoded PNG. Requires a valid Bearer token from GET /api/auth/token. Rate-limited to 15 requests per IP per 15-minute window. Maximum 2 concurrent requests.
+ * Accepts a selfie (base64) and a makeup product descriptor. Uses GPT-4o to extract face features, then gpt-image-1 to edit the portrait with the requested product applied as makeup. Returns a base64-encoded PNG. Requires a valid Bearer token from GET /api/auth/token. Rate-limited to 15 requests per IP per 15-minute window. Maximum 2 concurrent requests.
 
  * @summary Generate an AI makeup try-on preview
  */

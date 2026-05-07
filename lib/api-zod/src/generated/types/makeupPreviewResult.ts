@@ -8,7 +8,7 @@
 
 export interface MakeupPreviewResult {
   /** Base64-encoded PNG of the AI-generated makeup preview */
-  imageBase64: string;
+  resultImageBase64: string;
   /** Always "image/png" */
   mimeType: string;
 }

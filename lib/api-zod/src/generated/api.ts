@@ -128,7 +128,7 @@ export const ChatWithStylistResponse = zod.object({
 });
 
 /**
- * Accepts a selfie (base64) and a makeup look descriptor. Uses GPT-4o to extract face features, then DALL-E 3 to generate an editorial portrait with the requested makeup applied. Returns a base64-encoded PNG. Requires a valid Bearer token from GET /api/auth/token. Rate-limited to 15 requests per IP per 15-minute window. Maximum 2 concurrent requests.
+ * Accepts a selfie (base64) and a makeup product descriptor. Uses GPT-4o to extract face features, then gpt-image-1 to edit the portrait with the requested product applied as makeup. Returns a base64-encoded PNG. Requires a valid Bearer token from GET /api/auth/token. Rate-limited to 15 requests per IP per 15-minute window. Maximum 2 concurrent requests.
 
  * @summary Generate an AI makeup try-on preview
  */
@@ -142,14 +142,17 @@ export const MakeupTryOnBody = zod.object({
       "Base64-encoded selfie image. Maximum ~6 MB of base64 chars. Accepted MIME types: image\/jpeg, image\/png, image\/webp, image\/gif, image\/heic, image\/heif.\n",
     ),
   mimeType: zod.string().describe("MIME type of the image (e.g. image\/jpeg)"),
-  lookName: zod
-    .string()
-    .describe('Short name of the makeup look (e.g. \"Glam Smoky Eye\")'),
-  lookPromptFragment: zod
+  productName: zod
     .string()
     .describe(
-      'Detailed description fragment used to prompt DALL-E (e.g. \"a dramatic smoky eye with charcoal shadow…\")',
+      'Name of the makeup product (e.g. \"Terracotta Eyeshadow Palette\")',
     ),
+  productCategory: zod
+    .string()
+    .describe('Product category (always \"Makeup\")'),
+  productDescription: zod
+    .string()
+    .describe("Full product description used to derive the makeup look"),
   profile: zod
     .object({
       face_shape: zod
@@ -227,7 +230,7 @@ export const MakeupTryOnBody = zod.object({
 });
 
 export const MakeupTryOnResponse = zod.object({
-  imageBase64: zod
+  resultImageBase64: zod
     .string()
     .describe("Base64-encoded PNG of the AI-generated makeup preview"),
   mimeType: zod.string().describe('Always \"image\/png\"'),

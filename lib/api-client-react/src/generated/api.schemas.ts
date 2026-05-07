@@ -198,17 +198,19 @@ export interface MakeupTryOnRequest {
   imageBase64: string;
   /** MIME type of the image (e.g. image/jpeg) */
   mimeType: string;
-  /** Short name of the makeup look (e.g. "Glam Smoky Eye") */
-  lookName: string;
-  /** Detailed description fragment used to prompt DALL-E (e.g. "a dramatic smoky eye with charcoal shadow…") */
-  lookPromptFragment: string;
+  /** Name of the makeup product (e.g. "Terracotta Eyeshadow Palette") */
+  productName: string;
+  /** Product category (always "Makeup") */
+  productCategory: string;
+  /** Full product description used to derive the makeup look */
+  productDescription: string;
   /** User's Aesthetic Identity Profile for personalisation context */
   profile?: AnalysisResult;
 }
 
 export interface MakeupPreviewResult {
   /** Base64-encoded PNG of the AI-generated makeup preview */
-  imageBase64: string;
+  resultImageBase64: string;
   /** Always "image/png" */
   mimeType: string;
 }

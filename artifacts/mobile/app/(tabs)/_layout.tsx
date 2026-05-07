@@ -20,6 +20,10 @@ function NativeTabLayout() {
         <Icon sf={{ default: "hanger", selected: "hanger" }} />
         <Label>Wardrobe</Label>
       </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="studio">
+        <Icon sf={{ default: "wand.and.sparkles", selected: "wand.and.sparkles" }} />
+        <Label>Studio</Label>
+      </NativeTabs.Trigger>
       <NativeTabs.Trigger name="chat">
         <Icon sf={{ default: "sparkles", selected: "sparkles" }} />
         <Label>Stylist</Label>
@@ -27,10 +31,6 @@ function NativeTabLayout() {
       <NativeTabs.Trigger name="shop">
         <Icon sf={{ default: "bag", selected: "bag.fill" }} />
         <Label>Shop</Label>
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="studio">
-        <Icon sf={{ default: "wand.and.sparkles", selected: "wand.and.sparkles" }} />
-        <Label>Studio</Label>
       </NativeTabs.Trigger>
     </NativeTabs>
   );
@@ -101,6 +101,18 @@ function ClassicTabLayout() {
         }}
       />
       <Tabs.Screen
+        name="studio"
+        options={{
+          title: "Studio",
+          tabBarIcon: ({ color }) =>
+            isIOS ? (
+              <SymbolView name="wand.and.sparkles" tintColor={color} size={24} />
+            ) : (
+              <Ionicons name="color-palette-outline" size={22} color={color} />
+            ),
+        }}
+      />
+      <Tabs.Screen
         name="chat"
         options={{
           title: "Stylist",
@@ -121,18 +133,6 @@ function ClassicTabLayout() {
               <SymbolView name="bag.fill" tintColor={color} size={24} />
             ) : (
               <Ionicons name="bag-outline" size={22} color={color} />
-            ),
-        }}
-      />
-      <Tabs.Screen
-        name="studio"
-        options={{
-          title: "Studio",
-          tabBarIcon: ({ color }) =>
-            isIOS ? (
-              <SymbolView name="wand.and.sparkles" tintColor={color} size={24} />
-            ) : (
-              <Ionicons name="color-palette-outline" size={22} color={color} />
             ),
         }}
       />
