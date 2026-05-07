@@ -272,22 +272,6 @@ export default function StylistChatScreen() {
     }
   }, [pendingChatInput, setPendingChatInput]);
 
-  // Auto-send tip context when navigated from Tip of the Day.
-  // We track the last injected signature so each distinct tip fires once, but
-  // a second tap of a new tip (different title/body) will still auto-send.
-  const tipInjectedRef = useRef<string>("");
-  useEffect(() => {
-    const sig = tipTitle ? `${tipTitle}|${tipBody ?? ""}` : "";
-    if (!sig || tipInjectedRef.current === sig || !initialized || loading) return;
-    tipInjectedRef.current = sig;
-    const msg = tipBody
-      ? `Let's talk about today's tip: ${tipTitle} — ${tipBody}`
-      : `Let's talk about today's tip: ${tipTitle}`;
-    // Clear params so a route re-render with stale params doesn't re-fire.
-    router.setParams({ tipTitle: "", tipBody: "" });
-    void send(msg);
-  }, [initialized, loading, tipTitle, tipBody, send]);
-
   // Reset local state when analysis is cleared OR replaced with a new one.
   // prevAnalysisRef tracks the previous object reference so we can distinguish
   // a re-analysis (old → new) from the initial mount (undefined → loaded).
@@ -398,6 +382,22 @@ export default function StylistChatScreen() {
     },
     [input, loading, analysis, messages, bodyProfile, stylePrefs, unitsPreference, feedback, healthConcerns]
   );
+
+  // Auto-send tip context when navigated from Tip of the Day.
+  // We track the last injected signature so each distinct tip fires once, but
+  // a second tap of a new (different) tip will still auto-send in the same session.
+  const tipInjectedRef = useRef<string>("");
+  useEffect(() => {
+    const sig = tipTitle ? `${tipTitle}|${tipBody ?? ""}` : "";
+    if (!sig || tipInjectedRef.current === sig || !initialized || loading) return;
+    tipInjectedRef.current = sig;
+    const msg = tipBody
+      ? `Let's talk about today's tip: ${tipTitle} — ${tipBody}`
+      : `Let's talk about today's tip: ${tipTitle}`;
+    // Clear params so stale route re-renders don't re-fire.
+    router.setParams({ tipTitle: "", tipBody: "" });
+    void send(msg);
+  }, [initialized, loading, tipTitle, tipBody, send]);
 
   if (!analysis) {
     return <NoAnalysis colors={colors} />;
