@@ -211,7 +211,6 @@ const styles = StyleSheet.create({
   root: { flex: 1 },
   topBar: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 18, marginBottom: 18 },
   topTitle: { fontSize: 18, fontFamily: "Inter_700Bold", textAlign: "center", flex: 1 },
-  iconBtn: { width: 40, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center" },
   heroCard: { marginHorizontal: 18, borderRadius: 28, borderWidth: 1, overflow: "hidden" },
   heroImageWrap: { height: 300 },
   heroImage: { width: "100%", height: "100%" },

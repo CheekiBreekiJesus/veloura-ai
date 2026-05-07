@@ -263,7 +263,6 @@ const styles = StyleSheet.create({
   root: { flex: 1 },
 
   hero: { paddingHorizontal: 20, paddingBottom: 28 },
-  backBtn: { width: 40, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center", marginBottom: 20 },
   heroBody: { alignItems: "center", gap: 16 },
   heroIcon: { width: 96, height: 96, borderRadius: 28, alignItems: "center", justifyContent: "center" },
   heroBadgeRow: { flexDirection: "row", gap: 8 },
@@ -316,5 +315,4 @@ const styles = StyleSheet.create({
   videoChannel: { fontSize: 11, fontFamily: "Inter_400Regular" },
 
   notFoundText: { fontSize: 18, fontFamily: "Inter_600SemiBold", marginTop: 12, marginBottom: 20 },
-  backFab: { paddingHorizontal: 24, paddingVertical: 12, borderRadius: 14 },
 });

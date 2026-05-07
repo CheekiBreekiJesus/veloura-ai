@@ -315,13 +315,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
   },
-  backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-  },
   headerCenter: { flexDirection: "row", alignItems: "center", gap: 10 },
   headerAvatar: {
     width: 38,

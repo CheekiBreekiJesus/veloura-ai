@@ -446,13 +446,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   headerTitle: { fontSize: 17, fontFamily: "Inter_600SemiBold" },
-  backBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-  },
   content: { padding: 20, gap: 4 },
   group: { marginBottom: 20 },
   groupLabel: {

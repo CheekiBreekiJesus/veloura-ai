@@ -323,13 +323,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   headerTitle: { fontSize: 17, fontFamily: "Inter_600SemiBold" },
-  closeBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    alignItems: "center",
-    justifyContent: "center",
-  },
   scrollContent: { padding: 20, gap: 16 },
   nameSection: { gap: 6 },
   nameLabel: { fontSize: 12, fontFamily: "Inter_500Medium", letterSpacing: 0.5 },

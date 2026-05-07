@@ -840,13 +840,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   headerTitle: { fontSize: 17, fontFamily: "Inter_700Bold" },
-  backPill: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
-  },
   emptyRoot: {
     flex: 1,
     alignItems: "center",

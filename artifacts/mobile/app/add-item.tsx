@@ -451,10 +451,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   headerTitle: { fontSize: 17, fontFamily: "Inter_600SemiBold" },
-  closeBtn: {
-    width: 36, height: 36, borderRadius: 10,
-    alignItems: "center", justifyContent: "center",
-  },
   scroll: { padding: 20, gap: 16 },
   imageArea: { height: 280, borderRadius: 20, overflow: "hidden" },
   preview: { flex: 1 },
