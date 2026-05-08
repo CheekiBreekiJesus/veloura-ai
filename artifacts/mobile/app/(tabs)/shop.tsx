@@ -40,13 +40,73 @@ const BASE_URL = process.env["EXPO_PUBLIC_DOMAIN"] ? `https://${process.env["EXP
 
 type ShopProduct = Product & {
   brand: string;
-  description: string;
-  priceNumeric: number;
-  affiliateUrls: Record<string, { url: string; retailer: string }>;
-  defaultLocale: string;
   match_score?: number;
   generated_count?: number;
 };
+
+type ApiRow = {
+  id: string;
+  name: string;
+  brand: string;
+  retailer: string;
+  category: string;
+  description: string;
+  price_tier: PriceTier;
+  color_hex: string[];
+  affiliate_urls: Record<string, { url: string; retailer: string }>;
+  generated_count: number;
+  match_score?: number;
+};
+
+const CATEGORY_GRADIENTS: Record<string, [string, string]> = {
+  Skincare: ["#FDECD3", "#F5D5B0"],
+  Makeup: ["#FCE4EC", "#F8BBD0"],
+  Fashion: ["#D9EEF5", "#B8DCEA"],
+  Accessories: ["#F3E5F5", "#E1BEE7"],
+  Fragrance: ["#FFF9C4", "#FFF176"],
+  Haircare: ["#E8F5E9", "#C8E6C9"],
+};
+
+const CATEGORY_ICONS: Record<string, React.ComponentProps<typeof Ionicons>["name"]> = {
+  Skincare: "water-outline",
+  Makeup: "color-fill-outline",
+  Fashion: "shirt-outline",
+  Accessories: "diamond-outline",
+  Fragrance: "flower-outline",
+  Haircare: "leaf-outline",
+};
+
+const PRICE_TIER_NUMERIC: Record<PriceTier, number> = {
+  budget: 20,
+  mid: 55,
+  luxury: 175,
+};
+
+function mapApiRow(row: ApiRow): ShopProduct {
+  const gradient: [string, string] =
+    CATEGORY_GRADIENTS[row.category] ?? ["#F5EDE3", "#EDE3D9"];
+  const priceNumeric = PRICE_TIER_NUMERIC[row.price_tier] ?? 30;
+  return {
+    id: row.id,
+    name: row.name,
+    brand: row.brand,
+    category: row.category,
+    description: row.description,
+    reason: row.description,
+    price: `$${priceNumeric}+`,
+    priceNumeric,
+    priceTier: row.price_tier,
+    icon: CATEGORY_ICONS[row.category] ?? "bag-outline",
+    gradient,
+    highlights: [],
+    affiliateUrls: row.affiliate_urls,
+    defaultLocale: "US",
+    featured: (row.match_score ?? 0) > 0,
+    isNew: row.generated_count === 1,
+    match_score: row.match_score,
+    generated_count: row.generated_count,
+  };
+}
 
 async function openShopUrl(url: string) {
   await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -96,8 +156,8 @@ export default function ShopScreen() {
         if (activeCategory !== "All") params.set("category", activeCategory);
         const res = await fetch(`${BASE_URL}/api/shop/products?${params.toString()}`);
         if (res.ok) {
-          const data = (await res.json()) as ShopProduct[];
-          setProducts(data);
+          const data = (await res.json()) as ApiRow[];
+          setProducts(data.map(mapApiRow));
         }
       } finally {
         setLoading(false);
