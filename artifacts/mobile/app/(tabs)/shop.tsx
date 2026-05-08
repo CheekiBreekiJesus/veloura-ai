@@ -28,6 +28,7 @@ import {
   CATEGORIES,
   PRICE_TIER_COLORS,
   PRICE_TIER_LABELS,
+  PRODUCTS,
   RETAILER_ICONS,
   getProductUrl,
   type PriceTier,
@@ -81,6 +82,10 @@ const PRICE_TIER_NUMERIC: Record<PriceTier, number> = {
   mid: 55,
   luxury: 175,
 };
+
+function mapStaticProduct(p: Product): ShopProduct {
+  return { ...p, brand: "" };
+}
 
 function mapApiRow(row: ApiRow): ShopProduct {
   const gradient: [string, string] =
@@ -152,19 +157,24 @@ export default function ShopScreen() {
       try {
         const params = new URLSearchParams();
         if (analysis?.undertone) params.set("undertone", analysis.undertone);
-        if (analysis?.skin_tone_category) params.set("color_season", analysis.skin_tone_category);
         if (activeCategory !== "All") params.set("category", activeCategory);
         const res = await fetch(`${BASE_URL}/api/shop/products?${params.toString()}`);
         if (res.ok) {
           const data = (await res.json()) as ApiRow[];
-          setProducts(data.map(mapApiRow));
+          if (data.length > 0) {
+            setProducts(data.map(mapApiRow));
+          } else {
+            setProducts(PRODUCTS.map(mapStaticProduct));
+          }
+        } else {
+          setProducts(PRODUCTS.map(mapStaticProduct));
         }
       } finally {
         setLoading(false);
       }
     };
     void run();
-  }, [analysis?.undertone, analysis?.skin_tone_category, activeCategory]);
+  }, [analysis?.undertone, activeCategory]);
 
   const filtered = useMemo(() => {
     let list = products.length > 0 ? products : [];
