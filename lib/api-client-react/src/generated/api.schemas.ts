@@ -309,6 +309,107 @@ export interface ClothingAnalysisResult {
   seasons: ClothingAnalysisResultSeasonsItem[];
 }
 
+export interface AffiliateUrlEntry {
+  url: string;
+  retailer: string;
+}
+
+export type ShopProductCategory =
+  (typeof ShopProductCategory)[keyof typeof ShopProductCategory];
+
+export const ShopProductCategory = {
+  Skincare: "Skincare",
+  Makeup: "Makeup",
+  Fashion: "Fashion",
+  Accessories: "Accessories",
+  Fragrance: "Fragrance",
+  Haircare: "Haircare",
+} as const;
+
+export type ShopProductPriceTier =
+  (typeof ShopProductPriceTier)[keyof typeof ShopProductPriceTier];
+
+export const ShopProductPriceTier = {
+  budget: "budget",
+  mid: "mid",
+  luxury: "luxury",
+} as const;
+
+/**
+ * Affiliate-tracked URLs keyed by country code (US/GB/AU/CA/FR/DE)
+ */
+export type ShopProductAffiliateUrls = { [key: string]: AffiliateUrlEntry };
+
+export interface ShopProduct {
+  id: number;
+  name: string;
+  brand: string;
+  retailer: string;
+  category: ShopProductCategory;
+  /** AI-written reason this product suits the profile (~40 words) */
+  description: string;
+  price_tier: ShopProductPriceTier;
+  /** Dominant product colors as hex codes */
+  color_hex: string[];
+  /** Undertones this product suits (warm/cool/neutral) */
+  undertones: string[];
+  /** Color seasons this product suits (Spring/Summer/Autumn/Winter) */
+  color_seasons: string[];
+  /** Style archetypes this product suits */
+  style_archetypes: string[];
+  /** Calendar seasons this product is appropriate for */
+  categories_calendar: string[];
+  /** Affiliate-tracked URLs keyed by country code (US/GB/AU/CA/FR/DE) */
+  affiliate_urls: ShopProductAffiliateUrls;
+  /** How many user analyses have recommended this product */
+  generated_count: number;
+  created_at: string;
+  /**
+   * How many of undertone/color_season/calendar_season matched (only in GET response)
+   * @minimum 0
+   * @maximum 3
+   */
+  match_score?: number;
+}
+
+export interface ShopGenerateRequest {
+  /** warm, cool, or neutral */
+  undertone: string;
+  /** Spring, Summer, Autumn, or Winter */
+  color_season?: string;
+  style_archetype?: string;
+  aesthetic_archetypes?: string[];
+  skin_type?: string;
+  shopping_keywords?: string[];
+  /** Hex color codes from the analysis */
+  color_palette?: string[];
+  fashion_direction?: string;
+  makeup_direction?: string;
+}
+
 export interface ErrorResponse {
   error: string;
 }
+
+export type GetShopProductsParams = {
+  /**
+   * Filter by undertone: warm, cool, or neutral
+   */
+  undertone?: string;
+  /**
+   * Filter by color season: Spring, Summer, Autumn, or Winter
+   */
+  color_season?: string;
+  /**
+   * Filter by calendar season: spring, summer, autumn, or winter
+   */
+  calendar_season?: string;
+  /**
+   * Filter by product category
+   */
+  category?: string;
+  /**
+   * Maximum number of products to return
+   */
+  limit?: number;
+};

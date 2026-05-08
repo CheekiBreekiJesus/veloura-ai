@@ -400,6 +400,128 @@ components:
         - compatibilityScore
         - compatibilityNotes
         - seasons
+    AffiliateUrlEntry:
+      type: object
+      properties:
+        url:
+          type: string
+        retailer:
+          type: string
+      required:
+        - url
+        - retailer
+
+    ShopProduct:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        brand:
+          type: string
+        retailer:
+          type: string
+        category:
+          type: string
+          enum: [Skincare, Makeup, Fashion, Accessories, Fragrance, Haircare]
+        description:
+          type: string
+          description: AI-written reason this product suits the profile (~40 words)
+        price_tier:
+          type: string
+          enum: [budget, mid, luxury]
+        color_hex:
+          type: array
+          items:
+            type: string
+          description: Dominant product colors as hex codes
+        undertones:
+          type: array
+          items:
+            type: string
+          description: Undertones this product suits (warm/cool/neutral)
+        color_seasons:
+          type: array
+          items:
+            type: string
+          description: Color seasons this product suits (Spring/Summer/Autumn/Winter)
+        style_archetypes:
+          type: array
+          items:
+            type: string
+          description: Style archetypes this product suits
+        categories_calendar:
+          type: array
+          items:
+            type: string
+          description: Calendar seasons this product is appropriate for
+        affiliate_urls:
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/AffiliateUrlEntry"
+          description: Affiliate-tracked URLs keyed by country code (US/GB/AU/CA/FR/DE)
+        generated_count:
+          type: integer
+          description: How many user analyses have recommended this product
+        created_at:
+          type: string
+          format: date-time
+        match_score:
+          type: integer
+          minimum: 0
+          maximum: 3
+          description: How many of undertone/color_season/calendar_season matched (only in GET response)
+      required:
+        - id
+        - name
+        - brand
+        - retailer
+        - category
+        - description
+        - price_tier
+        - color_hex
+        - undertones
+        - color_seasons
+        - style_archetypes
+        - categories_calendar
+        - affiliate_urls
+        - generated_count
+        - created_at
+
+    ShopGenerateRequest:
+      type: object
+      properties:
+        undertone:
+          type: string
+          description: "warm, cool, or neutral"
+        color_season:
+          type: string
+          description: "Spring, Summer, Autumn, or Winter"
+        style_archetype:
+          type: string
+        aesthetic_archetypes:
+          type: array
+          items:
+            type: string
+        skin_type:
+          type: string
+        shopping_keywords:
+          type: array
+          items:
+            type: string
+        color_palette:
+          type: array
+          items:
+            type: string
+          description: Hex color codes from the analysis
+        fashion_direction:
+          type: string
+        makeup_direction:
+          type: string
+      required:
+        - undertone
+
     ErrorResponse:
       type: object
       properties:
@@ -644,6 +766,109 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
         "500":
           description: Analysis failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /shop/generate:
+    post:
+      operationId: generateShopProducts
+      tags: [shop]
+      summary: Generate AI product recommendations for a user's profile
+      description: >
+        Accepts a trimmed style profile and generates 12 personalized product
+        picks using AI. Products are stored in the database with affiliate-tracked
+        URLs built server-side. Requires a valid Bearer token from GET /api/auth/token.
+        Rate-limited to 5 requests per IP per 15-minute window.
+      security:
+        - analyzeToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ShopGenerateRequest"
+      responses:
+        "200":
+          description: Array of generated shop products
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ShopProduct"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Missing or invalid analyze token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Generation failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /shop/products:
+    get:
+      operationId: getShopProducts
+      tags: [shop]
+      summary: Get shop products filtered and scored for a user's profile
+      description: >
+        Returns shop products ordered by match score (how well they match the
+        given undertone, color season, and calendar season). No authentication required.
+      parameters:
+        - name: undertone
+          in: query
+          schema:
+            type: string
+          description: "Filter by undertone: warm, cool, or neutral"
+        - name: color_season
+          in: query
+          schema:
+            type: string
+          description: "Filter by color season: Spring, Summer, Autumn, or Winter"
+        - name: calendar_season
+          in: query
+          schema:
+            type: string
+          description: "Filter by calendar season: spring, summer, autumn, or winter"
+        - name: category
+          in: query
+          schema:
+            type: string
+          description: "Filter by product category"
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 40
+          description: Maximum number of products to return
+      responses:
+        "200":
+          description: Array of shop products with match scores
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ShopProduct"
+        "500":
+          description: Failed to fetch products
           content:
             application/json:
               schema:

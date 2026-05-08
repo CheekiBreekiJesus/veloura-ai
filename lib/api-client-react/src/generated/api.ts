@@ -25,11 +25,14 @@ import type {
   ClothingAnalysisRequest,
   ClothingAnalysisResult,
   ErrorResponse,
+  GetShopProductsParams,
   HealthStatus,
   MakeupPreviewResult,
   MakeupTryOnRequest,
   RemoveBackgroundRequest,
   RemoveBackgroundResult,
+  ShopGenerateRequest,
+  ShopProduct,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
@@ -544,6 +547,190 @@ export const useAnalyzeClothing = <
 > => {
   return useMutation(getAnalyzeClothingMutationOptions(options));
 };
+
+/**
+ * Accepts a trimmed style profile and generates 12 personalized product picks using AI. Products are stored in the database with affiliate-tracked URLs built server-side. Requires a valid Bearer token from GET /api/auth/token. Rate-limited to 5 requests per IP per 15-minute window.
+
+ * @summary Generate AI product recommendations for a user's profile
+ */
+export const getGenerateShopProductsUrl = () => {
+  return `/api/shop/generate`;
+};
+
+export const generateShopProducts = async (
+  shopGenerateRequest: ShopGenerateRequest,
+  options?: RequestInit,
+): Promise<ShopProduct[]> => {
+  return customFetch<ShopProduct[]>(getGenerateShopProductsUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(shopGenerateRequest),
+  });
+};
+
+export const getGenerateShopProductsMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof generateShopProducts>>,
+    TError,
+    { data: BodyType<ShopGenerateRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof generateShopProducts>>,
+  TError,
+  { data: BodyType<ShopGenerateRequest> },
+  TContext
+> => {
+  const mutationKey = ["generateShopProducts"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof generateShopProducts>>,
+    { data: BodyType<ShopGenerateRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return generateShopProducts(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type GenerateShopProductsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof generateShopProducts>>
+>;
+export type GenerateShopProductsMutationBody = BodyType<ShopGenerateRequest>;
+export type GenerateShopProductsMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Generate AI product recommendations for a user's profile
+ */
+export const useGenerateShopProducts = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof generateShopProducts>>,
+    TError,
+    { data: BodyType<ShopGenerateRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof generateShopProducts>>,
+  TError,
+  { data: BodyType<ShopGenerateRequest> },
+  TContext
+> => {
+  return useMutation(getGenerateShopProductsMutationOptions(options));
+};
+
+/**
+ * Returns shop products ordered by match score (how well they match the given undertone, color season, and calendar season). No authentication required.
+
+ * @summary Get shop products filtered and scored for a user's profile
+ */
+export const getGetShopProductsUrl = (params?: GetShopProductsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/shop/products?${stringifiedParams}`
+    : `/api/shop/products`;
+};
+
+export const getShopProducts = async (
+  params?: GetShopProductsParams,
+  options?: RequestInit,
+): Promise<ShopProduct[]> => {
+  return customFetch<ShopProduct[]>(getGetShopProductsUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetShopProductsQueryKey = (params?: GetShopProductsParams) => {
+  return [`/api/shop/products`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetShopProductsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getShopProducts>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  params?: GetShopProductsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getShopProducts>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetShopProductsQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getShopProducts>>> = ({
+    signal,
+  }) => getShopProducts(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getShopProducts>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetShopProductsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getShopProducts>>
+>;
+export type GetShopProductsQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Get shop products filtered and scored for a user's profile
+ */
+
+export function useGetShopProducts<
+  TData = Awaited<ReturnType<typeof getShopProducts>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  params?: GetShopProductsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getShopProducts>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetShopProductsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * Analyzes a selfie using AI vision and returns a full Aesthetic Identity Profile. Requires a valid Bearer token from GET /api/auth/token. Rate-limited to 10 requests per IP per 15-minute window. Rejected if the server has 3 or more concurrent analysis requests in flight.

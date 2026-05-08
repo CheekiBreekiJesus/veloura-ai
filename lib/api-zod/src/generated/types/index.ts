@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.2.0
  */
 
+export * from "./affiliateUrlEntry";
 export * from "./analysisResult";
 export * from "./analysisResultCheekboneProminence";
 export * from "./analysisResultContrastLevel";
@@ -24,11 +25,17 @@ export * from "./clothingAnalysisResult";
 export * from "./clothingAnalysisResultCategory";
 export * from "./clothingAnalysisResultSeasonsItem";
 export * from "./errorResponse";
+export * from "./getShopProductsParams";
 export * from "./healthStatus";
 export * from "./makeupPreviewResult";
 export * from "./makeupTryOnRequest";
 export * from "./removeBackgroundRequest";
 export * from "./removeBackgroundResult";
+export * from "./shopGenerateRequest";
+export * from "./shopProduct";
+export * from "./shopProductAffiliateUrls";
+export * from "./shopProductCategory";
+export * from "./shopProductPriceTier";
 export * from "./skinConcerns";
 export * from "./skinConcernsAcne";
 export * from "./skinConcernsDryness";

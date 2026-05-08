@@ -382,6 +382,187 @@ export const AnalyzeClothingResponse = zod.object({
 });
 
 /**
+ * Accepts a trimmed style profile and generates 12 personalized product picks using AI. Products are stored in the database with affiliate-tracked URLs built server-side. Requires a valid Bearer token from GET /api/auth/token. Rate-limited to 5 requests per IP per 15-minute window.
+
+ * @summary Generate AI product recommendations for a user's profile
+ */
+export const GenerateShopProductsBody = zod.object({
+  undertone: zod.string().describe("warm, cool, or neutral"),
+  color_season: zod
+    .string()
+    .optional()
+    .describe("Spring, Summer, Autumn, or Winter"),
+  style_archetype: zod.string().optional(),
+  aesthetic_archetypes: zod.array(zod.string()).optional(),
+  skin_type: zod.string().optional(),
+  shopping_keywords: zod.array(zod.string()).optional(),
+  color_palette: zod
+    .array(zod.string())
+    .optional()
+    .describe("Hex color codes from the analysis"),
+  fashion_direction: zod.string().optional(),
+  makeup_direction: zod.string().optional(),
+});
+
+export const generateShopProductsResponseMatchScoreMin = 0;
+export const generateShopProductsResponseMatchScoreMax = 3;
+
+export const GenerateShopProductsResponseItem = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  brand: zod.string(),
+  retailer: zod.string(),
+  category: zod.enum([
+    "Skincare",
+    "Makeup",
+    "Fashion",
+    "Accessories",
+    "Fragrance",
+    "Haircare",
+  ]),
+  description: zod
+    .string()
+    .describe("AI-written reason this product suits the profile (~40 words)"),
+  price_tier: zod.enum(["budget", "mid", "luxury"]),
+  color_hex: zod
+    .array(zod.string())
+    .describe("Dominant product colors as hex codes"),
+  undertones: zod
+    .array(zod.string())
+    .describe("Undertones this product suits (warm\/cool\/neutral)"),
+  color_seasons: zod
+    .array(zod.string())
+    .describe(
+      "Color seasons this product suits (Spring\/Summer\/Autumn\/Winter)",
+    ),
+  style_archetypes: zod
+    .array(zod.string())
+    .describe("Style archetypes this product suits"),
+  categories_calendar: zod
+    .array(zod.string())
+    .describe("Calendar seasons this product is appropriate for"),
+  affiliate_urls: zod
+    .record(
+      zod.string(),
+      zod.object({
+        url: zod.string(),
+        retailer: zod.string(),
+      }),
+    )
+    .describe(
+      "Affiliate-tracked URLs keyed by country code (US\/GB\/AU\/CA\/FR\/DE)",
+    ),
+  generated_count: zod
+    .number()
+    .describe("How many user analyses have recommended this product"),
+  created_at: zod.coerce.date(),
+  match_score: zod
+    .number()
+    .min(generateShopProductsResponseMatchScoreMin)
+    .max(generateShopProductsResponseMatchScoreMax)
+    .optional()
+    .describe(
+      "How many of undertone\/color_season\/calendar_season matched (only in GET response)",
+    ),
+});
+export const GenerateShopProductsResponse = zod.array(
+  GenerateShopProductsResponseItem,
+);
+
+/**
+ * Returns shop products ordered by match score (how well they match the given undertone, color season, and calendar season). No authentication required.
+
+ * @summary Get shop products filtered and scored for a user's profile
+ */
+export const getShopProductsQueryLimitDefault = 40;
+
+export const GetShopProductsQueryParams = zod.object({
+  undertone: zod.coerce
+    .string()
+    .optional()
+    .describe("Filter by undertone: warm, cool, or neutral"),
+  color_season: zod.coerce
+    .string()
+    .optional()
+    .describe("Filter by color season: Spring, Summer, Autumn, or Winter"),
+  calendar_season: zod.coerce
+    .string()
+    .optional()
+    .describe("Filter by calendar season: spring, summer, autumn, or winter"),
+  category: zod.coerce
+    .string()
+    .optional()
+    .describe("Filter by product category"),
+  limit: zod.coerce
+    .number()
+    .default(getShopProductsQueryLimitDefault)
+    .describe("Maximum number of products to return"),
+});
+
+export const getShopProductsResponseMatchScoreMin = 0;
+export const getShopProductsResponseMatchScoreMax = 3;
+
+export const GetShopProductsResponseItem = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  brand: zod.string(),
+  retailer: zod.string(),
+  category: zod.enum([
+    "Skincare",
+    "Makeup",
+    "Fashion",
+    "Accessories",
+    "Fragrance",
+    "Haircare",
+  ]),
+  description: zod
+    .string()
+    .describe("AI-written reason this product suits the profile (~40 words)"),
+  price_tier: zod.enum(["budget", "mid", "luxury"]),
+  color_hex: zod
+    .array(zod.string())
+    .describe("Dominant product colors as hex codes"),
+  undertones: zod
+    .array(zod.string())
+    .describe("Undertones this product suits (warm\/cool\/neutral)"),
+  color_seasons: zod
+    .array(zod.string())
+    .describe(
+      "Color seasons this product suits (Spring\/Summer\/Autumn\/Winter)",
+    ),
+  style_archetypes: zod
+    .array(zod.string())
+    .describe("Style archetypes this product suits"),
+  categories_calendar: zod
+    .array(zod.string())
+    .describe("Calendar seasons this product is appropriate for"),
+  affiliate_urls: zod
+    .record(
+      zod.string(),
+      zod.object({
+        url: zod.string(),
+        retailer: zod.string(),
+      }),
+    )
+    .describe(
+      "Affiliate-tracked URLs keyed by country code (US\/GB\/AU\/CA\/FR\/DE)",
+    ),
+  generated_count: zod
+    .number()
+    .describe("How many user analyses have recommended this product"),
+  created_at: zod.coerce.date(),
+  match_score: zod
+    .number()
+    .min(getShopProductsResponseMatchScoreMin)
+    .max(getShopProductsResponseMatchScoreMax)
+    .optional()
+    .describe(
+      "How many of undertone\/color_season\/calendar_season matched (only in GET response)",
+    ),
+});
+export const GetShopProductsResponse = zod.array(GetShopProductsResponseItem);
+
+/**
  * Analyzes a selfie using AI vision and returns a full Aesthetic Identity Profile. Requires a valid Bearer token from GET /api/auth/token. Rate-limited to 10 requests per IP per 15-minute window. Rejected if the server has 3 or more concurrent analysis requests in flight.
 
  * @summary Analyze face from image
