@@ -92,8 +92,7 @@ export default function ShopScreen() {
       try {
         const params = new URLSearchParams();
         if (analysis?.undertone) params.set("undertone", analysis.undertone);
-        if (analysis?.color_season) params.set("color_season", analysis.color_season);
-        if (analysis?.calendar_season) params.set("calendar_season", analysis.calendar_season);
+        if (analysis?.skin_tone_category) params.set("color_season", analysis.skin_tone_category);
         if (activeCategory !== "All") params.set("category", activeCategory);
         const res = await fetch(`${BASE_URL}/api/shop/products?${params.toString()}`);
         if (res.ok) {
@@ -105,7 +104,7 @@ export default function ShopScreen() {
       }
     };
     void run();
-  }, [analysis?.undertone, analysis?.color_season, analysis?.calendar_season, activeCategory]);
+  }, [analysis?.undertone, analysis?.skin_tone_category, activeCategory]);
 
   const filtered = useMemo(() => {
     let list = products.length > 0 ? products : [];

@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { rateLimit } from "express-rate-limit";
-import { z } from "zod/v4";
+import { z } from "zod";
 import { sql } from "drizzle-orm";
 import { openai } from "@workspace/integrations-openai-ai-server";
 import { requireAnalyzeToken } from "../middlewares/requireAnalyzeToken";
