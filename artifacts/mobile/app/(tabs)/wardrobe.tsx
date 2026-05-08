@@ -1,6 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { Image } from "expo-image";
+import * as ImageManipulator from "expo-image-manipulator";
+import * as ImagePicker from "expo-image-picker";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
@@ -11,6 +13,7 @@ import {
   Dimensions,
   Keyboard,
   Modal,
+  PanResponder,
   Platform,
   Pressable,
   ScrollView,
@@ -585,7 +588,7 @@ export default function WardrobeScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { analysis, setPendingChatInput } = useAnalysis();
-  const { wardrobeItems, feedback, setFeedback, removeItem, updateItemSeasons, toggleStored } = useWardrobe();
+  const { wardrobeItems, feedback, setFeedback, removeItem, updateItem, updateItemSeasons, toggleStored } = useWardrobe();
   const { currentSeason } = useSeason();
   const { stylePrefs } = useStylePrefs();
 
@@ -606,7 +609,11 @@ export default function WardrobeScreen() {
   const [activeFilter, setActiveFilter] = useState("All");
   const [closetFilter, setClosetFilter] = useState<ClothingCategory | "All">("All");
   const [sortBy, setSortBy] = useState<SortOption>("recent");
-  const [selectedItem, setSelectedItem] = useState<WardrobeItem | null>(null);
+  const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+  const selectedItem = useMemo(
+    () => wardrobeItems.find((i) => i.id === selectedItemId) ?? null,
+    [wardrobeItems, selectedItemId]
+  );
 
   // Outfit Builder
   const [outfitMode, setOutfitMode] = useState(false);
@@ -698,7 +705,7 @@ export default function WardrobeScreen() {
     const styleCtx = buildStylePrefsText(stylePrefs);
     const msg = `I have a ${item.name} (${item.category}, compatibility score ${item.compatibilityScore}/100). ${snippet} How should I style it? What outfits can I build around it?${styleCtx ? ` My style preferences: ${styleCtx}.` : ""}`;
     setPendingChatInput(msg);
-    setSelectedItem(null);
+    setSelectedItemId(null);
     router.push("/(tabs)/chat");
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
@@ -1120,7 +1127,7 @@ export default function WardrobeScreen() {
                           if (outfitMode) {
                             void toggleOutfitSelect(item.id);
                           } else {
-                            setSelectedItem(item);
+                            setSelectedItemId(item.id);
                           }
                         }}
                       />
@@ -1451,14 +1458,15 @@ export default function WardrobeScreen() {
       <ItemDetailModal
         item={selectedItem}
         colors={colors}
-        onClose={() => setSelectedItem(null)}
+        onClose={() => setSelectedItemId(null)}
         onRemove={(item) => {
-          setSelectedItem(null);
+          setSelectedItemId(null);
           handleRemoveItem(item);
         }}
         onFindSimilar={(item) => { void handleFindSimilar(item); }}
         onAskAura={(item) => handleAskAura(item)}
         onUpdateSeasons={updateItemSeasons}
+        onUpdateItem={updateItem}
       />
     </View>
   );
@@ -1614,6 +1622,7 @@ function ItemDetailModal({
   onFindSimilar,
   onAskAura,
   onUpdateSeasons,
+  onUpdateItem,
 }: {
   item: WardrobeItem | null;
   colors: ReturnType<typeof useColors>;
@@ -1622,10 +1631,142 @@ function ItemDetailModal({
   onFindSimilar: (item: WardrobeItem) => void;
   onAskAura: (item: WardrobeItem) => void;
   onUpdateSeasons: (id: string, seasons: Season[]) => Promise<void>;
+  onUpdateItem: (id: string, patch: Partial<WardrobeItem>) => Promise<void>;
 }) {
   const insets = useSafeAreaInsets();
   const { analysis: modalAnalysis } = useAnalysis();
   const companionName = modalAnalysis?.companion_name ?? "Aura";
+
+  const [editSheetVisible, setEditSheetVisible] = useState(false);
+  const [replaceSheetVisible, setReplaceSheetVisible] = useState(false);
+  const [rotateSheetVisible, setRotateSheetVisible] = useState(false);
+  const [cropSheetVisible, setCropSheetVisible] = useState(false);
+  const [cropSourceUri, setCropSourceUri] = useState<string | null>(null);
+  const [cropSourceWidth, setCropSourceWidth] = useState(0);
+  const [cropSourceHeight, setCropSourceHeight] = useState(0);
+  const [pendingRotation, setPendingRotation] = useState(0);
+  const [rotateWorking, setRotateWorking] = useState(false);
+  const [replaceWorking, setReplaceWorking] = useState(false);
+
+  const handlePickReplacement = async (fromCamera: boolean) => {
+    setReplaceSheetVisible(false);
+    setEditSheetVisible(false);
+    if (fromCamera) {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== "granted") return;
+    }
+    const fn = fromCamera
+      ? ImagePicker.launchCameraAsync
+      : ImagePicker.launchImageLibraryAsync;
+    setReplaceWorking(true);
+    try {
+      const res = await fn({
+        mediaTypes: ["images"],
+        allowsEditing: true,
+        aspect: [3, 4],
+        quality: 0.75,
+        base64: true,
+      });
+      if (!res.canceled && res.assets[0] && item) {
+        const asset = res.assets[0];
+        const mime = asset.mimeType ?? "image/jpeg";
+        const newUri = asset.base64
+          ? `data:${mime};base64,${asset.base64}`
+          : asset.uri;
+        await onUpdateItem(item.id, { imageUri: newUri, backgroundRemoved: false });
+      }
+    } finally {
+      setReplaceWorking(false);
+    }
+  };
+
+  const handleOpenRotate = () => {
+    setEditSheetVisible(false);
+    setPendingRotation(0);
+    setRotateSheetVisible(true);
+  };
+
+  const handleConfirmRotate = async () => {
+    if (!item) return;
+    if (pendingRotation === 0) {
+      setRotateSheetVisible(false);
+      return;
+    }
+    setRotateWorking(true);
+    try {
+      const result = await ImageManipulator.manipulateAsync(
+        item.imageUri,
+        [{ rotate: pendingRotation }],
+        { base64: true, format: ImageManipulator.SaveFormat.JPEG, compress: 0.85 }
+      );
+      const newUri = result.base64
+        ? `data:image/jpeg;base64,${result.base64}`
+        : result.uri;
+      await onUpdateItem(item.id, { imageUri: newUri, backgroundRemoved: false });
+      setRotateSheetVisible(false);
+      setPendingRotation(0);
+    } catch {
+      Alert.alert("Rotate failed", "Could not rotate this image. Try replacing the photo instead.");
+    } finally {
+      setRotateWorking(false);
+    }
+  };
+
+  const handleOpenCrop = async () => {
+    if (!item) return;
+    setRotateWorking(true);
+    try {
+      // Pre-apply any pending rotation so the crop editor shows the correct
+      // (post-rotation) image, and we know its exact pixel dimensions.
+      const actions: ImageManipulator.Action[] =
+        pendingRotation !== 0 ? [{ rotate: pendingRotation }] : [];
+      const rotated = await ImageManipulator.manipulateAsync(
+        item.imageUri,
+        actions,
+        { format: ImageManipulator.SaveFormat.JPEG, compress: 0.9, base64: false }
+      );
+      setCropSourceUri(rotated.uri);
+      setCropSourceWidth(rotated.width);
+      setCropSourceHeight(rotated.height);
+      setCropSheetVisible(true);
+    } catch {
+      Alert.alert("Could not open crop editor", "Try replacing the photo instead.");
+    } finally {
+      setRotateWorking(false);
+    }
+  };
+
+  const handleApplyCrop = async (
+    cropOriginX: number,
+    cropOriginY: number,
+    cropWidth: number,
+    cropHeight: number
+  ) => {
+    if (!item || !cropSourceUri) return;
+    setCropSheetVisible(false);
+    setRotateWorking(true);
+    try {
+      // Rotation was already baked into cropSourceUri — just crop
+      const result = await ImageManipulator.manipulateAsync(
+        cropSourceUri,
+        [{ crop: { originX: cropOriginX, originY: cropOriginY, width: cropWidth, height: cropHeight } }],
+        { base64: true, format: ImageManipulator.SaveFormat.JPEG, compress: 0.85 }
+      );
+      const newUri = result.base64
+        ? `data:image/jpeg;base64,${result.base64}`
+        : result.uri;
+      await onUpdateItem(item.id, { imageUri: newUri, backgroundRemoved: false });
+      // Rotation already applied — clear pending rotation
+      setPendingRotation(0);
+      setRotateSheetVisible(false);
+    } catch {
+      Alert.alert("Crop failed", "Could not crop this image. Try again.");
+    } finally {
+      setRotateWorking(false);
+      setCropSourceUri(null);
+    }
+  };
+
   if (!item) return null;
 
   const sc = item.compatibilityScore;
@@ -1785,6 +1926,23 @@ function ItemDetailModal({
           {/* Actions */}
           <View style={styles.modalActions}>
             <Pressable
+              onPress={async () => {
+                await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setEditSheetVisible(true);
+              }}
+              style={({ pressed }) => [
+                styles.modalActionBtn,
+                { backgroundColor: colors.secondary, borderColor: colors.border, opacity: pressed ? 0.8 : 1 },
+              ]}
+            >
+              {replaceWorking ? (
+                <ActivityIndicator size="small" color={colors.primary} />
+              ) : (
+                <Ionicons name="camera-outline" size={18} color={colors.primary} />
+              )}
+              <Text style={[styles.modalActionText, { color: colors.foreground }]}>Edit Photo</Text>
+            </Pressable>
+            <Pressable
               onPress={() => onFindSimilar(item)}
               style={({ pressed }) => [
                 styles.modalActionBtn,
@@ -1807,9 +1965,471 @@ function ItemDetailModal({
           </View>
         </ScrollView>
       </View>
+
+      {/* Edit Photo action sheet */}
+      <Modal
+        visible={editSheetVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setEditSheetVisible(false)}
+      >
+        <Pressable
+          style={styles.sheetOverlay}
+          onPress={() => setEditSheetVisible(false)}
+        >
+          <Pressable style={[styles.sheetContainer, { backgroundColor: colors.card }]}>
+            <View style={[styles.sheetHandle, { backgroundColor: colors.border }]} />
+            <Text style={[styles.sheetTitle, { color: colors.foreground }]}>Edit Photo</Text>
+            <Pressable
+              onPress={() => {
+                setEditSheetVisible(false);
+                setReplaceSheetVisible(true);
+              }}
+              style={({ pressed }) => [
+                styles.sheetOption,
+                { borderColor: colors.border, opacity: pressed ? 0.7 : 1 },
+              ]}
+            >
+              <View style={[styles.sheetOptionIcon, { backgroundColor: colors.primary + "18" }]}>
+                <Ionicons name="images-outline" size={20} color={colors.primary} />
+              </View>
+              <View style={styles.sheetOptionText}>
+                <Text style={[styles.sheetOptionTitle, { color: colors.foreground }]}>Replace Photo</Text>
+                <Text style={[styles.sheetOptionDesc, { color: colors.mutedForeground }]}>
+                  Pick a new photo from your gallery or camera
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color={colors.mutedForeground} />
+            </Pressable>
+            <Pressable
+              onPress={handleOpenRotate}
+              style={({ pressed }) => [
+                styles.sheetOption,
+                { borderColor: colors.border, opacity: pressed ? 0.7 : 1 },
+              ]}
+            >
+              <View style={[styles.sheetOptionIcon, { backgroundColor: colors.primary + "18" }]}>
+                <Ionicons name="sync-outline" size={20} color={colors.primary} />
+              </View>
+              <View style={styles.sheetOptionText}>
+                <Text style={[styles.sheetOptionTitle, { color: colors.foreground }]}>Adjust / Rotate</Text>
+                <Text style={[styles.sheetOptionDesc, { color: colors.mutedForeground }]}>
+                  Rotate the current photo 90° clockwise or counter-clockwise
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color={colors.mutedForeground} />
+            </Pressable>
+            <Pressable
+              onPress={() => setEditSheetVisible(false)}
+              style={({ pressed }) => [
+                styles.sheetCancelBtn,
+                { backgroundColor: colors.secondary, opacity: pressed ? 0.7 : 1 },
+              ]}
+            >
+              <Text style={[styles.sheetCancelText, { color: colors.mutedForeground }]}>Cancel</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Replace Photo source sheet */}
+      <Modal
+        visible={replaceSheetVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setReplaceSheetVisible(false)}
+      >
+        <Pressable
+          style={styles.sheetOverlay}
+          onPress={() => setReplaceSheetVisible(false)}
+        >
+          <Pressable style={[styles.sheetContainer, { backgroundColor: colors.card }]}>
+            <View style={[styles.sheetHandle, { backgroundColor: colors.border }]} />
+            <Text style={[styles.sheetTitle, { color: colors.foreground }]}>Replace Photo</Text>
+            <Pressable
+              onPress={() => { void handlePickReplacement(false); }}
+              style={({ pressed }) => [
+                styles.sheetOption,
+                { borderColor: colors.border, opacity: pressed ? 0.7 : 1 },
+              ]}
+            >
+              <View style={[styles.sheetOptionIcon, { backgroundColor: colors.primary + "18" }]}>
+                <Ionicons name="images-outline" size={20} color={colors.primary} />
+              </View>
+              <View style={styles.sheetOptionText}>
+                <Text style={[styles.sheetOptionTitle, { color: colors.foreground }]}>Choose from Gallery</Text>
+                <Text style={[styles.sheetOptionDesc, { color: colors.mutedForeground }]}>
+                  Browse your photo library
+                </Text>
+              </View>
+            </Pressable>
+            <Pressable
+              onPress={() => { void handlePickReplacement(true); }}
+              style={({ pressed }) => [
+                styles.sheetOption,
+                { borderColor: colors.border, opacity: pressed ? 0.7 : 1 },
+              ]}
+            >
+              <View style={[styles.sheetOptionIcon, { backgroundColor: colors.primary + "18" }]}>
+                <Ionicons name="camera-outline" size={20} color={colors.primary} />
+              </View>
+              <View style={styles.sheetOptionText}>
+                <Text style={[styles.sheetOptionTitle, { color: colors.foreground }]}>Take a Photo</Text>
+                <Text style={[styles.sheetOptionDesc, { color: colors.mutedForeground }]}>
+                  Use your camera to capture a new shot
+                </Text>
+              </View>
+            </Pressable>
+            <Pressable
+              onPress={() => setReplaceSheetVisible(false)}
+              style={({ pressed }) => [
+                styles.sheetCancelBtn,
+                { backgroundColor: colors.secondary, opacity: pressed ? 0.7 : 1 },
+              ]}
+            >
+              <Text style={[styles.sheetCancelText, { color: colors.mutedForeground }]}>Cancel</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Rotate sheet */}
+      <Modal
+        visible={rotateSheetVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => { if (!rotateWorking) { setRotateSheetVisible(false); setPendingRotation(0); } }}
+      >
+        <View style={styles.sheetOverlay}>
+          <Pressable style={[styles.rotateContainer, { backgroundColor: colors.card }]}>
+            <View style={[styles.sheetHandle, { backgroundColor: colors.border }]} />
+            <Text style={[styles.sheetTitle, { color: colors.foreground }]}>Adjust / Rotate</Text>
+
+            {/* Image preview with rotation applied */}
+            <View style={styles.rotatePreviewWrap}>
+              <Image
+                key={`${item.imageUri}-${pendingRotation}`}
+                source={{ uri: item.imageUri }}
+                style={[
+                  styles.rotatePreview,
+                  { transform: [{ rotate: `${pendingRotation}deg` }] },
+                ]}
+                contentFit="contain"
+              />
+            </View>
+
+            {/* Rotation controls */}
+            <View style={styles.rotateControls}>
+              <Pressable
+                onPress={() => setPendingRotation((r) => (r - 90 + 360) % 360)}
+                style={({ pressed }) => [
+                  styles.rotateBtn,
+                  { backgroundColor: colors.secondary, borderColor: colors.border, opacity: pressed ? 0.7 : 1 },
+                ]}
+                disabled={rotateWorking}
+              >
+                <Ionicons name="refresh-outline" size={24} color={colors.primary} style={{ transform: [{ scaleX: -1 }] }} />
+                <Text style={[styles.rotateBtnText, { color: colors.foreground }]}>90° CCW</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => setPendingRotation((r) => (r + 90) % 360)}
+                style={({ pressed }) => [
+                  styles.rotateBtn,
+                  { backgroundColor: colors.secondary, borderColor: colors.border, opacity: pressed ? 0.7 : 1 },
+                ]}
+                disabled={rotateWorking}
+              >
+                <Ionicons name="refresh-outline" size={24} color={colors.primary} />
+                <Text style={[styles.rotateBtnText, { color: colors.foreground }]}>90° CW</Text>
+              </Pressable>
+            </View>
+
+            {pendingRotation !== 0 && (
+              <Text style={[styles.rotateAngleLabel, { color: colors.mutedForeground }]}>
+                Rotated {pendingRotation}°
+              </Text>
+            )}
+
+            {/* Crop button — opens in-app crop editor on current image */}
+            <Pressable
+              onPress={handleOpenCrop}
+              disabled={rotateWorking}
+              style={({ pressed }) => [
+                styles.rotateCropBtn,
+                { backgroundColor: colors.secondary, borderColor: colors.border, opacity: rotateWorking ? 0.6 : pressed ? 0.75 : 1 },
+              ]}
+            >
+              <Ionicons name="crop-outline" size={18} color={colors.primary} />
+              <Text style={[styles.rotateCropText, { color: colors.foreground }]}>Crop…</Text>
+            </Pressable>
+
+            <View style={styles.rotateActions}>
+              <Pressable
+                onPress={() => { setRotateSheetVisible(false); setPendingRotation(0); }}
+                disabled={rotateWorking}
+                style={({ pressed }) => [
+                  styles.rotateCancelBtn,
+                  { borderColor: colors.border, backgroundColor: colors.secondary, opacity: pressed ? 0.7 : 1 },
+                ]}
+              >
+                <Text style={[styles.rotateCancelText, { color: colors.foreground }]}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => { void handleConfirmRotate(); }}
+                disabled={rotateWorking || pendingRotation === 0}
+                style={({ pressed }) => [
+                  styles.rotateConfirmBtn,
+                  {
+                    backgroundColor: pendingRotation === 0 ? colors.muted : colors.primary,
+                    opacity: rotateWorking ? 0.75 : pressed ? 0.85 : 1,
+                  },
+                ]}
+              >
+                {rotateWorking ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Ionicons name="checkmark" size={18} color={pendingRotation === 0 ? colors.mutedForeground : "#fff"} />
+                )}
+                <Text style={[styles.rotateConfirmText, { color: pendingRotation === 0 ? colors.mutedForeground : "#fff" }]}>
+                  {rotateWorking ? "Saving…" : "Apply"}
+                </Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </View>
+      </Modal>
+
+      {/* In-app Crop Editor — uses pre-rotated URI with known dimensions */}
+      {cropSheetVisible && cropSourceUri && (
+        <Modal
+          visible={true}
+          animationType="slide"
+          presentationStyle="fullScreen"
+          onRequestClose={() => { setCropSheetVisible(false); setCropSourceUri(null); }}
+        >
+          <CropEditor
+            imageUri={cropSourceUri}
+            naturalWidth={cropSourceWidth}
+            naturalHeight={cropSourceHeight}
+            colors={colors}
+            onConfirm={(ox, oy, w, h) => { void handleApplyCrop(ox, oy, w, h); }}
+            onCancel={() => { setCropSheetVisible(false); setCropSourceUri(null); }}
+          />
+        </Modal>
+      )}
     </Modal>
   );
 }
+
+const CROP_PREVIEW_SIZE = Math.min(width - 40, 320);
+
+function CropEditor({
+  imageUri,
+  naturalWidth,
+  naturalHeight,
+  colors,
+  onConfirm,
+  onCancel,
+}: {
+  imageUri: string;
+  naturalWidth: number;
+  naturalHeight: number;
+  colors: ReturnType<typeof useColors>;
+  onConfirm: (originX: number, originY: number, width: number, height: number) => void;
+  onCancel: () => void;
+}) {
+  const insets = useSafeAreaInsets();
+
+  const PREV = CROP_PREVIEW_SIZE;
+  const HANDLE = 28;
+  const MIN_FRAC = 0.12;
+
+  // Compute the contain-fit displayed rect within the PREV×PREV square.
+  // This accounts for letterboxing/pillarboxing for non-square images.
+  const imgAspect = naturalWidth > 0 && naturalHeight > 0
+    ? naturalWidth / naturalHeight
+    : 1;
+  let dispW: number;
+  let dispH: number;
+  if (imgAspect >= 1) {
+    dispW = PREV;
+    dispH = PREV / imgAspect;
+  } else {
+    dispH = PREV;
+    dispW = PREV * imgAspect;
+  }
+  const dispOffX = (PREV - dispW) / 2;  // pillarbox left offset
+  const dispOffY = (PREV - dispH) / 2;  // letterbox top offset
+
+  // Single mutable ref holds the live crop rect (avoids stale closures in PanResponder)
+  const cropRef = useRef({ l: 0.05, t: 0.05, r: 0.95, b: 0.95 });
+  // Mirror into state so React re-renders the overlay
+  const [crop, setCrop] = useState({ l: 0.05, t: 0.05, r: 0.95, b: 0.95 });
+
+  const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+
+  const updateCrop = (patch: Partial<typeof cropRef.current>) => {
+    const next = { ...cropRef.current, ...patch };
+    cropRef.current = next;
+    setCrop({ ...next });
+  };
+
+  // Crop rect in preview-pixel coordinates (within the full PREV×PREV container)
+  const cropX = dispOffX + crop.l * dispW;
+  const cropY = dispOffY + crop.t * dispH;
+  const cropW = (crop.r - crop.l) * dispW;
+  const cropH = (crop.b - crop.t) * dispH;
+
+  // Each PanResponder captures start values on grant from the live ref
+  const startRef = useRef({ l: 0, t: 0, r: 0, b: 0 });
+
+  const tlPan = useRef(PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onPanResponderGrant: () => { startRef.current = { ...cropRef.current }; },
+    onPanResponderMove: (_, gs) => {
+      const { l, t, r, b } = startRef.current;
+      updateCrop({
+        l: clamp(l + gs.dx / dispW, 0, r - MIN_FRAC),
+        t: clamp(t + gs.dy / dispH, 0, b - MIN_FRAC),
+      });
+    },
+  })).current;
+
+  const trPan = useRef(PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onPanResponderGrant: () => { startRef.current = { ...cropRef.current }; },
+    onPanResponderMove: (_, gs) => {
+      const { l, t, r, b } = startRef.current;
+      updateCrop({
+        r: clamp(r + gs.dx / dispW, l + MIN_FRAC, 1),
+        t: clamp(t + gs.dy / dispH, 0, b - MIN_FRAC),
+      });
+    },
+  })).current;
+
+  const blPan = useRef(PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onPanResponderGrant: () => { startRef.current = { ...cropRef.current }; },
+    onPanResponderMove: (_, gs) => {
+      const { l, t, r, b } = startRef.current;
+      updateCrop({
+        l: clamp(l + gs.dx / dispW, 0, r - MIN_FRAC),
+        b: clamp(b + gs.dy / dispH, t + MIN_FRAC, 1),
+      });
+    },
+  })).current;
+
+  const brPan = useRef(PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onPanResponderGrant: () => { startRef.current = { ...cropRef.current }; },
+    onPanResponderMove: (_, gs) => {
+      const { l, t, r, b } = startRef.current;
+      updateCrop({
+        r: clamp(r + gs.dx / dispW, l + MIN_FRAC, 1),
+        b: clamp(b + gs.dy / dispH, t + MIN_FRAC, 1),
+      });
+    },
+  })).current;
+
+  const handleConfirm = () => {
+    if (naturalWidth === 0 || naturalHeight === 0) {
+      onConfirm(0, 0, naturalWidth || 1, naturalHeight || 1);
+      return;
+    }
+    const { l, t, r, b } = cropRef.current;
+    // Map normalized fractions to actual image pixel coordinates
+    const ox = Math.round(l * naturalWidth);
+    const oy = Math.round(t * naturalHeight);
+    const cw = Math.max(1, Math.round((r - l) * naturalWidth));
+    const ch = Math.max(1, Math.round((b - t) * naturalHeight));
+    // Clamp to image bounds
+    onConfirm(
+      Math.min(ox, naturalWidth - 1),
+      Math.min(oy, naturalHeight - 1),
+      Math.min(cw, naturalWidth - ox),
+      Math.min(ch, naturalHeight - oy)
+    );
+  };
+
+  return (
+    <View style={[cropStyles.root, { backgroundColor: "#000" }]}>
+      <View style={[cropStyles.header, { paddingTop: insets.top + 12, borderBottomColor: "rgba(255,255,255,0.15)", backgroundColor: "#111" }]}>
+        <Pressable onPress={onCancel} style={cropStyles.headerBtn}>
+          <Text style={cropStyles.cancelText}>Cancel</Text>
+        </Pressable>
+        <Text style={cropStyles.title}>Crop</Text>
+        <Pressable onPress={handleConfirm} style={cropStyles.headerBtn}>
+          <Text style={cropStyles.confirmText}>Done</Text>
+        </Pressable>
+      </View>
+
+      <View style={cropStyles.previewArea}>
+        {/* Fixed PREV×PREV container with image + overlay */}
+        <View style={{ width: PREV, height: PREV }}>
+          <Image
+            source={{ uri: imageUri }}
+            style={{ width: PREV, height: PREV }}
+            contentFit="contain"
+          />
+
+          {/* Dark mask outside the displayed image area (letterbox zones) */}
+          {dispOffY > 0 && <View style={[cropStyles.overlayPiece, { top: 0, left: 0, right: 0, height: dispOffY }]} />}
+          {dispOffY > 0 && <View style={[cropStyles.overlayPiece, { bottom: 0, left: 0, right: 0, height: dispOffY }]} />}
+          {dispOffX > 0 && <View style={[cropStyles.overlayPiece, { top: 0, bottom: 0, left: 0, width: dispOffX }]} />}
+          {dispOffX > 0 && <View style={[cropStyles.overlayPiece, { top: 0, bottom: 0, right: 0, width: dispOffX }]} />}
+
+          {/* Dark overlay inside displayed image but outside the crop rect */}
+          <View style={[cropStyles.overlayPiece, { top: dispOffY, left: dispOffX, right: dispOffX, height: crop.t * dispH }]} />
+          <View style={[cropStyles.overlayPiece, { top: cropY + cropH, left: dispOffX, right: dispOffX, height: (1 - crop.b) * dispH }]} />
+          <View style={[cropStyles.overlayPiece, { top: cropY, left: dispOffX, width: crop.l * dispW, height: cropH }]} />
+          <View style={[cropStyles.overlayPiece, { top: cropY, left: cropX + cropW, right: dispOffX, height: cropH }]} />
+
+          {/* Crop border */}
+          <View style={[cropStyles.cropBorder, { left: cropX, top: cropY, width: cropW, height: cropH }]} />
+
+          {/* Rule-of-thirds grid lines */}
+          <View style={[cropStyles.gridLineH, { left: cropX, top: cropY + cropH / 3, width: cropW }]} />
+          <View style={[cropStyles.gridLineH, { left: cropX, top: cropY + (cropH * 2) / 3, width: cropW }]} />
+          <View style={[cropStyles.gridLineV, { left: cropX + cropW / 3, top: cropY, height: cropH }]} />
+          <View style={[cropStyles.gridLineV, { left: cropX + (cropW * 2) / 3, top: cropY, height: cropH }]} />
+
+          {/* Corner handles */}
+          <View style={[cropStyles.handle, { left: cropX - HANDLE / 2, top: cropY - HANDLE / 2 }]} {...tlPan.panHandlers}>
+            <View style={[cropStyles.handleCorner, { borderTopWidth: 3, borderLeftWidth: 3 }]} />
+          </View>
+          <View style={[cropStyles.handle, { left: cropX + cropW - HANDLE / 2, top: cropY - HANDLE / 2 }]} {...trPan.panHandlers}>
+            <View style={[cropStyles.handleCorner, { borderTopWidth: 3, borderRightWidth: 3 }]} />
+          </View>
+          <View style={[cropStyles.handle, { left: cropX - HANDLE / 2, top: cropY + cropH - HANDLE / 2 }]} {...blPan.panHandlers}>
+            <View style={[cropStyles.handleCorner, { borderBottomWidth: 3, borderLeftWidth: 3 }]} />
+          </View>
+          <View style={[cropStyles.handle, { left: cropX + cropW - HANDLE / 2, top: cropY + cropH - HANDLE / 2 }]} {...brPan.panHandlers}>
+            <View style={[cropStyles.handleCorner, { borderBottomWidth: 3, borderRightWidth: 3 }]} />
+          </View>
+        </View>
+      </View>
+
+      <Text style={cropStyles.hint}>Drag the corners to set the crop area</Text>
+    </View>
+  );
+}
+
+const cropStyles = StyleSheet.create({
+  root: { flex: 1 },
+  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingBottom: 14, borderBottomWidth: StyleSheet.hairlineWidth },
+  headerBtn: { paddingVertical: 4, paddingHorizontal: 4, minWidth: 56 },
+  title: { fontSize: 17, fontFamily: "Inter_700Bold", color: "#fff" },
+  cancelText: { fontSize: 16, fontFamily: "Inter_400Regular", color: "#C4956A" },
+  confirmText: { fontSize: 16, fontFamily: "Inter_600SemiBold", textAlign: "right", color: "#C4956A" },
+  previewArea: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#000" },
+  overlayPiece: { position: "absolute", backgroundColor: "rgba(0,0,0,0.55)" },
+  cropBorder: { position: "absolute", borderWidth: 1.5, borderColor: "#fff" },
+  gridLineH: { position: "absolute", height: StyleSheet.hairlineWidth, backgroundColor: "rgba(255,255,255,0.4)" },
+  gridLineV: { position: "absolute", width: StyleSheet.hairlineWidth, backgroundColor: "rgba(255,255,255,0.4)" },
+  handle: { position: "absolute", width: 28, height: 28, zIndex: 10 },
+  handleCorner: { width: 18, height: 18, margin: 5, borderColor: "#fff" },
+  hint: { textAlign: "center", fontSize: 13, fontFamily: "Inter_400Regular", paddingVertical: 16, paddingHorizontal: 20, color: "#aaa" },
+});
 
 function ClosetItemCard({
   item,
@@ -2179,9 +2799,36 @@ const styles = StyleSheet.create({
   askAuraBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, paddingVertical: 15, borderRadius: 18, marginBottom: 14 },
   askAuraBtnText: { fontSize: 15, fontFamily: "Inter_700Bold", color: "#fff", flex: 1, textAlign: "center" },
 
-  modalActions: { flexDirection: "row", gap: 12, marginTop: 4 },
-  modalActionBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 14, borderRadius: 16, borderWidth: StyleSheet.hairlineWidth },
-  modalActionText: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
+  modalActions: { flexDirection: "row", gap: 10, marginTop: 4, flexWrap: "wrap" },
+  modalActionBtn: { flex: 1, minWidth: 80, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 14, borderRadius: 16, borderWidth: StyleSheet.hairlineWidth },
+  modalActionText: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
+
+  sheetOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "flex-end" },
+  sheetContainer: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 32, gap: 0 },
+  sheetHandle: { width: 40, height: 4, borderRadius: 2, alignSelf: "center", marginBottom: 16 },
+  sheetTitle: { fontSize: 17, fontFamily: "Inter_700Bold", marginBottom: 14, textAlign: "center" },
+  sheetOption: { flexDirection: "row", alignItems: "center", gap: 14, paddingVertical: 14, borderBottomWidth: StyleSheet.hairlineWidth },
+  sheetOptionIcon: { width: 40, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  sheetOptionText: { flex: 1 },
+  sheetOptionTitle: { fontSize: 15, fontFamily: "Inter_600SemiBold", marginBottom: 2 },
+  sheetOptionDesc: { fontSize: 12, fontFamily: "Inter_400Regular", lineHeight: 17 },
+  sheetCancelBtn: { marginTop: 14, paddingVertical: 14, borderRadius: 14, alignItems: "center" },
+  sheetCancelText: { fontSize: 15, fontFamily: "Inter_600SemiBold" },
+
+  rotateContainer: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 32, alignItems: "center" },
+  rotatePreviewWrap: { width: 200, height: 200, alignItems: "center", justifyContent: "center", overflow: "hidden", marginVertical: 16 },
+  rotatePreview: { width: 160, height: 160 },
+  rotateControls: { flexDirection: "row", gap: 14, marginBottom: 8 },
+  rotateBtn: { flex: 1, alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 14, borderRadius: 14, borderWidth: StyleSheet.hairlineWidth },
+  rotateBtnText: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
+  rotateAngleLabel: { fontSize: 12, fontFamily: "Inter_400Regular", marginBottom: 4 },
+  rotateCropBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 12, borderRadius: 14, borderWidth: StyleSheet.hairlineWidth, width: "100%", marginBottom: 4 },
+  rotateCropText: { fontSize: 14, fontFamily: "Inter_600SemiBold" },
+  rotateActions: { flexDirection: "row", gap: 12, marginTop: 14, width: "100%" },
+  rotateCancelBtn: { flex: 1, paddingVertical: 14, borderRadius: 14, alignItems: "center", borderWidth: StyleSheet.hairlineWidth },
+  rotateCancelText: { fontSize: 15, fontFamily: "Inter_600SemiBold" },
+  rotateConfirmBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 14, borderRadius: 14 },
+  rotateConfirmText: { fontSize: 15, fontFamily: "Inter_700Bold" },
 
   measurementsWrap: { paddingHorizontal: 20, marginBottom: 12 },
 });

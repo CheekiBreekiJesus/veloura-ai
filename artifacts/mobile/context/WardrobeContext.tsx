@@ -33,6 +33,7 @@ interface WardrobeContextValue {
   feedback: Record<string, FeedbackValue>;
   addItem: (item: WardrobeItem) => Promise<void>;
   removeItem: (id: string) => Promise<void>;
+  updateItem: (id: string, patch: Partial<WardrobeItem>) => Promise<void>;
   updateItemSeasons: (id: string, seasons: Season[]) => Promise<void>;
   toggleStored: (id: string) => Promise<void>;
   setFeedback: (key: string, value: FeedbackValue | null) => Promise<void>;
@@ -84,6 +85,14 @@ export function WardrobeProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
+  const updateItem = useCallback(async (id: string, patch: Partial<WardrobeItem>) => {
+    setWardrobeItems((prev) => {
+      const next = prev.map((item) => item.id === id ? { ...item, ...patch } : item);
+      void AsyncStorage.setItem(ITEMS_KEY, JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
   const updateItemSeasons = useCallback(async (id: string, seasons: Season[]) => {
     setWardrobeItems((prev) => {
       const next = prev.map((item) => item.id === id ? { ...item, seasons } : item);
@@ -127,7 +136,7 @@ export function WardrobeProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <WardrobeContext.Provider
-      value={{ wardrobeItems, feedback, addItem, removeItem, updateItemSeasons, toggleStored, setFeedback, clearAll }}
+      value={{ wardrobeItems, feedback, addItem, removeItem, updateItem, updateItemSeasons, toggleStored, setFeedback, clearAll }}
     >
       {children}
     </WardrobeContext.Provider>
