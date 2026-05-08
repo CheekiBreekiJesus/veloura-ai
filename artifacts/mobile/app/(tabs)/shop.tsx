@@ -169,6 +169,8 @@ export default function ShopScreen() {
         } else {
           setProducts(PRODUCTS.map(mapStaticProduct));
         }
+      } catch {
+        setProducts(PRODUCTS.map(mapStaticProduct));
       } finally {
         setLoading(false);
       }
