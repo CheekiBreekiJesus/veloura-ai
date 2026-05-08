@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import React from "react";
+import type { ComponentProps } from "react";
 
 export type PriceTier = "budget" | "mid" | "luxury";
 
@@ -13,7 +13,7 @@ export type Product = {
   price: string;
   priceNumeric: number;
   priceTier: PriceTier;
-  icon: React.ComponentProps<typeof Ionicons>["name"];
+  icon: ComponentProps<typeof Ionicons>["name"];
   gradient: [string, string];
   featured?: boolean;
   isNew?: boolean;

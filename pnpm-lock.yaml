@@ -231,23 +231,23 @@ importers:
   artifacts/mobile:
     dependencies:
       expo-clipboard:
-        specifier: ^55.0.13
-        version: 55.0.13(expo@54.0.34)(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
+        specifier: ~8.0.8
+        version: 8.0.8(expo@54.0.34)(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
       expo-file-system:
         specifier: ^19.0.22
         version: 19.0.22(expo@54.0.34)(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))
       expo-image-manipulator:
-        specifier: ^55.0.16
-        version: 55.0.16(expo@54.0.34)
+        specifier: ~14.0.8
+        version: 14.0.8(expo@54.0.34)
       expo-media-library:
-        specifier: ^55.0.16
-        version: 55.0.16(expo@54.0.34)(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))
+        specifier: ~18.0.0
+        version: 18.0.6(expo@54.0.34)(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))
       expo-sharing:
         specifier: ^14.0.8
         version: 14.0.8(expo@54.0.34)
       react-native-view-shot:
-        specifier: ^5.1.0
-        version: 5.1.0(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
+        specifier: 4.0.3
+        version: 4.0.3(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
     devDependencies:
       '@babel/core':
         specifier: ^7.25.2
@@ -3444,8 +3444,8 @@ packages:
       react: '*'
       react-native: '*'
 
-  expo-clipboard@55.0.13:
-    resolution: {integrity: sha512-PrOmmuVsGW4bAkNQmGKtxMXj3invsfN+jfIKmQxHwE/dn7ODqwFWviUTa+PMUjP3XZmYCDLyu/i0GLeu7HF9Ew==}
+  expo-clipboard@8.0.8:
+    resolution: {integrity: sha512-VKoBkHIpZZDJTB0jRO4/PZskHdMNOEz3P/41tmM6fDuODMpqhvyWK053X0ebspkxiawJX9lX33JXHBCvVsTTOA==}
     peerDependencies:
       expo: '*'
       react: '*'
@@ -3482,18 +3482,13 @@ packages:
     peerDependencies:
       expo: '*'
 
-  expo-image-loader@55.0.0:
-    resolution: {integrity: sha512-NOjp56wDrfuA5aiNAybBIjqIn1IxKeGJ8CECWZncQ/GzjZfyTYAHTCyeApYkdKkMBLHINzI4BbTGSlbCa0fXXQ==}
-    peerDependencies:
-      expo: '*'
-
   expo-image-loader@6.0.0:
     resolution: {integrity: sha512-nKs/xnOGw6ACb4g26xceBD57FKLFkSwEUTDXEDF3Gtcu3MqF3ZIYd3YM+sSb1/z9AKV1dYT7rMSGVNgsveXLIQ==}
     peerDependencies:
       expo: '*'
 
-  expo-image-manipulator@55.0.16:
-    resolution: {integrity: sha512-1c9XJR2z+/vnBmJ6Spq7qhlRpD9WHu+ywM5sqfmn6f1LFD82pC5y/9xbJ50gIyOe6hWPkqasKMG8HKz69m2YRw==}
+  expo-image-manipulator@14.0.8:
+    resolution: {integrity: sha512-sXsXjm7rIxLWZe0j2A41J/Ph53PpFJRdyzJ3EQ/qetxLUvS2m3K1sP5xy37px43qCf0l79N/i6XgFgenFV36/Q==}
     peerDependencies:
       expo: '*'
 
@@ -3537,8 +3532,8 @@ packages:
     peerDependencies:
       expo: '*'
 
-  expo-media-library@55.0.16:
-    resolution: {integrity: sha512-ZSo5hkLiPXZUQ7TdJfG3N5xh9HVwTwGoLMom2lxHUJs4+4nHMO0D/A1n2aH6+ZGAqqvpL0GcNHLB0xWk0VdO5A==}
+  expo-media-library@18.0.6:
+    resolution: {integrity: sha512-oEX+YTHeFS2O/XH+Xk8IsL1gNK2OqgQtiTz6bxsJFyX4A6o22mbI1ENdp3gnejmjeS7wDDTuM622jEIgpKOWPQ==}
     peerDependencies:
       expo: '*'
       react-native: '*'
@@ -4997,12 +4992,11 @@ packages:
       react: '*'
       react-native: '*'
 
-  react-native-view-shot@5.1.0:
-    resolution: {integrity: sha512-JZgElCD82aO+hejIF/leUzI7JufL9mgJ6ChzGWIcdZ2ajpaEvvSnvIcw0qD32XWkrbId8wfSbyz/4u/ulTQzQA==}
-    engines: {node: '>=20', npm: '>=10'}
+  react-native-view-shot@4.0.3:
+    resolution: {integrity: sha512-USNjYmED7C0me02c1DxKA0074Hw+y/nxo+xJKlffMvfUWWzL5ELh/TJA/pTnVqFurIrzthZDPtDM7aBFJuhrHQ==}
     peerDependencies:
-      react: '>=18.0.0'
-      react-native: '>=0.76.0'
+      react: '*'
+      react-native: '*'
 
   react-native-web@0.21.2:
     resolution: {integrity: sha512-SO2t9/17zM4iEnFvlu2DA9jqNbzNhoUP+AItkoCOyFmDMOhUnBBznBDCYN92fGdfAkfQlWzPoez6+zLxFNsZEg==}
@@ -9476,7 +9470,7 @@ snapshots:
       react: 19.1.0
       react-native: 0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0)
 
-  expo-clipboard@55.0.13(expo@54.0.34)(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0):
+  expo-clipboard@8.0.8(expo@54.0.34)(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0):
     dependencies:
       expo: 54.0.34(@babel/core@7.29.0)(@expo/metro-runtime@6.1.2)(expo-router@6.0.23)(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)(typescript@5.9.3)
       react: 19.1.0
@@ -9513,18 +9507,14 @@ snapshots:
     dependencies:
       expo: 54.0.34(@babel/core@7.29.0)(@expo/metro-runtime@6.1.2)(expo-router@6.0.23)(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)(typescript@5.9.3)
 
-  expo-image-loader@55.0.0(expo@54.0.34):
-    dependencies:
-      expo: 54.0.34(@babel/core@7.29.0)(@expo/metro-runtime@6.1.2)(expo-router@6.0.23)(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)(typescript@5.9.3)
-
   expo-image-loader@6.0.0(expo@54.0.34):
     dependencies:
       expo: 54.0.34(@babel/core@7.29.0)(@expo/metro-runtime@6.1.2)(expo-router@6.0.23)(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)(typescript@5.9.3)
 
-  expo-image-manipulator@55.0.16(expo@54.0.34):
+  expo-image-manipulator@14.0.8(expo@54.0.34):
     dependencies:
       expo: 54.0.34(@babel/core@7.29.0)(@expo/metro-runtime@6.1.2)(expo-router@6.0.23)(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)(typescript@5.9.3)
-      expo-image-loader: 55.0.0(expo@54.0.34)
+      expo-image-loader: 6.0.0(expo@54.0.34)
 
   expo-image-picker@17.0.11(expo@54.0.34):
     dependencies:
@@ -9564,7 +9554,7 @@ snapshots:
     dependencies:
       expo: 54.0.34(@babel/core@7.29.0)(@expo/metro-runtime@6.1.2)(expo-router@6.0.23)(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)(typescript@5.9.3)
 
-  expo-media-library@55.0.16(expo@54.0.34)(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0)):
+  expo-media-library@18.0.6(expo@54.0.34)(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0)):
     dependencies:
       expo: 54.0.34(@babel/core@7.29.0)(@expo/metro-runtime@6.1.2)(expo-router@6.0.23)(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)(typescript@5.9.3)
       react-native: 0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0)
@@ -11294,7 +11284,7 @@ snapshots:
       react-native: 0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0)
       warn-once: 0.1.1
 
-  react-native-view-shot@5.1.0(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0):
+  react-native-view-shot@4.0.3(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0):
     dependencies:
       html2canvas: 1.4.1
       react: 19.1.0
