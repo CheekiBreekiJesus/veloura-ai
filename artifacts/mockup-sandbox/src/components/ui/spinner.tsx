@@ -8,8 +8,7 @@ function Spinner({ className, ...props }: React.ComponentProps<"svg">) {
       role="status"
       aria-label="Loading"
       className={cn("size-4 animate-spin", className)}
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      {...(props as any)}
+      {...props}
     />
   )
 }

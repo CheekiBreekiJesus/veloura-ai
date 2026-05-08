@@ -129,8 +129,7 @@ function Calendar({
           return (
             <div
               data-slot="calendar"
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              ref={rootRef as any}
+              ref={rootRef}
               className={cn(className)}
               {...props}
             />

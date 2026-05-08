@@ -149,6 +149,7 @@ overrides:
   '@expo/ngrok-bin>@expo/ngrok-bin-win32-x64': '-'
   '@esbuild-kit/esm-loader': npm:tsx@^4.21.0
   esbuild: 0.27.3
+  react-day-picker>@types/react: ^19.2.0
   brace-expansion: 5.0.5
   picomatch: 4.0.4
   yaml: 2.8.4

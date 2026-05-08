@@ -4,7 +4,6 @@
   "exclude": ["node_modules", "build", "dist", "**/*.test.ts"],
   "compilerOptions": {
     "noEmit": true,
-    "skipLibCheck": true,
     "lib": ["es2022", "dom", "dom.iterable"],
     "jsx": "preserve",
     "esModuleInterop": true,

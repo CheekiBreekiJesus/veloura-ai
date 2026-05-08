@@ -160,6 +160,12 @@ overrides:
   # drizzle-kit uses esbuild internally on an older version that's vulnerable, this overrides it
   "@esbuild-kit/esm-loader": "npm:tsx@^4.21.0"
   esbuild: "0.27.3"
+  # ── @types/react deduplication (scoped) ─────────────────────────────────────
+  # react-day-picker resolves @types/react@19.1.x as a peer dep, which creates
+  # a dual-version conflict ("two different types with this name exist") in the
+  # mockup-sandbox. This scoped override redirects only react-day-picker's peer
+  # to the workspace catalog version — Expo packages are unaffected.
+  "react-day-picker>@types/react": "catalog:"
   # ── Security vulnerability overrides ────────────────────────────────────────
   # Pinned to exact patched versions for deterministic, safe dependency governance.
   # brace-expansion: CVE-2026-33750 (ReDoS / process hang) — fixed in 2.0.3+; lockfile resolved 5.0.5
